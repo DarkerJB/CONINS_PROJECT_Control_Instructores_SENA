@@ -1,6 +1,5 @@
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import xss from 'xss-clean';
 
 export const securityHeaders = helmet({
   contentSecurityPolicy: false,
@@ -22,5 +21,3 @@ export const authRateLimiter = rateLimit({
   legacyHeaders: false,
   message: { success: false, message: 'Demasiados intentos — intente en 15 minutos' },
 });
-
-export const xssProtection = xss();

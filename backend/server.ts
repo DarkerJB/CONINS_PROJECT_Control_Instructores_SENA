@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { securityHeaders, rateLimiterGlobal, authRateLimiter, xssProtection } from './middleware/security.js';
+import { securityHeaders, rateLimiterGlobal, authRateLimiter} from './middleware/security.js';
 import { auditLogger } from './middleware/audit.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { verifyToken } from './middleware/auth.js';
@@ -16,7 +16,7 @@ import alertaRoutes from './routes/alerta.routes.js';
 import notificacionRoutes from './routes/notificacion.routes.js';
 import catalogoRoutes from './routes/catalogo.routes.js';
 
-dotenv.config({ path: '../' });
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -24,9 +24,6 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 // Security headers (Helmet)
 app.use(securityHeaders);
-
-// XSS protection
-app.use(xssProtection);
 
 // Global rate limiter
 app.use(rateLimiterGlobal);

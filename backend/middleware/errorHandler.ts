@@ -7,6 +7,9 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction,
 ) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.error('[ERROR]', err);
+  }
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
       success: false,
