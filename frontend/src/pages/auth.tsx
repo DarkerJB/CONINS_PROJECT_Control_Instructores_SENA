@@ -1,15 +1,22 @@
 import { useState } from "react"
+import { useRouter } from "next/router"
 import Image from "next/image"
 import LoginForm from "@/components/auth/LoginForm"
 import CreatePasswordForm from "@/components/auth/CreatePasswordForm"
 
 export default function AuthPage() {
+  const router = useRouter()
   const [pestanaActiva, setPestanaActiva] = useState("login")
+
+  const handleLoginSuccess = (_token: string, user: any) => {
+    localStorage.setItem("conins_user", JSON.stringify(user))
+    router.push("/dashboard")
+  }
 
   return (
     <main className="min-h-screen bg-gray-100 flex flex-col items-center justify-center px-4">
 
-      {/* Logo y título */}
+      {/* Logo y titulo */}
       <div className="flex flex-col items-center mb-8">
         <Image
           src="/logoSena.png"
@@ -19,7 +26,7 @@ export default function AuthPage() {
           className="mb-4"
         />
         <h1 className="text-3xl font-bold text-gray-900">Bienvenido a CONINS</h1>
-        <p className="text-gray-500 mt-1">Control de Instructores · CDMC SENA</p>
+        <p className="text-gray-500 mt-1">Control de Instructores - CDMC SENA</p>
       </div>
 
       {/* Tarjeta */}
@@ -35,7 +42,7 @@ export default function AuthPage() {
                 : "text-gray-500"
             }`}
           >
-            Iniciar sesión
+            Iniciar sesion
           </button>
           <button
             onClick={() => setPestanaActiva("registro")}
@@ -50,12 +57,12 @@ export default function AuthPage() {
         </div>
 
         {/* Formularios */}
-        {pestanaActiva === "login" && <LoginForm />}
+        {pestanaActiva === "login" && <LoginForm onSuccess={handleLoginSuccess} />}
         {pestanaActiva === "registro" && <CreatePasswordForm />}
       </div>
 
       {/* Footer */}
-      <p className="text-gray-400 text-sm mt-8">© 2026 CONINS · CDMC SENA</p>
+      <p className="text-gray-400 text-sm mt-8">© 2026 CONINS - CDMC SENA</p>
     </main>
   )
 }

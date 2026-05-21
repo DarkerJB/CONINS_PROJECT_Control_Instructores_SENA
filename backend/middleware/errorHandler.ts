@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../utils/errors.js';
+import fs from 'fs';
+import path from 'path';
 
 export const errorHandler = (
   err: Error,
@@ -7,9 +9,8 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction,
 ) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.error('[ERROR]', err);
-  }
+  const logMsg = `[${new Date().toISOString()}] ${err.name}: ${err.message}\n${err.stack}\n---\n`;
+  fs.appendFileSync(path.join(process.cwd(), 'error.log'), logMsg);
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
       success: false,

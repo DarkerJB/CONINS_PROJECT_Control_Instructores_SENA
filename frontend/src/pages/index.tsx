@@ -1,7 +1,17 @@
+import { useEffect } from "react"
+import { useRouter } from "next/router"
+
 export default function Home() {
-  return (
-    <main>
-      <h1>CONINS</h1>
-    </main>
-  )
+  const router = useRouter()
+
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    if (token) {
+      router.push("/dashboard")
+    } else {
+      router.push("/auth")
+    }
+  }, [router])
+
+  return null
 }
