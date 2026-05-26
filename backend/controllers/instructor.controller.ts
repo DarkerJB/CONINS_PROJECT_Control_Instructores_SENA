@@ -48,3 +48,21 @@ export const toggleEstado = asyncHandler(async (req: Request, res: Response) => 
   const message = result.activo ? 'Instructor activado' : 'Instructor desactivado';
   ApiResponse.success(res, result, message);
 });
+
+export const create = asyncHandler(async (req: Request, res: Response) => {
+  const { nombre, email, tipo_contrato, tipo_area } = req.body;
+  const result = await InstructorService.create(nombre, email, tipo_contrato, tipo_area);
+  ApiResponse.created(res, result, 'Instructor creado exitosamente');
+});
+
+export const registrarNovedad = asyncHandler(async (req: Request, res: Response) => {
+  const { tipo_novedad, fecha_inicio, fecha_regreso, observacion } = req.body;
+  const result = await InstructorService.registrarNovedad(
+    Number(req.params.id),
+    tipo_novedad,
+    fecha_inicio,
+    fecha_regreso,
+    observacion,
+  );
+  ApiResponse.created(res, result, 'Novedad registrada exitosamente');
+});

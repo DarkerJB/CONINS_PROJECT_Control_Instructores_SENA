@@ -139,4 +139,44 @@ export const InstructorModel = {
   async deleteByUsuarioId(usuarioId: number): Promise<void> {
     await pool.query('DELETE FROM instructores WHERE usuario_id = ?', [usuarioId]);
   },
+
+  async crearNovedad(
+    instructorId: number,
+    tipoNovedad: string,
+    fechaInicio: string,
+    fechaRegreso: string,
+    observacion?: string,
+  ): Promise<number> {
+    const [result] = await pool.query(
+      `INSERT INTO instructor_novedades (instructor_id, tipo_novedad, fecha_inicio, fecha_regreso, observacion)
+       VALUES (?, ?, ?, ?, ?)`,
+      [instructorId, tipoNovedad, fechaInicio, fechaRegreso, observacion ?? null],
+    );
+    return (result as any).insertId;
+  },
+
+  async getHorasSemanales(instructorId: number, semana: string): Promise<number> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT COALESCE(SUM(TIMESTAMPDIFF(MINUTE, hora_inicio, hora_fin)), 0) / 60 AS total_horas
+       FROM horarios
+       WHERE instructor_id = ? AND semana = ? AND activo = TRUE`,
+      [instructorId, semana],
+    );
+    return Number((rows[0] as any)?.total_horas ?? 0);
+  },
+
+  async getHorasSemanalesTodos(semana: string): Promise<Map<number, number>> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT instructor_id, COALESCE(SUM(TIMESTAMPDIFF(MINUTE, hora_inicio, hora_fin)), 0) / 60 AS total_horas
+       FROM horarios
+       WHERE semana = ? AND activo = TRUE
+       GROUP BY instructor_id`,
+      [semana],
+    );
+    const map = new Map<number, number>();
+    for (const row of rows) {
+      map.set((row as any).instructor_id, Number((row as any).total_horas ?? 0));
+    }
+    return map;
+  },
 };
