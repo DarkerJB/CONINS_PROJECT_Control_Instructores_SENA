@@ -88,6 +88,41 @@ export const api = {
             })
         },
     },
+
+    fichas: {
+        getAll() {
+            return apiFetch('/fichas')
+        },
+    },
+
+    assignments: {
+        getAll() {
+            return apiFetch('/asignaciones')
+        },
+        create(data: any) {
+            return apiFetch('/asignaciones', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            })
+        },
+        delete(id: number) {
+            return apiFetch(`/asignaciones/${id}`, {
+                method: 'DELETE',
+            })
+        },
+    },
+
+    horarios: {
+        getAll() {
+            return apiFetch('/horarios')
+        },
+        create(data: any) {
+            return apiFetch('/horarios', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            })
+        },
+    },
 }
 
 export type ApiResponse<T = unknown> = {

@@ -16,7 +16,6 @@ export default function AuthPage() {
           alt="Logo SENA"
           width={80}
           height={80}
-          style={{ height: 'auto' }}
           className="mb-4"
         />
         <h1 className="text-3xl font-bold text-gray-900">Bienvenido a CONINS</h1>

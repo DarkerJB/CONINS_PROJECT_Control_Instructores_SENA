@@ -18,10 +18,16 @@ export const InstructorService = {
     const instructors = await InstructorModel.findAll();
     const semana = getLunesSemanaActual();
     const horasMap = await InstructorModel.getHorasSemanalesTodos(semana);
-    return instructors.map((i) => ({
-      ...i,
-      horas_semana: horasMap.get(i.id) ?? 0,
-    }));
+    const result = [];
+    for (const i of instructors) {
+      const tieneNovedad = await InstructorModel.tieneNovedadActiva(i.usuario_id);
+      result.push({
+        ...i,
+        horas_semana: horasMap.get(i.id) ?? 0,
+        tiene_novedad: tieneNovedad,
+      });
+    }
+    return result;
   },
 
   async getById(id: number) {

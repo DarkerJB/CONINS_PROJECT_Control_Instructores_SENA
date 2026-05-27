@@ -179,4 +179,16 @@ export const InstructorModel = {
     }
     return map;
   },
+
+  async tieneNovedadActiva(usuarioId: number): Promise<boolean> {
+    const [rows] = await pool.query(
+      `SELECT 1 FROM instructor_novedades ino
+       JOIN instructores i ON ino.instructor_id = i.id
+       WHERE i.usuario_id = ? AND ino.activo = TRUE
+         AND ino.fecha_inicio <= CURDATE() AND ino.fecha_regreso >= CURDATE()
+       LIMIT 1`,
+      [usuarioId],
+    );
+    return (rows as any[]).length > 0;
+  },
 };

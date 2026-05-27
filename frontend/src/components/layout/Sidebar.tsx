@@ -15,13 +15,13 @@ import {
 const menuItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Instructores", href: "/instructores", icon: Users },
-  { name: "Fichas", href: "/fichas", icon: BookOpen, disabled: true },
-  { name: "Horarios", href: "/horarios", icon: Calendar, disabled: true },
-  { name: "Asignaciones", href: "/asignaciones", icon: ClipboardList, disabled: true },
-  { name: "Ambientes", href: "/ambientes", icon: Building2, disabled: true },
-  { name: "Alertas", href: "/alertas", icon: Bell, badge: 2, disabled: true },
-  { name: "Consultas", href: "/consultas", icon: Search, disabled: true },
-  { name: "Usuarios", href: "/usuarios", icon: UserCog, disabled: true },
+  { name: "Fichas", href: "/fichas", icon: BookOpen },
+  { name: "Horarios", href: "/horarios", icon: Calendar },
+  { name: "Asignaciones", href: "/asignaciones", icon: ClipboardList },
+  { name: "Ambientes", href: "/ambientes", icon: Building2 },
+  { name: "Alertas", href: "/alertas", icon: Bell, badge: 2 },
+  { name: "Consultas", href: "/consultas", icon: Search },
+  { name: "Usuarios", href: "/usuarios", icon: UserCog },
 ]
 
 export default function Sidebar() {
@@ -47,24 +47,6 @@ export default function Sidebar() {
         {menuItems.map((item) => {
           const isActive = router.pathname === item.href
           const Icon = item.icon
-          const isDisabled = item.disabled
-
-          if (isDisabled) {
-            return (
-              <div
-                key={item.name}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/40 cursor-not-allowed"
-              >
-                <Icon className="w-5 h-5" />
-                <span>{item.name}</span>
-                {item.badge && (
-                  <span className="ml-auto bg-white/20 text-white/60 text-xs font-bold px-2 py-0.5 rounded-full">
-                    {item.badge}
-                  </span>
-                )}
-              </div>
-            )
-          }
 
           return (
             <Link
