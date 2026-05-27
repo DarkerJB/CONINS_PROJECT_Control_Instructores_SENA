@@ -6,6 +6,7 @@ export interface HorarioRecord extends RowDataPacket {
   ficha_id: number;
   instructor_id: number;
   competencia_id: number;
+  ambiente_id: number | null;
   dia_semana: number;
   hora_inicio: string;
   hora_fin: string;
@@ -36,9 +37,10 @@ export const HorarioModel = {
   async findAll(): Promise<HorarioDetail[]> {
     const [rows] = await pool.query<HorarioDetail[]>(`
       SELECT h.id, f.numero_ficha AS ficha_numero, u.nombre AS instructor_nombre,
-             c.nombre AS competencia, a.nombre AS ambiente,
+             c.nombre AS competencia,
+             COALESCE(ab.nombre, 'Sin asignar') AS ambiente,
              j.nombre AS jornada,
-             GROUP_CONCAT(DISTINCT d.dia ORDER BY d.dia SEPARATOR ',') AS dias,
+             GROUP_CONCAT(DISTINCT h2.dia_semana ORDER BY h2.dia_semana SEPARATOR ',') AS dias,
              CONCAT(TIME_FORMAT(MIN(h.hora_inicio), '%H:%i'), ' - ', TIME_FORMAT(MAX(h.hora_fin), '%H:%i')) AS horas,
              IF(h.activo, 'Activo', 'Deshabilitado') AS estado,
              h.activo
@@ -47,11 +49,9 @@ export const HorarioModel = {
       JOIN instructores i ON h.instructor_id = i.id
       JOIN usuarios u ON i.usuario_id = u.id
       JOIN competencias c ON h.competencia_id = c.id
-      LEFT JOIN ambientes a ON f.ambiente_id = a.id
+      LEFT JOIN ambientes ab ON h.ambiente_id = ab.id
       JOIN jornadas j ON h.jornada_id = j.id
-      LEFT JOIN (
-        SELECT id, dia_semana AS dia FROM horarios WHERE activo = TRUE
-      ) d ON h.id = d.id
+      JOIN horarios h2 ON h2.id = h.id AND h2.activo = TRUE
       GROUP BY h.id
       ORDER BY h.id
     `);
@@ -67,9 +67,10 @@ export const HorarioModel = {
   async findById(id: number): Promise<HorarioDetail | null> {
     const [rows] = await pool.query<HorarioDetail[]>(`
       SELECT h.id, f.numero_ficha AS ficha_numero, u.nombre AS instructor_nombre,
-             c.nombre AS competencia, a.nombre AS ambiente,
+             c.nombre AS competencia,
+             COALESCE(ab.nombre, 'Sin asignar') AS ambiente,
              j.nombre AS jornada,
-             GROUP_CONCAT(DISTINCT d.dia ORDER BY d.dia SEPARATOR ',') AS dias,
+             GROUP_CONCAT(DISTINCT h2.dia_semana ORDER BY h2.dia_semana SEPARATOR ',') AS dias,
              CONCAT(TIME_FORMAT(MIN(h.hora_inicio), '%H:%i'), ' - ', TIME_FORMAT(MAX(h.hora_fin), '%H:%i')) AS horas,
              IF(h.activo, 'Activo', 'Deshabilitado') AS estado,
              h.activo
@@ -78,11 +79,9 @@ export const HorarioModel = {
       JOIN instructores i ON h.instructor_id = i.id
       JOIN usuarios u ON i.usuario_id = u.id
       JOIN competencias c ON h.competencia_id = c.id
-      LEFT JOIN ambientes a ON f.ambiente_id = a.id
+      LEFT JOIN ambientes ab ON h.ambiente_id = ab.id
       JOIN jornadas j ON h.jornada_id = j.id
-      LEFT JOIN (
-        SELECT id, dia_semana AS dia FROM horarios WHERE activo = TRUE
-      ) d ON h.id = d.id
+      JOIN horarios h2 ON h2.id = h.id AND h2.activo = TRUE
       WHERE h.id = ?
       GROUP BY h.id
     `, [id]);
@@ -93,6 +92,7 @@ export const HorarioModel = {
     ficha_id: number;
     instructor_id: number;
     competencia_id: number;
+    ambiente_id?: number | null;
     dia_semana: number;
     hora_inicio: string;
     hora_fin: string;
@@ -100,13 +100,14 @@ export const HorarioModel = {
     semana: string;
   }): Promise<number> {
     const [result] = await pool.query(
-      `INSERT INTO horarios (ficha_id, instructor_id, competencia_id, dia_semana,
-        hora_inicio, hora_fin, jornada_id, semana)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO horarios (ficha_id, instructor_id, competencia_id, ambiente_id,
+        dia_semana, hora_inicio, hora_fin, jornada_id, semana)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.ficha_id,
         data.instructor_id,
         data.competencia_id,
+        data.ambiente_id ?? null,
         data.dia_semana,
         data.hora_inicio,
         data.hora_fin,
@@ -122,7 +123,7 @@ export const HorarioModel = {
     hora_inicio?: string;
     hora_fin?: string;
     competencia_id?: number;
-    ambiente_id?: number;
+    ambiente_id?: number | null;
   }): Promise<void> {
     const updates: string[] = [];
     const values: any[] = [];
@@ -131,6 +132,7 @@ export const HorarioModel = {
     if (data.hora_inicio !== undefined) { updates.push('hora_inicio = ?'); values.push(data.hora_inicio); }
     if (data.hora_fin !== undefined) { updates.push('hora_fin = ?'); values.push(data.hora_fin); }
     if (data.competencia_id !== undefined) { updates.push('competencia_id = ?'); values.push(data.competencia_id); }
+    if (data.ambiente_id !== undefined) { updates.push('ambiente_id = ?'); values.push(data.ambiente_id); }
 
     if (updates.length === 0) return;
 
@@ -157,5 +159,47 @@ export const HorarioModel = {
       [instructorId, semana],
     );
     return Number((rows[0] as any)?.total_horas ?? 0);
+  },
+
+  async hasOverlap(
+    instructorId: number,
+    diaSemana: number,
+    horaInicio: string,
+    horaFin: string,
+    semana: string,
+    excludeId?: number,
+  ): Promise<boolean> {
+    const query = `
+      SELECT 1 FROM horarios
+      WHERE instructor_id = ? AND dia_semana = ? AND semana = ? AND activo = TRUE
+        AND hora_inicio < ? AND hora_fin > ?
+      ${excludeId ? 'AND id != ?' : ''}
+      LIMIT 1
+    `;
+    const params = excludeId
+      ? [instructorId, diaSemana, semana, horaFin, horaInicio, excludeId]
+      : [instructorId, diaSemana, semana, horaFin, horaInicio];
+    const [rows] = await pool.query(query, params);
+    return (rows as any[]).length > 0;
+  },
+
+  async hasAmbienteOcupado(
+    ambienteId: number,
+    diaSemana: number,
+    jornadaId: number,
+    semana: string,
+    excludeId?: number,
+  ): Promise<boolean> {
+    const query = `
+      SELECT 1 FROM horarios
+      WHERE ambiente_id = ? AND dia_semana = ? AND jornada_id = ? AND semana = ? AND activo = TRUE
+      ${excludeId ? 'AND id != ?' : ''}
+      LIMIT 1
+    `;
+    const params = excludeId
+      ? [ambienteId, diaSemana, jornadaId, semana, excludeId]
+      : [ambienteId, diaSemana, jornadaId, semana];
+    const [rows] = await pool.query(query, params);
+    return (rows as any[]).length > 0;
   },
 };

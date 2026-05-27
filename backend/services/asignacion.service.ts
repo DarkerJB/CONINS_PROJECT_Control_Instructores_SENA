@@ -1,7 +1,7 @@
 import { AsignacionModel } from '../models/asignacion.model.js';
 import { InstructorModel } from '../models/instructor.model.js';
 import { FichaModel } from '../models/ficha.model.js';
-import { NotFoundError, ValidationError, ForbiddenError } from '../utils/errors.js';
+import { NotFoundError, ValidationError, ForbiddenError, ConflictError } from '../utils/errors.js';
 
 export const AsignacionService = {
   async getAll() {
@@ -31,7 +31,14 @@ export const AsignacionService = {
     if (ficha.estado === 'Finalizada') throw new ForbiddenError('No se pueden crear asignaciones en fichas finalizadas');
 
     const tieneNovedad = await AsignacionModel.tieneNovedadActiva(data.instructor_id);
-    if (tieneNovedad) throw new ValidationError('El instructor tiene una novedad activa vigente');
+    if (tieneNovedad) throw new ValidationError('El instructor tiene una novedad activa vigente (RN-08)');
+
+    for (const competenciaId of data.competencia_ids) {
+      const hasRap = await AsignacionModel.hasRapEnFicha(data.ficha_id, competenciaId);
+      if (hasRap) {
+        throw new ConflictError('Un RAP de esta competencia ya esta asignado a otro instructor en la misma ficha (RN-06)');
+      }
+    }
 
     const id = await AsignacionModel.create(data);
     return AsignacionModel.findById(id);

@@ -154,4 +154,21 @@ export const AsignacionModel = {
     );
     return (rows as any[]).length > 0;
   },
+
+  async hasRapEnFicha(fichaId: number, competenciaId: number): Promise<boolean> {
+    const [rows] = await pool.query(
+      `SELECT 1 FROM asignacion_competencia ac
+       JOIN asignacion a ON ac.asignacion_id = a.id
+       JOIN raps r ON r.competencia_id = ac.competencia_id
+       WHERE a.ficha_id = ? AND ac.competencia_id != ? AND ac.activo = TRUE AND a.activo = TRUE
+         AND r.competencia_id IN (
+           SELECT r2.competencia_id FROM raps r2 WHERE r2.id IN (
+             SELECT r3.id FROM raps r3 WHERE r3.competencia_id = ?
+           )
+         )
+       LIMIT 1`,
+      [fichaId, competenciaId, competenciaId],
+    );
+    return (rows as any[]).length > 0;
+  },
 };

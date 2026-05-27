@@ -303,6 +303,7 @@ CREATE TABLE IF NOT EXISTS horarios (
     ficha_id      INT NOT NULL,
     instructor_id INT NOT NULL,
     competencia_id INT NOT NULL,
+    ambiente_id   INT NULL COMMENT 'NULL para fichas virtuales (RN-14)',
     dia_semana    TINYINT UNSIGNED NOT NULL COMMENT '1=Lunes ... 7=Domingo',
     hora_inicio   TIME NOT NULL,
     hora_fin      TIME NOT NULL,
@@ -313,6 +314,7 @@ CREATE TABLE IF NOT EXISTS horarios (
     FOREIGN KEY (ficha_id)       REFERENCES fichas(id)       ON DELETE CASCADE,
     FOREIGN KEY (instructor_id)  REFERENCES instructores(id) ON DELETE CASCADE,
     FOREIGN KEY (competencia_id) REFERENCES competencias(id) ON DELETE RESTRICT,
+    FOREIGN KEY (ambiente_id)    REFERENCES ambientes(id)    ON DELETE SET NULL,
     FOREIGN KEY (jornada_id)     REFERENCES jornadas(id)     ON DELETE RESTRICT,
     INDEX idx_semana_instructor (semana, instructor_id)
 ) ENGINE=InnoDB;
