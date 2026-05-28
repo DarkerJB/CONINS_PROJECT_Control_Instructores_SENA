@@ -1,6 +1,8 @@
 import { AsignacionModel } from '../models/asignacion.model.js';
+import { AsignacionCompetenciaModel } from '../models/asignacion-competencia.model.js';
 import { InstructorModel } from '../models/instructor.model.js';
 import { FichaModel } from '../models/ficha.model.js';
+import { PermisoService } from '../services/permiso.service.js';
 import { NotFoundError, ValidationError, ForbiddenError, ConflictError } from '../utils/errors.js';
 
 export const AsignacionService = {
@@ -22,6 +24,7 @@ export const AsignacionService = {
     autorizado_por_id?: number | null;
     motivo_provisional?: string | null;
     competencia_ids: number[];
+    usuarioId?: number;
   }) {
     const instructor = await InstructorModel.findById(data.instructor_id);
     if (!instructor) throw new NotFoundError('Instructor no encontrado');
@@ -40,6 +43,10 @@ export const AsignacionService = {
       }
     }
 
+    if (data.usuarioId) {
+      await PermisoService.validarAlcanceCoordinador(data.usuarioId, data.ficha_id);
+    }
+
     const id = await AsignacionModel.create(data);
     return AsignacionModel.findById(id);
   },
@@ -48,11 +55,32 @@ export const AsignacionService = {
     competencia_id?: number;
     ambiente_excepcion_id?: number | null;
     es_lider_ficha?: boolean;
+    nuevo_instructor_id?: number;
   }) {
     const asignacion = await AsignacionModel.findById(id);
     if (!asignacion) throw new NotFoundError('Asignacion no encontrada');
 
-    await AsignacionModel.update(id, data);
+    if (data.competencia_id || data.ambiente_excepcion_id) {
+      const competenciasActuales = await AsignacionCompetenciaModel.findByAsignacion(id);
+      for (const comp of competenciasActuales) {
+        if (data.competencia_id && data.competencia_id !== comp.competencia_id) {
+          await AsignacionCompetenciaModel.updateCompetencia(
+            id,
+            comp.competencia_id,
+            data.competencia_id,
+            asignacion.instructor_id,
+          );
+        }
+        if (data.ambiente_excepcion_id !== undefined) {
+          await AsignacionCompetenciaModel.updateAmbiente(id, data.ambiente_excepcion_id);
+        }
+      }
+    }
+
+    if (data.es_lider_ficha !== undefined) {
+      await AsignacionModel.update(id, { es_lider_ficha: data.es_lider_ficha });
+    }
+
     return AsignacionModel.findById(id);
   },
 
@@ -70,7 +98,10 @@ export const AsignacionService = {
     autorizado_por_id: number;
     motivo_provisional: string;
     competencia_ids: number[];
+    usuarioId: number;
   }) {
+    await PermisoService.validarNoLiderParaProvisional(data.usuarioId);
+
     return AsignacionService.create({
       ...data,
       es_provisional: true,

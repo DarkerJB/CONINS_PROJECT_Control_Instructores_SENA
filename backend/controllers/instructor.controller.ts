@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse } from '../utils/response.js';
 import { InstructorService } from '../services/instructor.service.js';
+import { NotificacionService } from '../services/notificacion.service.js';
+import { InstructorModel } from '../models/instructor.model.js';
 
 export const getAll = asyncHandler(async (_req: Request, res: Response) => {
   const instructors = await InstructorService.getAll();
@@ -64,5 +66,16 @@ export const registrarNovedad = asyncHandler(async (req: Request, res: Response)
     fecha_regreso,
     observacion,
   );
+
+  const instructor = await InstructorModel.findById(Number(req.params.id));
+  if (instructor) {
+    await NotificacionService.onNovedadRegistrada(
+      instructor,
+      tipo_novedad,
+      fecha_inicio,
+      fecha_regreso,
+    );
+  }
+
   ApiResponse.created(res, result, 'Novedad registrada exitosamente');
 });

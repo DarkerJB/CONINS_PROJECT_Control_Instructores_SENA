@@ -14,8 +14,18 @@ export const getById = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const create = asyncHandler(async (req: Request, res: Response) => {
-  const horario = await HorarioService.create(req.body);
-  ApiResponse.created(res, horario, 'Horario registrado exitosamente');
+  const result = await HorarioService.create(req.body);
+
+  if (result.alerta_ambiente_ocupado) {
+    return res.status(201).json({
+      success: true,
+      message: 'Horario registrado con alerta de ambiente ocupado (RN-05)',
+      data: result,
+      alerta: 'AMBIENTE_OCUPADO',
+    });
+  }
+
+  ApiResponse.created(res, result, 'Horario registrado exitosamente');
 });
 
 export const update = asyncHandler(async (req: Request, res: Response) => {
