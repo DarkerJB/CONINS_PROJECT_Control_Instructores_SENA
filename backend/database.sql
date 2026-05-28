@@ -336,6 +336,7 @@ CREATE TABLE IF NOT EXISTS alertas (
     semana        DATE         NOT NULL COMMENT 'Fecha del lunes de la semana afectada',
     total_horas   DECIMAL(5,2) NOT NULL,
     atendida      BOOLEAN NOT NULL DEFAULT FALSE,
+    leida         BOOLEAN NOT NULL DEFAULT FALSE,
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_alerta_semana_tipo (instructor_id, semana, tipo),
     FOREIGN KEY (instructor_id) REFERENCES instructores(id) ON DELETE CASCADE

@@ -191,4 +191,71 @@ export const InstructorModel = {
     );
     return (rows as any[]).length > 0;
   },
+
+  async getDetalle(instructorId: number) {
+    const [instructorRows] = await pool.query(`
+      SELECT i.id, i.usuario_id, u.nombre, u.email, i.tipo_contrato, i.tipo_area, i.activo,
+             GROUP_CONCAT(r.nombre ORDER BY r.nivel ASC SEPARATOR ', ') AS roles
+      FROM instructores i
+      JOIN usuarios u ON i.usuario_id = u.id
+      LEFT JOIN usuario_roles ur ON u.id = ur.usuario_id
+      LEFT JOIN roles r ON ur.rol_id = r.id
+      WHERE i.id = ?
+      GROUP BY i.id
+    `, [instructorId]);
+    const instructor = (instructorRows as any[])[0];
+    if (!instructor) return null;
+
+    const [asignacionesRows] = await pool.query(`
+      SELECT a.id, f.numero_ficha, p.nombre AS programa, c.nombre AS competencia,
+             ab.nombre AS ambiente, j.nombre AS jornada,
+             a.es_lider_ficha, a.es_provisional, a.activo
+      FROM asignacion a
+      JOIN fichas f ON a.ficha_id = f.id
+      JOIN programas p ON f.programa_id = p.id
+      JOIN asignacion_competencia ac ON ac.asignacion_id = a.id AND ac.activo = TRUE
+      JOIN competencias c ON ac.competencia_id = c.id
+      JOIN jornadas j ON f.jornada_id = j.id
+      LEFT JOIN ambientes ab ON COALESCE(ac.ambiente_excepcion_id, f.ambiente_id) = ab.id
+      WHERE a.instructor_id = ?
+      ORDER BY a.activo DESC, f.numero_ficha
+    `, [instructorId]);
+
+    const [horariosRows] = await pool.query(`
+      SELECT h.id, f.numero_ficha, c.nombre AS competencia,
+             ab.nombre AS ambiente, j.nombre AS jornada,
+             h.dia_semana, h.hora_inicio, h.hora_fin, h.semana, h.activo
+      FROM horarios h
+      JOIN fichas f ON h.ficha_id = f.id
+      JOIN competencias c ON h.competencia_id = c.id
+      JOIN jornadas j ON h.jornada_id = j.id
+      LEFT JOIN ambientes ab ON h.ambiente_id = ab.id
+      WHERE h.instructor_id = ?
+      ORDER BY h.semana DESC, h.dia_semana
+    `, [instructorId]);
+
+    const [competenciasRows] = await pool.query(`
+      SELECT c.id, c.nombre, c.codigo, p.nombre AS programa_nombre
+      FROM instructor_competencias_habilitadas ich
+      JOIN competencias c ON ich.competencia_id = c.id
+      LEFT JOIN programas p ON c.programa_id = p.id
+      WHERE ich.instructor_id = ?
+      ORDER BY c.nombre
+    `, [instructorId]);
+
+    const [novedadesRows] = await pool.query(`
+      SELECT id, tipo_novedad, fecha_inicio, fecha_regreso, observacion, activo
+      FROM instructor_novedades
+      WHERE instructor_id = ?
+      ORDER BY fecha_inicio DESC
+    `, [instructorId]);
+
+    return {
+      ...instructor,
+      asignaciones: asignacionesRows,
+      horarios: horariosRows,
+      competencias: competenciasRows,
+      novedades: novedadesRows,
+    };
+  },
 };

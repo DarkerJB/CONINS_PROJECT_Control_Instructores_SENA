@@ -15,6 +15,11 @@ export const getById = asyncHandler(async (req: Request, res: Response) => {
   ApiResponse.success(res, instructor);
 });
 
+export const getDetalle = asyncHandler(async (req: Request, res: Response) => {
+  const detalle = await InstructorService.getDetalle(Number(req.params.id));
+  ApiResponse.success(res, detalle);
+});
+
 export const getOwnProfile = asyncHandler(async (req: Request, res: Response) => {
   const profile = await InstructorService.getOwnProfile(req.user.id);
   ApiResponse.success(res, profile);

@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { useRouter } from "next/router"
+import { TERMINOLOGY } from "@/lib/terminology"
 import {
   LayoutDashboard,
   Users,
@@ -12,20 +13,23 @@ import {
   UserCog,
 } from "lucide-react"
 
-const menuItems = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Instructores", href: "/instructores", icon: Users },
-  { name: "Fichas", href: "/fichas", icon: BookOpen },
-  { name: "Horarios", href: "/horarios", icon: Calendar },
-  { name: "Asignaciones", href: "/asignaciones", icon: ClipboardList },
-  { name: "Ambientes", href: "/ambientes", icon: Building2 },
-  { name: "Alertas", href: "/alertas", icon: Bell, badge: 2 },
-  { name: "Consultas", href: "/consultas", icon: Search },
-  { name: "Usuarios", href: "/usuarios", icon: UserCog },
-]
+function getMenuItems() {
+  return [
+    { name: "Dashboard", href: "/", icon: LayoutDashboard },
+    { name: "Instructores", href: "/instructores", icon: Users },
+    { name: TERMINOLOGY.fichas, href: "/fichas", icon: BookOpen },
+    { name: "Horarios", href: "/horarios", icon: Calendar },
+    { name: "Asignaciones", href: "/asignaciones", icon: ClipboardList },
+    { name: "Ambientes", href: "/ambientes", icon: Building2 },
+    { name: "Alertas", href: "/alertas", icon: Bell, badge: 2 },
+    { name: "Consultas", href: "/consultas", icon: Search },
+    { name: "Usuarios", href: "/usuarios", icon: UserCog },
+  ]
+}
 
 export default function Sidebar() {
   const router = useRouter()
+  const menuItems = getMenuItems()
 
   return (
     <aside className="w-64 bg-sena text-white flex flex-col h-screen fixed left-0 top-0">

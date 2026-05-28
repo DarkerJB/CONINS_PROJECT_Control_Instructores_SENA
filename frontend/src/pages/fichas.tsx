@@ -3,6 +3,7 @@ import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
+import { TERMINOLOGY } from "@/lib/terminology"
 import CrearFichaModal from "@/components/fichas/CrearFichaModal"
 import DetailFichaModal from "@/components/fichas/DetailFichaModal"
 import EditFichaModal from "@/components/fichas/EditFichaModal"
@@ -103,15 +104,15 @@ export default function FichasPage() {
     setConfirmDialog({
       isOpen: true,
       title: "Finalizar ficha",
-      message: `¿Estas seguro de finalizar la ficha ${ficha.numero_ficha}? No se podran hacer nuevas asignaciones.`,
+        message: `¿Estas seguro de finalizar la ${TERMINOLOGY.ficha.toLowerCase()} ${ficha.numero_ficha}? No se podran hacer nuevas asignaciones.`,
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false })
         try {
           // await api.fichas.finalizar(ficha.id)
-          showToast(`Ficha ${ficha.numero_ficha} finalizada`, "success")
+          showToast(`${TERMINOLOGY.ficha} ${ficha.numero_ficha} finalizada`, "success")
           cargarFichas()
         } catch (err) {
-          showToast("Error al finalizar ficha", "error")
+          showToast(`Error al finalizar ${TERMINOLOGY.ficha.toLowerCase()}`, "error")
         }
       },
     })
@@ -120,7 +121,7 @@ export default function FichasPage() {
   const handleEditFicha = async (data: Partial<Ficha>) => {
     if (!selectedFicha) return
     // await api.fichas.update(selectedFicha.id, data)
-    showToast("Ficha actualizada exitosamente", "success")
+    showToast(`${TERMINOLOGY.ficha} actualizada exitosamente`, "success")
     setIsEditModalOpen(false)
     cargarFichas()
   }
@@ -142,15 +143,15 @@ export default function FichasPage() {
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Fichas</h1>
-            <p className="text-gray-500 text-sm">Gestion de fichas de formacion</p>
+            <h1 className="text-2xl font-bold text-gray-900">{TERMINOLOGY.fichas}</h1>
+            <p className="text-gray-500 text-sm">Gestion de {TERMINOLOGY.fichas.toLowerCase()} de formacion</p>
           </div>
           <button
             onClick={() => setIsCreateModalOpen(true)}
             className="bg-sena hover:bg-sena/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
           >
             <Plus className="w-4 h-4" />
-            Registrar ficha
+            {TERMINOLOGY.registrarFicha}
           </button>
         </div>
 
@@ -225,7 +226,7 @@ export default function FichasPage() {
               <table className="w-full text-sm text-left">
                 <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-4">No. Ficha</th>
+                    <th className="px-6 py-4">{TERMINOLOGY.numeroFicha}</th>
                     <th className="px-6 py-4">Programa</th>
                     <th className="px-6 py-4">Jornada</th>
                     <th className="px-6 py-4">Etapa</th>
@@ -318,11 +319,11 @@ export default function FichasPage() {
         onSubmit={async (data) => {
           try {
             // await api.fichas.create(data)
-            showToast("Ficha registrada exitosamente", "success")
+            showToast(`${TERMINOLOGY.ficha} registrada exitosamente`, "success")
             setIsCreateModalOpen(false)
             cargarFichas()
           } catch (err) {
-            showToast("Error al crear ficha", "error")
+            showToast(`Error al crear ${TERMINOLOGY.ficha.toLowerCase()}`, "error")
           }
         }}
       />

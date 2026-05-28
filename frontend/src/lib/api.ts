@@ -51,13 +51,6 @@ export const api = {
             })
         },
 
-        register(email: string, password: string, tipo_contrato?: string, tipo_area?: string) {
-            return apiFetch('/auth/register', {
-                method: 'POST',
-                body: JSON.stringify({ email, password, tipo_contrato, tipo_area }),
-            })
-        },
-
         getPerfil() {
             return apiFetch('/auth/perfil')
         },

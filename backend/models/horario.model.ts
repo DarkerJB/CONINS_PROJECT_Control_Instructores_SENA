@@ -202,4 +202,23 @@ export const HorarioModel = {
     const [rows] = await pool.query(query, params);
     return (rows as any[]).length > 0;
   },
+
+  async isInstructorDePlanta(instructorId: number): Promise<boolean> {
+    const [rows] = await pool.query(
+      `SELECT 1 FROM instructores WHERE id = ? AND tipo_contrato = 'de_planta' LIMIT 1`,
+      [instructorId],
+    );
+    return (rows as any[]).length > 0;
+  },
+
+  async isJornadaNocturnaOFinDeSemana(jornadaId: number, diaSemana: number): Promise<boolean> {
+    const [rows] = await pool.query(
+      `SELECT nombre FROM jornadas WHERE id = ?`,
+      [jornadaId],
+    );
+    const jornada = (rows as any[])[0]?.nombre;
+    const esNoche = jornada === 'noche';
+    const esFinDeSemana = diaSemana === 6 || diaSemana === 7;
+    return esNoche || esFinDeSemana;
+  },
 };

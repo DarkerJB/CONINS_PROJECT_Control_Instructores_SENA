@@ -159,4 +159,10 @@ export const InstructorService = {
     );
     return { id: novedadId, instructor_id: instructorId };
   },
+
+  async getDetalle(instructorId: number) {
+    const detalle = await InstructorModel.getDetalle(instructorId);
+    if (!detalle) throw new NotFoundError('Instructor no encontrado');
+    return detalle;
+  },
 };

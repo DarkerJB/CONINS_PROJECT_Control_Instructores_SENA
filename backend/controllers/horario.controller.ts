@@ -16,12 +16,16 @@ export const getById = asyncHandler(async (req: Request, res: Response) => {
 export const create = asyncHandler(async (req: Request, res: Response) => {
   const result = await HorarioService.create(req.body);
 
-  if (result.alerta_ambiente_ocupado) {
+  const alertas: string[] = [];
+  if (result.alerta_ambiente_ocupado) alertas.push('AMBIENTE_OCUPADO');
+  if (result.alerta_jornada_restringida) alertas.push('JORNADA_RESTRINGIDA');
+
+  if (alertas.length > 0) {
     return res.status(201).json({
       success: true,
-      message: 'Horario registrado con alerta de ambiente ocupado (RN-05)',
+      message: `Horario registrado con alertas: ${alertas.join(', ')}`,
       data: result,
-      alerta: 'AMBIENTE_OCUPADO',
+      alertas,
     });
   }
 

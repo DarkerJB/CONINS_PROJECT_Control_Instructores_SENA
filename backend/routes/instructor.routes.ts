@@ -21,6 +21,7 @@ router.post(
 router.get('/perfil', instructorController.getOwnProfile);
 
 router.get('/:id', instructorController.getById);
+router.get('/:id/detalle', instructorController.getDetalle);
 
 router.patch('/:id', requireRole([ROLES.SUBDIRECTOR, ROLES.COORDINADOR_MEDULAR]), instructorController.update);
 

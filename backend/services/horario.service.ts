@@ -71,6 +71,13 @@ export const HorarioService = {
       );
     }
 
+    let alertaJornadaRestringida = false;
+    const esDePlanta = await HorarioModel.isInstructorDePlanta(data.instructor_id);
+    const esNocheOFinde = await HorarioModel.isJornadaNocturnaOFinDeSemana(data.jornada_id, data.dia_semana);
+    if (esDePlanta && esNocheOFinde) {
+      alertaJornadaRestringida = true;
+    }
+
     const horasActuales = await HorarioModel.getHorasPorInstructor(data.instructor_id, semana);
     const nuevasHoras = ((new Date(`2000-01-01T${data.hora_fin}`).getTime() - new Date(`2000-01-01T${data.hora_inicio}`).getTime()) / (1000 * 60 * 60));
     const totalHoras = horasActuales + nuevasHoras;
@@ -85,6 +92,7 @@ export const HorarioService = {
     return {
       ...horario,
       alerta_ambiente_ocupado: ambienteOcupado,
+      alerta_jornada_restringida: alertaJornadaRestringida,
     };
   },
 
