@@ -21,7 +21,6 @@ const menuItems = [
   { name: "Horarios", href: "/horarios", icon: Calendar },
   { name: "Alertas", href: "/alertas", icon: Bell, badge: 2 },
   { name: "Consultas", href: "/consultas", icon: Search },
-  { name: "Usuarios", href: "/usuarios", icon: UserCog },
 ]
 
 type SidebarProps = {
