@@ -18,6 +18,7 @@ export interface FichaRecord extends RowDataPacket {
 export interface FichaDetail extends RowDataPacket {
   id: number;
   numero_ficha: string;
+  programa_id: number;
   programa: string;
   jornada: string;
   etapa: string;
@@ -30,7 +31,7 @@ export interface FichaDetail extends RowDataPacket {
 export const FichaModel = {
   async findAll(): Promise<FichaDetail[]> {
     const [rows] = await pool.query<FichaDetail[]>(`
-      SELECT f.id, f.numero_ficha, p.nombre AS programa, j.nombre AS jornada,
+      SELECT f.id, f.numero_ficha, f.programa_id, p.nombre AS programa, j.nombre AS jornada,
              f.etapa, p.modalidad,
              COUNT(DISTINCT a.id) AS instructores_count,
              f.estado, f.activo
@@ -46,7 +47,7 @@ export const FichaModel = {
 
   async findById(id: number): Promise<FichaDetail | null> {
     const [rows] = await pool.query<FichaDetail[]>(`
-      SELECT f.id, f.numero_ficha, p.nombre AS programa, j.nombre AS jornada,
+      SELECT f.id, f.numero_ficha, f.programa_id, p.nombre AS programa, j.nombre AS jornada,
              f.etapa, p.modalidad,
              COUNT(DISTINCT a.id) AS instructores_count,
              f.estado, f.activo

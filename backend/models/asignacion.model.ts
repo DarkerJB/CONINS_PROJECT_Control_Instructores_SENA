@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { RowDataPacket } from 'mysql2';
+import { ConflictError } from '../utils/errors.js';
 
 export interface AsignacionRecord extends RowDataPacket {
   id: number;
@@ -29,9 +30,11 @@ export interface AsignacionDetail extends RowDataPacket {
 export const AsignacionModel = {
   async findAll(): Promise<AsignacionDetail[]> {
     const [rows] = await pool.query<AsignacionDetail[]>(`
-      SELECT a.id, u.nombre AS instructor_nombre, f.numero_ficha AS ficha_numero,
+      SELECT a.id, a.instructor_id, a.ficha_id, ac.competencia_id,
+             u.nombre AS instructor_nombre, f.numero_ficha AS ficha_numero,
              c.nombre AS competencia,
              COALESCE(ab.nombre, 'Sin asignar') AS ambiente,
+             ab.id AS ambiente_id,
              j.nombre AS jornada,
              a.es_lider_ficha AS es_lider,
              a.es_provisional,
@@ -40,7 +43,7 @@ export const AsignacionModel = {
       JOIN instructores i ON a.instructor_id = i.id
       JOIN usuarios u ON i.usuario_id = u.id
       JOIN fichas f ON a.ficha_id = f.id
-      JOIN asignacion_competencia ac ON ac.asignacion_id = a.id AND ac.activo = TRUE
+      JOIN asignacion_competencia ac ON ac.asignacion_id = a.id
       JOIN competencias c ON ac.competencia_id = c.id
       JOIN jornadas j ON f.jornada_id = j.id
       LEFT JOIN ambientes ab ON COALESCE(ac.ambiente_excepcion_id, f.ambiente_id) = ab.id
@@ -84,29 +87,36 @@ export const AsignacionModel = {
     motivo_provisional?: string | null;
     competencia_ids: number[];
   }): Promise<number> {
-    const [result] = await pool.query(
-      `INSERT INTO asignacion (instructor_id, ficha_id, es_lider_ficha, es_provisional,
-        autorizado_por_id, motivo_provisional, fecha_asignacion)
-       VALUES (?, ?, ?, ?, ?, ?, CURDATE())`,
-      [
-        data.instructor_id,
-        data.ficha_id,
-        data.es_lider_ficha ?? false,
-        data.es_provisional ?? false,
-        data.autorizado_por_id ?? null,
-        data.motivo_provisional ?? null,
-      ],
-    );
-    const asignacionId = (result as any).insertId;
-
-    for (const competenciaId of data.competencia_ids) {
-      await pool.query(
-        'INSERT INTO asignacion_competencia (asignacion_id, competencia_id) VALUES (?, ?)',
-        [asignacionId, competenciaId],
+    try {
+      const [result] = await pool.query(
+        `INSERT INTO asignacion (instructor_id, ficha_id, es_lider_ficha, es_provisional,
+          autorizado_por_id, motivo_provisional, fecha_asignacion)
+         VALUES (?, ?, ?, ?, ?, ?, CURDATE())`,
+        [
+          data.instructor_id,
+          data.ficha_id,
+          data.es_lider_ficha ?? false,
+          data.es_provisional ?? false,
+          data.autorizado_por_id ?? null,
+          data.motivo_provisional ?? null,
+        ],
       );
-    }
+      const asignacionId = (result as any).insertId;
 
-    return asignacionId;
+      for (const competenciaId of data.competencia_ids) {
+        await pool.query(
+          'INSERT INTO asignacion_competencia (asignacion_id, competencia_id) VALUES (?, ?)',
+          [asignacionId, competenciaId],
+        );
+      }
+
+      return asignacionId;
+    } catch (err: any) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        throw new ConflictError('Ya existe una asignacion para este instructor en esta ficha');
+      }
+      throw err;
+    }
   },
 
   async update(id: number, data: {
@@ -172,5 +182,32 @@ export const AsignacionModel = {
       [fichaId, competenciaId, competenciaId],
     );
     return (rows as any[]).length > 0;
+  },
+
+  async findHistoricas(): Promise<AsignacionDetail[]> {
+    const [rows] = await pool.query<AsignacionDetail[]>(`
+      SELECT a.id, a.instructor_id, a.ficha_id, ac.competencia_id,
+             u.nombre AS instructor_nombre, f.numero_ficha AS ficha_numero,
+             c.nombre AS competencia,
+             COALESCE(ab.nombre, 'Sin asignar') AS ambiente,
+             ab.id AS ambiente_id,
+             j.nombre AS jornada,
+             a.es_lider_ficha AS es_lider,
+             a.es_provisional,
+             a.activo
+      FROM asignacion a
+      JOIN instructores i ON a.instructor_id = i.id
+      JOIN usuarios u ON i.usuario_id = u.id
+      JOIN fichas f ON a.ficha_id = f.id
+      JOIN asignacion_competencia ac ON ac.asignacion_id = a.id
+      JOIN competencias c ON ac.competencia_id = c.id
+      JOIN jornadas j ON f.jornada_id = j.id
+      LEFT JOIN ambientes ab ON COALESCE(ac.ambiente_excepcion_id, f.ambiente_id) = ab.id
+      WHERE a.activo = FALSE
+      GROUP BY a.id, u.nombre, f.numero_ficha, c.nombre, ab.nombre, j.nombre,
+               a.es_lider_ficha, a.es_provisional, a.activo
+      ORDER BY a.fecha_asignacion DESC
+    `);
+    return rows;
   },
 };

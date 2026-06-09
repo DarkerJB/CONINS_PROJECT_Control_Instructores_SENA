@@ -40,7 +40,7 @@ export const HorarioModel = {
              c.nombre AS competencia,
              COALESCE(ab.nombre, 'Sin asignar') AS ambiente,
              j.nombre AS jornada,
-             GROUP_CONCAT(DISTINCT h2.dia_semana ORDER BY h2.dia_semana SEPARATOR ',') AS dias,
+             GROUP_CONCAT(DISTINCT h.dia_semana ORDER BY h.dia_semana SEPARATOR ',') AS dias,
              CONCAT(TIME_FORMAT(MIN(h.hora_inicio), '%H:%i'), ' - ', TIME_FORMAT(MAX(h.hora_fin), '%H:%i')) AS horas,
              IF(h.activo, 'Activo', 'Deshabilitado') AS estado,
              h.activo
@@ -51,8 +51,8 @@ export const HorarioModel = {
       JOIN competencias c ON h.competencia_id = c.id
       LEFT JOIN ambientes ab ON h.ambiente_id = ab.id
       JOIN jornadas j ON h.jornada_id = j.id
-      JOIN horarios h2 ON h2.id = h.id AND h2.activo = TRUE
-      GROUP BY h.id
+      WHERE h.activo = TRUE
+      GROUP BY h.ficha_id, h.instructor_id, h.competencia_id, h.ambiente_id, h.jornada_id, h.hora_inicio, h.hora_fin
       ORDER BY h.id
     `);
 

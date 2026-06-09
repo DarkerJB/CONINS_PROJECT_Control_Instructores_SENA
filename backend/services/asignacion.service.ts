@@ -107,4 +107,8 @@ export const AsignacionService = {
       es_provisional: true,
     });
   },
+
+  async getHistoricas() {
+    return AsignacionModel.findHistoricas();
+  },
 };
