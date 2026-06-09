@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { useRouter } from "next/router"
-import { TERMINOLOGY } from "@/lib/terminology"
 import {
   LayoutDashboard,
   Users,
@@ -13,23 +12,24 @@ import {
   UserCog,
 } from "lucide-react"
 
-function getMenuItems() {
-  return [
-    { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "Instructores", href: "/instructores", icon: Users },
-    { name: TERMINOLOGY.fichas, href: "/fichas", icon: BookOpen },
-    { name: "Horarios", href: "/horarios", icon: Calendar },
-    { name: "Asignaciones", href: "/asignaciones", icon: ClipboardList },
-    { name: "Ambientes", href: "/ambientes", icon: Building2 },
-    { name: "Alertas", href: "/alertas", icon: Bell, badge: 2 },
-    { name: "Consultas", href: "/consultas", icon: Search },
-    { name: "Usuarios", href: "/usuarios", icon: UserCog },
-  ]
+const menuItems = [
+  { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Instructores", href: "/instructores", icon: Users },
+  { name: "Ambientes", href: "/ambientes", icon: Building2 },
+  { name: "Fichas", href: "/fichas", icon: BookOpen },
+  { name: "Asignaciones", href: "/asignaciones", icon: ClipboardList },
+  { name: "Horarios", href: "/horarios", icon: Calendar },
+  { name: "Alertas", href: "/alertas", icon: Bell, badge: 2 },
+  { name: "Consultas", href: "/consultas", icon: Search },
+  { name: "Usuarios", href: "/usuarios", icon: UserCog },
+]
+
+type SidebarProps = {
+  alertasViewed: boolean
 }
 
-export default function Sidebar() {
+export default function Sidebar({ alertasViewed }: SidebarProps) {
   const router = useRouter()
-  const menuItems = getMenuItems()
 
   return (
     <aside className="w-64 bg-sena text-white flex flex-col h-screen fixed left-0 top-0">
@@ -64,7 +64,7 @@ export default function Sidebar() {
             >
               <Icon className="w-5 h-5" />
               <span>{item.name}</span>
-              {item.badge && (
+              {item.badge && !alertasViewed && (
                 <span className="ml-auto bg-white text-sena text-xs font-bold px-2 py-0.5 rounded-full">
                   {item.badge}
                 </span>
