@@ -1,6 +1,7 @@
 import { HorarioModel } from '../models/horario.model.js';
 import { InstructorModel } from '../models/instructor.model.js';
 import { FichaModel } from '../models/ficha.model.js';
+import { AmbienteModel } from '../models/ambiente.model.js';
 import { NotFoundError, ValidationError, ConflictError } from '../utils/errors.js';
 import { getLunesSemanaActual } from '../utils/date.js';
 import pool from '../config/db.js';
@@ -62,6 +63,11 @@ export const HorarioService = {
         data.jornada_id,
         semana,
       );
+
+      const tieneBloqueo = await AmbienteModel.hasBloqueoVigente(data.ambiente_id, semana);
+      if (tieneBloqueo) {
+        throw new ValidationError('El ambiente tiene un bloqueo temporal vigente en esa semana (RN-09)');
+      }
     }
 
     let alertaJornadaRestringida = false;
@@ -108,6 +114,15 @@ export const HorarioService = {
     const existing = await HorarioModel.findById(id);
     if (data.dia_semana || data.hora_inicio || data.hora_fin) {
       const semana = getLunesSemanaActual();
+
+      const ambienteId = data.ambiente_id ?? (existing as any).ambiente_id;
+      if (ambienteId) {
+        const tieneBloqueo = await AmbienteModel.hasBloqueoVigente(ambienteId, semana);
+        if (tieneBloqueo) {
+          throw new ValidationError('El ambiente tiene un bloqueo temporal vigente en esa semana (RN-09)');
+        }
+      }
+
       const hasOverlap = await HorarioModel.hasOverlap(
         (existing as any).instructor_id,
         data.dia_semana ?? (existing as any).dia_semana,
@@ -177,6 +192,14 @@ export const HorarioService = {
       );
       if (hasOverlap) {
         throw new ConflictError(`El instructor tiene un horario superpuesto el dia ${dia} (RN-04)`);
+      }
+
+      const ambienteId = data.ambiente_id ?? base.ambiente_id;
+      if (ambienteId) {
+        const tieneBloqueo = await AmbienteModel.hasBloqueoVigente(ambienteId, base.semana);
+        if (tieneBloqueo) {
+          throw new ValidationError('El ambiente tiene un bloqueo temporal vigente en esa semana (RN-09)');
+        }
       }
 
       await pool.query(
