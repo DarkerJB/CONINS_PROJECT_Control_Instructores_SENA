@@ -31,6 +31,18 @@ router.patch(
   horarioController.toggleActivo,
 );
 
+router.patch(
+  '/:id/aprobar',
+  requireRole([ROLES.SUBDIRECTOR, ROLES.COORDINADOR_MEDULAR, ROLES.COORDINADOR_TRANSVERSAL]),
+  horarioController.aprobar,
+);
+
+router.patch(
+  '/:id/rechazar',
+  requireRole([ROLES.SUBDIRECTOR, ROLES.COORDINADOR_MEDULAR, ROLES.COORDINADOR_TRANSVERSAL]),
+  horarioController.rechazar,
+);
+
 router.put(
   '/:id',
   requireRole([ROLES.SUBDIRECTOR, ROLES.COORDINADOR_MEDULAR, ROLES.COORDINADOR_TRANSVERSAL]),

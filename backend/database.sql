@@ -302,6 +302,8 @@ CREATE TABLE IF NOT EXISTS horarios (
     hora_fin      TIME NOT NULL,
     jornada_id    INT NOT NULL,
     semana        DATE NOT NULL COMMENT 'Fecha del lunes de la semana',
+    estado        ENUM('pendiente','aprobado','rechazado') NOT NULL DEFAULT 'pendiente' COMMENT 'Flujo de aprobacion de horarios',
+    motivo_rechazo TEXT NULL COMMENT 'Motivo del rechazo cuando estado = rechazado',
     motivo_suspension TEXT NULL COMMENT 'RF-36 — se registra al desactivar un horario',
     activo        BOOLEAN NOT NULL DEFAULT TRUE,
     FOREIGN KEY (ficha_id)       REFERENCES fichas(id)       ON DELETE CASCADE,

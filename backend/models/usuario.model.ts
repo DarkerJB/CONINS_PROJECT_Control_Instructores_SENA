@@ -17,6 +17,7 @@ export interface UsuarioWithRoles {
   password: null;
   activo: boolean;
   created_at: Date;
+  rol: string;
   roles: string[];
   rol_ids: number[];
 }
@@ -52,16 +53,20 @@ export const UsuarioModel = {
       GROUP BY u.id
       ORDER BY u.nombre
     `);
-    return rows.map((r) => ({
-      id: r.id,
-      nombre: r.nombre,
-      email: r.email,
-      password: null,
-      activo: r.activo,
-      created_at: r.created_at,
-      rol_ids: r.rol_ids ? r.rol_ids.split(',').map(Number) : [],
-      roles: r.rol_nombre ? r.rol_nombre.split(', ') : [],
-    }));
+    return rows.map((r) => {
+      const roles = r.rol_nombre ? r.rol_nombre.split(', ') : [];
+      return {
+        id: r.id,
+        nombre: r.nombre,
+        email: r.email,
+        password: null,
+        activo: r.activo,
+        created_at: r.created_at,
+        rol: roles[0] || 'Sin rol',
+        rol_ids: r.rol_ids ? r.rol_ids.split(',').map(Number) : [],
+        roles,
+      };
+    });
   },
 
   async findAll(): Promise<UsuarioWithRoles[]> {
@@ -77,16 +82,20 @@ export const UsuarioModel = {
       GROUP BY u.id
       ORDER BY u.activo DESC, u.nombre ASC
     `);
-    return rows.map((r) => ({
-      id: r.id,
-      nombre: r.nombre,
-      email: r.email,
-      password: null,
-      activo: r.activo,
-      created_at: r.created_at,
-      rol_ids: r.rol_ids ? r.rol_ids.split(',').map(Number) : [],
-      roles: r.rol_nombre ? r.rol_nombre.split(', ') : [],
-    }));
+    return rows.map((r) => {
+      const roles = r.rol_nombre ? r.rol_nombre.split(', ') : [];
+      return {
+        id: r.id,
+        nombre: r.nombre,
+        email: r.email,
+        password: null,
+        activo: r.activo,
+        created_at: r.created_at,
+        rol: roles[0] || 'Sin rol',
+        rol_ids: r.rol_ids ? r.rol_ids.split(',').map(Number) : [],
+        roles,
+      };
+    });
   },
 
   async create(nombre: string, email: string): Promise<number> {

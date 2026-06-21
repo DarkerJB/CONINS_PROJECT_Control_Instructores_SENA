@@ -12,6 +12,8 @@ export interface HorarioRecord extends RowDataPacket {
   hora_fin: string;
   jornada_id: number;
   semana: string;
+  estado: string;
+  motivo_rechazo: string | null;
   motivo_suspension: string | null;
   activo: boolean;
 }
@@ -26,6 +28,7 @@ export interface HorarioDetail extends RowDataPacket {
   dias: string;
   horas: string;
   estado: string;
+  motivo_rechazo: string | null;
   activo: boolean;
 }
 
@@ -42,7 +45,13 @@ export const HorarioModel = {
              j.nombre AS jornada,
              GROUP_CONCAT(DISTINCT h.dia_semana ORDER BY h.dia_semana SEPARATOR ',') AS dias,
              CONCAT(TIME_FORMAT(MIN(h.hora_inicio), '%H:%i'), ' - ', TIME_FORMAT(MAX(h.hora_fin), '%H:%i')) AS horas,
-             IF(h.activo, 'Activo', 'Deshabilitado') AS estado,
+             CASE h.estado
+               WHEN 'pendiente' THEN 'Pendiente'
+               WHEN 'aprobado' THEN 'Aprobado'
+               WHEN 'rechazado' THEN 'Rechazado'
+               ELSE 'Pendiente'
+             END AS estado,
+             h.motivo_rechazo,
              h.activo
       FROM horarios h
       JOIN fichas f ON h.ficha_id = f.id
@@ -51,8 +60,7 @@ export const HorarioModel = {
       JOIN competencias c ON h.competencia_id = c.id
       LEFT JOIN ambientes ab ON h.ambiente_id = ab.id
       JOIN jornadas j ON h.jornada_id = j.id
-      WHERE h.activo = TRUE
-      GROUP BY h.ficha_id, h.instructor_id, h.competencia_id, h.ambiente_id, h.jornada_id, h.hora_inicio, h.hora_fin
+      GROUP BY h.ficha_id, h.instructor_id, h.competencia_id, h.ambiente_id, h.jornada_id, h.hora_inicio, h.hora_fin, h.estado, h.motivo_rechazo, h.activo
       ORDER BY h.id
     `);
 
@@ -72,7 +80,13 @@ export const HorarioModel = {
              j.nombre AS jornada,
              GROUP_CONCAT(DISTINCT h2.dia_semana ORDER BY h2.dia_semana SEPARATOR ',') AS dias,
              CONCAT(TIME_FORMAT(MIN(h.hora_inicio), '%H:%i'), ' - ', TIME_FORMAT(MAX(h.hora_fin), '%H:%i')) AS horas,
-             IF(h.activo, 'Activo', 'Deshabilitado') AS estado,
+             CASE h.estado
+               WHEN 'pendiente' THEN 'Pendiente'
+               WHEN 'aprobado' THEN 'Aprobado'
+               WHEN 'rechazado' THEN 'Rechazado'
+               ELSE 'Pendiente'
+             END AS estado,
+             h.motivo_rechazo,
              h.activo
       FROM horarios h
       JOIN fichas f ON h.ficha_id = f.id
@@ -83,7 +97,7 @@ export const HorarioModel = {
       JOIN jornadas j ON h.jornada_id = j.id
       JOIN horarios h2 ON h2.id = h.id AND h2.activo = TRUE
       WHERE h.id = ?
-      GROUP BY h.id
+      GROUP BY h.id, h.estado, h.motivo_rechazo, h.activo
     `, [id]);
     return rows[0] ?? null;
   },
@@ -149,6 +163,20 @@ export const HorarioModel = {
       [nuevo, motivo ?? null, id],
     );
     return nuevo;
+  },
+
+  async aprobar(id: number): Promise<void> {
+    await pool.query(
+      'UPDATE horarios SET estado = ?, activo = TRUE WHERE id = ?',
+      ['aprobado', id],
+    );
+  },
+
+  async rechazar(id: number, motivo: string): Promise<void> {
+    await pool.query(
+      'UPDATE horarios SET estado = ?, activo = FALSE, motivo_rechazo = ? WHERE id = ?',
+      ['rechazado', motivo, id],
+    );
   },
 
   async getHorasPorInstructor(instructorId: number, semana: string): Promise<number> {

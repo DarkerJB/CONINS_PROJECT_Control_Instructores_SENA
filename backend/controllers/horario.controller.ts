@@ -44,6 +44,17 @@ export const toggleActivo = asyncHandler(async (req: Request, res: Response) => 
   ApiResponse.success(res, result, message);
 });
 
+export const aprobar = asyncHandler(async (req: Request, res: Response) => {
+  const result = await HorarioService.aprobar(Number(req.params.id));
+  ApiResponse.success(res, result, 'Horario aprobado exitosamente');
+});
+
+export const rechazar = asyncHandler(async (req: Request, res: Response) => {
+  const { motivo } = req.body;
+  const result = await HorarioService.rechazar(Number(req.params.id), motivo);
+  ApiResponse.success(res, result, 'Horario rechazado');
+});
+
 export const updateMultiDia = asyncHandler(async (req: Request, res: Response) => {
   const { dia_ids, hora_inicio, hora_fin, jornada_id, ambiente_id } = req.body;
   const result = await HorarioService.updateMultiDia(Number(req.params.id), {

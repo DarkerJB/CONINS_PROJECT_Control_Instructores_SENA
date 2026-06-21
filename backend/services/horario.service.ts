@@ -148,6 +148,26 @@ export const HorarioService = {
     return { activo: nuevoEstado };
   },
 
+  async aprobar(id: number) {
+    const horario = await HorarioModel.findById(id);
+    if (!horario) throw new NotFoundError('Horario no encontrado');
+
+    await HorarioModel.aprobar(id);
+    return HorarioModel.findById(id);
+  },
+
+  async rechazar(id: number, motivo: string) {
+    const horario = await HorarioModel.findById(id);
+    if (!horario) throw new NotFoundError('Horario no encontrado');
+
+    if (!motivo || motivo.trim().length === 0) {
+      throw new ValidationError('El motivo de rechazo es obligatorio');
+    }
+
+    await HorarioModel.rechazar(id, motivo);
+    return HorarioModel.findById(id);
+  },
+
   async updateMultiDia(id: number, data: {
     dia_ids: number[];
     hora_inicio: string;
