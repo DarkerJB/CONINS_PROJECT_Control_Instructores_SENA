@@ -6,6 +6,8 @@ export interface Usuario extends RowDataPacket {
   nombre: string;
   email: string;
   password: string | null;
+  tipo_documento: string | null;
+  documento: string | null;
   activo: boolean;
   created_at: Date;
 }
@@ -15,6 +17,8 @@ export interface UsuarioWithRoles {
   nombre: string;
   email: string;
   password: null;
+  tipo_documento: string | null;
+  documento: string | null;
   activo: boolean;
   created_at: Date;
   rol: string;
@@ -41,9 +45,9 @@ export const UsuarioModel = {
 
   async findAllActive(): Promise<UsuarioWithRoles[]> {
     const [rows] = await pool.query<
-      (RowDataPacket & { id: number; nombre: string; email: string; activo: boolean; created_at: Date; rol_ids: string; rol_nombre: string })[]
+      (RowDataPacket & { id: number; nombre: string; email: string; activo: boolean; created_at: Date; rol_ids: string; rol_nombre: string; tipo_documento: string | null; documento: string | null })[]
     >(`
-      SELECT u.id, u.nombre, u.email, u.activo, u.created_at,
+      SELECT u.id, u.nombre, u.email, u.activo, u.created_at, u.tipo_documento, u.documento,
              GROUP_CONCAT(r.id ORDER BY r.nivel ASC SEPARATOR ',') AS rol_ids,
              GROUP_CONCAT(r.nombre ORDER BY r.nivel ASC SEPARATOR ', ') AS rol_nombre
       FROM usuarios u
@@ -60,6 +64,8 @@ export const UsuarioModel = {
         nombre: r.nombre,
         email: r.email,
         password: null,
+        tipo_documento: r.tipo_documento,
+        documento: r.documento,
         activo: r.activo,
         created_at: r.created_at,
         rol: roles[0] || 'Sin rol',
@@ -71,9 +77,9 @@ export const UsuarioModel = {
 
   async findAll(): Promise<UsuarioWithRoles[]> {
     const [rows] = await pool.query<
-      (RowDataPacket & { id: number; nombre: string; email: string; activo: boolean; created_at: Date; rol_ids: string; rol_nombre: string })[]
+      (RowDataPacket & { id: number; nombre: string; email: string; activo: boolean; created_at: Date; rol_ids: string; rol_nombre: string; tipo_documento: string | null; documento: string | null })[]
     >(`
-      SELECT u.id, u.nombre, u.email, u.activo, u.created_at,
+      SELECT u.id, u.nombre, u.email, u.activo, u.created_at, u.tipo_documento, u.documento,
              GROUP_CONCAT(r.id ORDER BY r.nivel ASC SEPARATOR ',') AS rol_ids,
              GROUP_CONCAT(r.nombre ORDER BY r.nivel ASC SEPARATOR ', ') AS rol_nombre
       FROM usuarios u
@@ -89,6 +95,8 @@ export const UsuarioModel = {
         nombre: r.nombre,
         email: r.email,
         password: null,
+        tipo_documento: r.tipo_documento,
+        documento: r.documento,
         activo: r.activo,
         created_at: r.created_at,
         rol: roles[0] || 'Sin rol',
@@ -110,10 +118,16 @@ export const UsuarioModel = {
     await pool.query('UPDATE usuarios SET password = ? WHERE id = ?', [hashedPassword, id]);
   },
 
-  async updateProfile(id: number, nombre: string | undefined, email: string | undefined): Promise<void> {
+  async updateProfile(
+    id: number,
+    nombre: string | undefined,
+    email: string | undefined,
+    tipo_documento: string | undefined,
+    documento: string | undefined,
+  ): Promise<void> {
     await pool.query(
-      'UPDATE usuarios SET nombre = COALESCE(?, nombre), email = COALESCE(?, email) WHERE id = ?',
-      [nombre ?? null, email ?? null, id],
+      'UPDATE usuarios SET nombre = COALESCE(?, nombre), email = COALESCE(?, email), tipo_documento = COALESCE(?, tipo_documento), documento = COALESCE(?, documento) WHERE id = ?',
+      [nombre ?? null, email ?? null, tipo_documento ?? null, documento ?? null, id],
     );
   },
 

@@ -217,7 +217,7 @@ export const AuthService = {
       }
     }
 
-    await UsuarioModel.updateProfile(userId, nombre, email);
+    await UsuarioModel.updateProfile(userId, nombre, email, undefined, undefined);
   },
 
   async getAllUsers() {
@@ -237,6 +237,8 @@ export const AuthService = {
     rol_ids?: number[],
     tipo_contrato?: string,
     tipo_area?: string,
+    tipo_documento?: string,
+    documento?: string,
   ) {
     if (email) {
       const emailExists = await UsuarioModel.emailExists(email, targetUserId);
@@ -245,8 +247,8 @@ export const AuthService = {
       }
     }
 
-    if (nombre || email) {
-      await UsuarioModel.updateProfile(targetUserId, nombre, email);
+    if (nombre || email || tipo_documento || documento) {
+      await UsuarioModel.updateProfile(targetUserId, nombre, email, tipo_documento, documento);
     }
 
     if (rol_ids && rol_ids.length > 0) {

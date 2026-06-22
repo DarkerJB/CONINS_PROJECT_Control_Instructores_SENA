@@ -78,12 +78,14 @@ INSERT IGNORE INTO areas (id, nombre, subtipo) VALUES
 -- Campo de login definitivo pendiente (Bloqueador B2).
 -- ============================================================
 CREATE TABLE IF NOT EXISTS usuarios (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    nombre     VARCHAR(100) NOT NULL,
-    email      VARCHAR(100) NOT NULL UNIQUE,
-    password   VARCHAR(255) NULL DEFAULT NULL,
-    activo     BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    nombre         VARCHAR(100) NOT NULL,
+    email          VARCHAR(100) NOT NULL UNIQUE,
+    password       VARCHAR(255) NULL DEFAULT NULL,
+    tipo_documento ENUM('cc','ce','ti','pasaporte') NULL DEFAULT 'cc',
+    documento      VARCHAR(20) NULL UNIQUE,
+    activo         BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 -- Relación N:M usuarios ↔ roles
@@ -338,23 +340,43 @@ CREATE TABLE IF NOT EXISTS alertas (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 17. INSTRUCTOR_NOVEDADES (RF-16)
+-- 17. TIPOS DE NOVEDAD INSTRUCTOR
+-- Catalogo de tipos de novedad administrativa.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS tipos_novedad_instructor (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    nombre      VARCHAR(60) NOT NULL UNIQUE,
+    descripcion TEXT NULL,
+    activo      BOOLEAN NOT NULL DEFAULT TRUE
+) ENGINE=InnoDB;
+
+INSERT IGNORE INTO tipos_novedad_instructor (id, nombre, descripcion) VALUES
+(1, 'licencia', 'Licencia de maternidad/paternidad o remunerada'),
+(2, 'incapacidad', 'Incapacidad medica'),
+(3, 'comision', 'Comision de servicios'),
+(4, 'calamidad', 'Calamidad domestica'),
+(5, 'ceso_sindical', 'Ceso por actividades sindicales'),
+(6, 'otro', 'Otra novedad no clasificada');
+
+-- ============================================================
+-- 18. INSTRUCTOR_NOVEDADES (RF-16)
 -- Licencias, incapacidades y comisiones de instructores.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS instructor_novedades (
-    id             INT AUTO_INCREMENT PRIMARY KEY,
-    instructor_id  INT NOT NULL,
-    tipo_novedad   ENUM('licencia','incapacidad','comision','otro') NOT NULL,
-    fecha_inicio   DATE NOT NULL,
-    fecha_regreso  DATE NOT NULL,
-    observacion    TEXT NULL,
-    activo         BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (instructor_id) REFERENCES instructores(id) ON DELETE CASCADE
+    id               INT AUTO_INCREMENT PRIMARY KEY,
+    instructor_id    INT NOT NULL,
+    tipo_novedad_id  INT NOT NULL,
+    fecha_inicio     DATE NOT NULL,
+    fecha_regreso    DATE NOT NULL,
+    observacion      TEXT NULL,
+    activo           BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (instructor_id) REFERENCES instructores(id) ON DELETE CASCADE,
+    FOREIGN KEY (tipo_novedad_id) REFERENCES tipos_novedad_instructor(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 18. AMBIENTE_BLOQUEOS (RF-31)
+-- 19. AMBIENTE_BLOQUEOS (RF-31)
 -- Períodos en que un ambiente no está disponible.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS ambiente_bloqueos (
@@ -369,7 +391,60 @@ CREATE TABLE IF NOT EXISTS ambiente_bloqueos (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 19. NOTIFICACIONES (RF-38 al RF-40)
+-- 20. TIPOS DE NOVEDAD AMBIENTE
+-- Catalogo de tipos de novedad para ambientes.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS tipos_novedad_ambiente (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    nombre      VARCHAR(60) NOT NULL UNIQUE,
+    descripcion TEXT NULL,
+    activo      BOOLEAN NOT NULL DEFAULT TRUE
+) ENGINE=InnoDB;
+
+INSERT IGNORE INTO tipos_novedad_ambiente (id, nombre, descripcion) VALUES
+(1, 'mantenimiento', 'Mantenimiento preventivo o correctivo'),
+(2, 'cerrado_administrativo', 'Cierre por decision administrativa'),
+(3, 'danos_infraestructura', 'Danos en infraestructura'),
+(4, 'evento_especial', 'Evento especial programado'),
+(5, 'otro', 'Otra novedad no clasificada');
+
+-- ============================================================
+-- 21. TIPOS DE NOVEDAD FICHA
+-- Catalogo de tipos de novedad para fichas.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS tipos_novedad_ficha (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    nombre      VARCHAR(60) NOT NULL UNIQUE,
+    descripcion TEXT NULL,
+    activo      BOOLEAN NOT NULL DEFAULT TRUE
+) ENGINE=InnoDB;
+
+INSERT IGNORE INTO tipos_novedad_ficha (id, nombre, descripcion) VALUES
+(1, 'comite', 'Comite de evaluacion'),
+(2, 'paro', 'Paro o movilizacion'),
+(3, 'actividad_fuera', 'Actividad academica fuera del CDMC'),
+(4, 'suspension_clases', 'Suspension temporal de clases'),
+(5, 'otro', 'Otra novedad no clasificada');
+
+-- ============================================================
+-- 22. FICHA_NOVEDADES
+-- Novedades administrativas de fichas (comites, paros, etc).
+-- ============================================================
+CREATE TABLE IF NOT EXISTS ficha_novedades (
+    id               INT AUTO_INCREMENT PRIMARY KEY,
+    ficha_id         INT NOT NULL,
+    tipo_novedad_id  INT NOT NULL,
+    fecha_inicio     DATE NOT NULL,
+    fecha_regreso    DATE NOT NULL,
+    observacion      TEXT NULL,
+    activo           BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ficha_id) REFERENCES fichas(id) ON DELETE CASCADE,
+    FOREIGN KEY (tipo_novedad_id) REFERENCES tipos_novedad_ficha(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 23. NOTIFICACIONES (RF-38 al RF-40)
 -- correo_enviado = TRUE solo para instructores (RF-38).
 -- ============================================================
 CREATE TABLE IF NOT EXISTS notificaciones (
