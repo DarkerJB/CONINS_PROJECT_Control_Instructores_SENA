@@ -1,0 +1,354 @@
+# CONINS — Lógica de Negocio
+## Centro del Diseño y Manufactura del Cuero · CDMC SENA
+**Versión:** 5.1 · **Fecha:** 06 de Mayo 2026
+**Basado en:** RF v6.0 · ERS v3.0 · sesiones 23/04, 28/04 y 04/05/2026
+
+> Nota de vigencia (correcciones 10/06 y 11/06/2026): este documento conserva el contenido funcional original de la version 5.1. Los conteos de RF (45→47) y de tablas del schema (20→27) fueron corregidos puntualmente en las secciones 8 y 9 para evitar inconsistencias con CHANGELOG.md y CONINS_contexto_general.md, que son la fuente de verdad para el estado mas reciente del proyecto.
+
+---
+
+## 1. Objetivo del sistema
+
+CONINS es un sistema de **control de malla de horarios** del CDMC. Su pregunta central es:
+
+> **¿Qué instructor cubre qué competencia, en qué ficha, en qué ambiente y en qué jornada?**
+
+No es un sistema curricular, no es un gestor de infraestructura, no reemplaza a Sofía Plus.
+
+**Lo que CONINS NO gestiona:**
+
+| Dato | Quién lo gestiona |
+|---|---|
+| Notas y juicios evaluativos | Sofía Plus |
+| Creación/edición de programas de formación | Datos oficiales SENA (seed, sin CRUD) |
+| Competencias y RAPs como catálogo | Sofía Plus → seed, sin CRUD |
+| Ambientes como infraestructura | Datos fijos (seed, sin CRUD) |
+| Jornadas | Datos fijos e institucionales (seed, sin CRUD) |
+| Estado del curso (EN EJECUCIÓN, TERMINADA) | Sofía Plus |
+
+---
+
+## 2. Datos precargados — sin CRUD en la UI
+
+| Dato | Razón |
+|---|---|
+| Programas de formación | Definidos institucionalmente por el SENA |
+| Competencias y RAPs | Datos normativos de Sofía Plus |
+| Ambientes | Aulas 200–208 y talleres T1–T4 — fijos |
+| Jornadas | Mañana, mixta, noche y virtual — fijas |
+| Usuarios del arranque | El CDMC ya tiene correos y roles de todo el personal activo |
+
+---
+
+## 3. Acceso al sistema — onboarding de dos pasos
+
+**Paso 1 (RF-13) — El administrador habilita la cuenta:**
+Registra al usuario con correo, nombre y rol. La cuenta queda sin contraseña — el usuario aún no puede entrar.
+
+**Paso 2 (RF-01 / RF-08) — El usuario crea su contraseña:**
+Va a `/auth` → tab "Crear contraseña" → ingresa su correo. Si existe en BD → guarda contraseña → puede hacer login. Si no → alerta amarilla + HTTP 403.
+
+**Paso 3 en adelante:** login normal con correo + contraseña.
+
+### Pantalla pública `/auth`
+
+```
+Tab "Iniciar sesión"              Tab "Crear contraseña"
+──────────────────────            ──────────────────────────────────
+Campo: correo                     Campo: correo
+Campo: contraseña (toggle)        Campo: contraseña nueva (toggle)
+Botón: Iniciar sesión             Campo: confirmar contraseña (toggle)
+Link: ¿Olvidaste contraseña?      Botón: Crear contraseña
+                                  Alerta amarilla si correo no en BD
+```
+
+Sin selector de rol · sin campo nombre · sin registro con redes sociales.
+
+### Estrategia de arranque
+
+1. El seed carga todos los usuarios actuales del CDMC con correo, nombre y rol — sin contraseña.
+2. El admin inicial (Subdirector) entra con contraseña definida en el seed.
+3. RF-13 (crear usuarios desde dashboard) aplica para nuevos ingresos futuros.
+
+**Campo de login:** correo electrónico registrado en BD. Puede ser `@sena.edu.co` o correo personal — sin restricción de dominio. (P3 resuelto 04/05/2026)
+
+---
+
+## 4. Roles del sistema — tabla `roles` (5 entradas exactas)
+
+| ID | Nombre técnico | Nivel | Descripción | Alcance |
+|---|---|---|---|---|
+| 1 | `subdirector` | 1 | Acceso y control total | CDMC completo |
+| 2 | `coordinador_medular` | 2 | Gestión total línea medular | Calzado, marroquinería, curtición |
+| 3 | `coordinador_transversal` | 2 | Gestión total línea transversal | ADSO, bilingüismo, diseño, gestión |
+| 4 | `lider_programa` | 3 | Asigna dentro de sus programas | Su programa |
+| 5 | `instructor` | 4 | Solo lectura | Sus asignaciones |
+
+> `lider_ficha` NO es un rol ni existe en `roles`. Es `es_lider_ficha BOOLEAN DEFAULT FALSE` en `asignacion`. No otorga permisos adicionales.
+> Soporte multi-rol vía tabla `usuario_roles` (N:M).
+> Cada coordinador actúa solo dentro de su línea.
+
+---
+
+## 5. Reglas de negocio
+
+### RN-01 · Onboarding obligatorio
+```
+Paso 1: admin crea cuenta (correo + nombre + rol) → sin contraseña
+Paso 2: usuario crea contraseña desde /auth
+Sin Paso 1 → HTTP 403 con mensaje descriptivo
+```
+
+### RN-02 · Correo como identificador único
+```
+Campo de login para todos los roles.
+Puede ser @sena.edu.co o personal — sin restricción de dominio.
+No se puede cambiar sin intervención del administrador.
+```
+
+### RN-03 · Jornada restringida para instructores de planta
+```
+Si instructor.tipo_contrato = 'de_planta'
+Y (jornada = 'noche' O dia IN ('sábado', 'domingo'))
+→ Alerta JORNADA_RESTRINGIDA (no bloquear)
+```
+
+### RN-04 · Conflicto de instructor — hard block
+```
+Si EXISTS(horario con instructor_id = ? Y bloque superpuesto)
+→ Bloquear, HTTP 409 con error descriptivo
+```
+
+### RN-05 · Conflicto de ambiente — soft alert
+```
+Si EXISTS(horario con ambiente_id = ? Y jornada_id = ? Y fecha = ?)
+→ Permitir pero emitir alerta AMBIENTE_OCUPADO
+(Talleres: pueden albergar varias fichas simultáneamente)
+```
+
+### RN-06 · Unicidad de RAP por ficha
+```
+UNIQUE(ficha_id, rap_id) en asignacion_raps
+Si viola → HTTP 409
+Un RAP no puede tener dos instructores distintos en la misma ficha.
+Sí puede repetirse en fichas diferentes del mismo programa.
+RAPs heredados al asignar la competencia — no se asignan individualmente.
+```
+
+### RN-07 · Límite de horas semanales
+```
+Si SUM(horas_semana) < 20 O > 40
+→ Alerta CARGA_HORARIA (no bloquear)
+Rango 20–40h confirmado para todos los instructores (P1 resuelto 04/05/2026)
+```
+
+### RN-08 · Novedad administrativa del instructor (RF-16)
+```
+Si EXISTS(instructor_novedades con instructor_id = ?
+  Y fecha_inicio <= HOY Y fecha_regreso >= HOY Y activo = TRUE)
+→ Excluir instructor de asignaciones
+→ Reincorporar automáticamente al vencer fecha_regreso
+activo del instructor permanece TRUE — la cuenta sigue activa.
+```
+
+### RN-09 · Bloqueo temporal de ambiente (RF-31)
+```
+Si EXISTS(ambiente_bloqueos con ambiente_id = ?
+  Y fecha_inicio <= HOY Y fecha_fin >= HOY Y activo = TRUE)
+→ Excluir ambiente de asignaciones (RF-28 valida esto)
+→ Reincorporar automáticamente al vencer fecha_fin
+```
+
+### RN-10 · Soft delete universal
+```
+Ningún registro se elimina físicamente.
+activo BOOLEAN NOT NULL DEFAULT TRUE en todas las tablas.
+Todas las queries de listado filtran WHERE activo = TRUE.
+```
+
+### RN-11 · Asignación provisional (RF-29)
+```
+Solo la registra un administrador.
+Campos obligatorios: instructor_id, ficha_id o programa_id,
+autorizante (autorizado_por_id), fecha_autorizacion, motivo.
+Sin alguno → el sistema no registra la provisional.
+```
+
+### RN-12 · Alcance del líder de programa (RF-30)
+```
+Solo asigna dentro de sus programas.
+No registra provisionales.
+Validar: programa_id IN (SELECT programa_id FROM lider_programa WHERE instructor_id = ?)
+```
+
+### RN-13 · Competencia habilitada por contrato (RF-27)
+```
+Solo puede asignarse a competencias en instructor_competencias_habilitadas.
+El sistema filtra y muestra solo las disponibles para ese instructor.
+```
+
+### RN-14 · Fichas virtuales
+```
+Si ficha.modalidad = 'virtual'
+→ No se asigna ni valida ambiente físico
+Lógica derivada de modalidad, no de jornada.
+```
+
+### RN-15 · Fichas HUI FORMACION (LMS)
+```
+Cursos autogestionados sin instructor presencial.
+Entran al seed sin asignación.
+El administrador puede asignar un líder administrativo si el CDMC lo decide.
+No requieren horario ni ambiente.
+```
+
+### RN-16 · Cambio de instructor en competencia activa
+```
+Nuevo instructor → asignacion_competencia actualizada.
+Anterior → instructor_anterior_id con fecha_cambio.
+RAPs ya evaluados permanecen en Sofía Plus.
+```
+
+### RN-17 · Nomenclatura configurable
+```
+"Ficha" → próximamente "grupo".
+No hardcodear en frontend. Usar constante configurable.
+```
+
+---
+
+## 6. Reglas de arquitectura
+
+| Regla | Descripción |
+|---|---|
+| **Controller → solo HTTP** | `req/res`. Cero lógica de negocio. |
+| **Service → lógica de negocio** | Validaciones, cálculos, reglas de negocio. |
+| **DB → solo queries** | Sin lógica de negocio. |
+| **Horas en backend** | `horarioService` calcula carga horaria. El frontend nunca calcula horas. |
+| **Validaciones en backend** | El frontend nunca valida unicidad de RAP, roles ni reglas de negocio. |
+| **JWT en header** | `Authorization: Bearer <token>`. Sin token → HTTP 401. |
+| **Dos capas de autorización** | `requireRole([])` para roles globales + `permisoService` para acceso contextual. |
+| **Errores descriptivos** | Los mensajes del backend se muestran en UI sin modificación. |
+| **HTTP client: Fetch** | El frontend usa Fetch nativo. No Axios. |
+
+---
+
+## 7. Stack tecnológico (objetivo Fase 3)
+
+| Capa | Tecnología |
+|---|---|
+| Frontend | **Next.js 15** (Pages Router) · React 19 · TypeScript · Tailwind CSS 4 · Lucide React |
+| HTTP client | Fetch nativo |
+| Backend | Node.js · Express 5 · TypeScript · MVC · ESM6 |
+| Auth | JWT + bcrypt |
+| Correo | Nodemailer |
+| Base de datos | MySQL — `conIns` · phpMyAdmin · Laragon |
+| IDE / VCS | VS Code · Git + GitHub |
+
+> **Nota frontend:** Migración de Vite a Next.js 15 confirmada en feedback con Juan Pablo Hoyos, Wilmar Zapata y Gloria Jaramillo. Se usa Pages Router por decisión deliberada. Zustand en revisión para Fase 3 (P11).
+
+---
+
+## 8. Modelo de datos — schema v5.2 (27 tablas — cerrado 11/06/2026)
+
+> Nota de actualización: este documento describe la versión funcional original del modelo (v4, 20 tablas). El schema evolucionó hasta 27 tablas — se agregaron `tipos_novedad_instructor`, `tipos_novedad_ambiente`, `tipos_novedad_ficha`, `ficha_novedades`, `auditoria`, `lider_id` en `fichas` y `ultimo_acceso`/`tipo_documento`/`documento` en `usuarios`. Ver `CHANGELOG.md` para el detalle completo y `CONINS_contexto_general.md` §11 para el modelo vigente.
+
+```
+instructor
+  └── asignacion  (instructor_id, ficha_id, es_lider_ficha, es_provisional)
+        └── asignacion_competencia  (asignacion_id, competencia_id, ambiente_excepcion_id)
+              └── competencia
+                    └── raps  ← heredados automáticamente
+```
+
+**Catálogos base (seed):**
+```sql
+roles, programas, competencias, raps, ambientes, jornadas, fichas
+-- programas.tipo_formacion ENUM('titulada','complementaria','operario')
+-- fichas.etapa ENUM('lectiva','productiva')  ← confirmado 04/05/2026
+```
+
+**Usuarios y roles:**
+```sql
+usuarios, usuario_roles, instructores, lider_programa,
+instructor_competencias_habilitadas
+```
+
+**Novedades y bloqueos:**
+```sql
+instructor_novedades (id, instructor_id, tipo_novedad, fecha_inicio,
+                      fecha_regreso, observacion, activo)
+ambiente_bloqueos    (id, ambiente_id, fecha_inicio, fecha_fin, motivo, activo)
+```
+
+**Asignaciones:**
+```sql
+asignacion (id, instructor_id, ficha_id,
+            es_lider_ficha BOOLEAN DEFAULT FALSE,
+            es_provisional BOOLEAN DEFAULT FALSE,
+            autorizado_por_id, fecha_autorizacion, motivo_provisional, activo)
+
+asignacion_competencia (id, asignacion_id, competencia_id,
+                        instructor_anterior_id, fecha_cambio,
+                        ambiente_excepcion_id, observacion, activo)
+```
+
+**Horarios, alertas y notificaciones:**
+```sql
+horarios       (instructor_id, ficha_id, competencia_id, ambiente_id,
+                 jornada_id, fecha, hora_inicio, hora_fin,
+                 estado, motivo_rechazo, motivo_suspension, activo)
+alertas        (instructor_id, tipo, mensaje, leida, generada_en)
+notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
+```
+
+---
+
+## 9. Resumen de RF v6.1 — 47 RF en 8 módulos (vigente al 11/06/2026)
+
+| Módulo | Rango | Total | Estado ERS |
+|---|---|---|---|
+| AUTH | RF-01 al RF-13, RF-46 | 14 | ✅ Completo |
+| Instructores | RF-14 al RF-16 | 3 | ✅ Completo |
+| Fichas | RF-17 al RF-20, RF-47 | 5 | ✅ Completo |
+| Horarios | RF-21 al RF-24 | 4 | ✅ Completo |
+| Asignaciones | RF-25 al RF-30 | 6 | ✅ Completo |
+| Ambientes | RF-31 | 1 | ✅ Completo |
+| Alertas, Validaciones y Notificaciones | RF-32 al RF-40 | 9 | ✅ Completo |
+| Consulta y Visualización | RF-41 al RF-45 | 5 | ✅ Completo |
+| **Total** | | **47** | ✅ ERS v3.0 + RF-46, RF-47 (11/06/2026) |
+
+---
+
+## 10. Pendientes activos
+
+| # | Pendiente | Responsable | Prioridad |
+|---|---|---|---|
+| P4 | Lista oficial de instructores con correo estandarizado | CDMC → Jair | 🟡 Media |
+| ~~P7~~ | ~~Migración a Next.js 15 + TypeScript + MVC + ESM6~~ | ~~Resuelto 19/05/2026 — rebuild desde cero en TS~~ | ✅ Resuelto |
+| P8 | Apellido co-líder Rivera (Técnico Medular) | CDMC | 🟢 Baja |
+| P9 | Apellido Catalina (líder Talento Humano) | CDMC | 🟢 Baja |
+| P10 | Revisar Resolución 1415/2012 y Acuerdo 0003/2017 | Jair | 🟢 Baja |
+| P11 | Definir gestión de estado en Next.js 15 (¿Zustand o nativo?) | Jair + Laura | 🟡 Media — Fase 3 |
+
+> P1–P3, P5–P6 resueltos el 04/05/2026.
+
+---
+
+## 11. Historial de versiones
+
+| Versión | Fecha | Cambios principales |
+|---|---|---|
+| v1 | Abril 2026 | Modelo inicial |
+| v2 | Abril 2026 | Reestructuración — dos coordinadores, `asignacion → asignacion_competencia` |
+| v3 | 23/04/2026 | Bloqueadores B1–B8 resueltos |
+| v4 / v4.1 | 28/04/2026 | Flujo `/auth`, `lider_ficha` eliminado de roles, RF v6 |
+| v5.0 | 28/04/2026 | Consolidación lineal — RN-08, RN-09, schema 19 tablas |
+| **v5.1** | **06/05/2026** | **Stack actualizado: Vite → Next.js 15 (Pages Router). Lucide React confirmado. P11 creado. P1–P3, P5–P6 marcados como resueltos. Schema v4 cerrado con 20 tablas.** |
+
+| **v5.2** | **11/06/2026** | **Correcciones de consistencia: horarios (estado, motivo_rechazo, motivo_suspension), P7 marcado resuelto. Conteos actualizados a 27 tablas, 47 RF.** |
+
+---
+
+*CONINS · SENA CDMC · Lógica de Negocio v5.2 · 11 de Junio 2026*
+*Autores: Jair Enrique González Buelvas · Laura Sofía Posada*
