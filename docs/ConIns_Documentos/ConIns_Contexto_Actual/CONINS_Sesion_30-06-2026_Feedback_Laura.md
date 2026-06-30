@@ -97,4 +97,8 @@ Gracias por las credenciales de prueba del Instructor — las voy a usar justo p
 2. 🟡 Completar `horario.service.ts: update()` para revalidar RN-03 y RN-05 (P23 — alcance confirmado)
 3. 🟡 Agregar `ultimo_acceso` al `SELECT` y mapeo en `usuario.model.ts` (P21 — 2 líneas)
 
-*Generado a partir de la sesión del 30/06/2026 — incluye respuesta de Laura del mismo día.*
+---
+
+## 6. Segunda respuesta de Laura — confirmación por pendiente (30/06/2026)
+
+| Pendiente 

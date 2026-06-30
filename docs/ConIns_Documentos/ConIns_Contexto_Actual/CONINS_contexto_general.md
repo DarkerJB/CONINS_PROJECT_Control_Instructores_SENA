@@ -348,10 +348,10 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 | P18 | Continuous Integration (GitHub Actions) | Jair | 🟢 Baja — Fase 4 |
 | P19 | Docker (Dockerfile + docker-compose) | Jair | 🟢 Baja — Fase 5 |
 | P20 | Migración a PostgreSQL | Jair | 🟢 Baja — Fase 6 |
-| P21 | `ultimo_acceso` no se devuelve en `GET /api/auth/usuarios` — la columna existe y se actualiza en login, pero `findAll()`/`findAllActive()` en `usuario.model.ts` no la incluye en el `SELECT` ni en el mapeo de respuesta | Jair | 🟡 Media — fix de 2 líneas, pendiente |
+| P21 | `ultimo_acceso` no se devuelve en `GET /api/auth/usuarios` — la columna existe y se actualiza en login, pero `findAll()`/`findAllActive()` en `usuario.model.ts` no la incluye en el `SELECT` ni en el mapeo de respuesta. **El frontend de Laura ya tiene el campo preparado en la UI** — hay una "ranura vacía" esperando del lado del cliente | Jair | 🟡 Media — fix de 2 líneas |
 | P22 | **Sin filtrado por rol en listados generales** — `GET /api/horarios`, `/api/fichas`, `/api/asignaciones`, `/api/alertas` solo exigen `verifyToken` y devuelven el dataset completo del CDMC sin importar el rol del usuario autenticado (Instructor o Líder incluidos). El frontend filtra visualmente, pero el backend no impone el alcance | Jair | 🔴 Alta — pendiente de seguridad más crítico antes de pruebas con usuarios reales |
 | P23 | **Implementar revalidación completa en `horario.service.ts: update()`** — alcance confirmado por Laura (30/06/2026): al editar un horario deben recalcularse tanto las reglas duras (RN-04, RN-09) como las suaves (RN-03 `JORNADA_RESTRINGIDA`, RN-05 `AMBIENTE_OCUPADO`). Hoy solo se recalculan RN-04/RN-09. Ejemplo: si un coordinador cambia la jornada de "Mañana" a "Noche" para un instructor de planta, la alerta RN-03 debe dispararse en ese momento | Jair | 🟡 Media |
-| ~~P24~~ | ~~Discrepancia de ruta en notificaciones~~ — ~~Resuelto 30/06/2026~~: Laura confirma que usará `GET /api/notificaciones` (la ruta real); ajusta el frontend por su cuenta. Sin cambio en backend | ~~Jair~~ | ✅ Resuelto (Laura ajusta frontend) |
+| ~~P24~~ | ~~Discrepancia de ruta en notificaciones~~ — ~~Resuelto 30/06/2026~~: Laura confirmó que el frontend **nunca llamó** a `/notificaciones/mis` en el código real (era solo en el spec escrito). Sin cambio en ninguno de los dos lados | ~~Jair~~ | ✅ Resuelto sin acción |
 | ~~P25~~ | ~~Unificar nomenclatura de versión del schema SQL~~ — ~~Resuelto 30/06/2026~~: corregido en `CONINS_contexto_general.md`, `CHANGELOG.md` y `CRONOGRAMA.md`. Laura alinea su documentación por su lado | ~~Jair~~ | ✅ Resuelto |
 
 > P1–P3, P5–P6 resueltos el 04/05/2026. P7, P14, P15 resueltos el 09/06/2026. P21–P25 detectados el 30/06/2026 en verificación directa de código. P24 y P25 cerrados el mismo día tras respuesta de Laura.
@@ -384,12 +384,4 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 | RF, RNF, CU, HU ConINs | 04/05/2026 | RF v6 (45 RF) · ERS v3 completo |
 | Bitácora etapa productiva | 04/05/2026 | Bitácora mensual GFPI-F-147 |
 | DB Laragon para phpMyAdmin | 30/06/2026 | Schema v5 · 25 tablas (corregido — antes "v5.2 · 27 tablas") + auditoria + triggers + procedures + vistas |
-| GitHub ConIns | 04/05/2026 | Ramas y commits |
-| Análisis de Documentos | 24/04/2026 | Glosario ERS · CSVs seed |
-| Skills y CLAUDE.md | 24/04/2026 | 5 skills `conins-core` |
-
----
-
-*CONINS · SENA CDMC · Contexto General v9.3 · Junio 2026*
-*Autores: Jair Enrique González Buelvas · Laura Sofía Posada*
-*Versión anterior: CONINS_contexto_general_v9.2.md*
+| GitHub ConIns | 04/05/2026 | 
