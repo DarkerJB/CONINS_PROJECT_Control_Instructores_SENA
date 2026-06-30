@@ -74,20 +74,22 @@ export const FichaModel = {
     programa_id: number;
     jornada_id: number;
     ambiente_id?: number | null;
+    lider_id?: number | null;
     etapa?: string;
     fecha_inicio_lectiva?: string;
     fecha_fin_lectiva?: string;
     fecha_fin_ficha?: string;
   }): Promise<number> {
     const [result] = await pool.query(
-      `INSERT INTO fichas (numero_ficha, programa_id, jornada_id, ambiente_id, etapa,
+      `INSERT INTO fichas (numero_ficha, programa_id, jornada_id, ambiente_id, lider_id, etapa,
         fecha_inicio_lectiva, fecha_fin_lectiva, fecha_fin_ficha)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.numero_ficha,
         data.programa_id,
         data.jornada_id,
         data.ambiente_id ?? null,
+        data.lider_id ?? null,
         data.etapa ?? 'lectiva',
         data.fecha_inicio_lectiva ?? null,
         data.fecha_fin_lectiva ?? null,
@@ -102,6 +104,7 @@ export const FichaModel = {
     programa_id?: number;
     jornada_id?: number;
     ambiente_id?: number | null;
+    lider_id?: number | null;
     etapa?: string;
     fecha_inicio_lectiva?: string;
     fecha_fin_lectiva?: string;
@@ -114,6 +117,7 @@ export const FichaModel = {
     if (data.programa_id !== undefined) { updates.push('programa_id = ?'); values.push(data.programa_id); }
     if (data.jornada_id !== undefined) { updates.push('jornada_id = ?'); values.push(data.jornada_id); }
     if (data.ambiente_id !== undefined) { updates.push('ambiente_id = ?'); values.push(data.ambiente_id); }
+    if (data.lider_id !== undefined) { updates.push('lider_id = ?'); values.push(data.lider_id); }
     if (data.etapa !== undefined) { updates.push('etapa = ?'); values.push(data.etapa); }
     if (data.fecha_inicio_lectiva !== undefined) { updates.push('fecha_inicio_lectiva = ?'); values.push(data.fecha_inicio_lectiva); }
     if (data.fecha_fin_lectiva !== undefined) { updates.push('fecha_fin_lectiva = ?'); values.push(data.fecha_fin_lectiva); }

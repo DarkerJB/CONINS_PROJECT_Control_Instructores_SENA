@@ -49,4 +49,10 @@ router.put(
   horarioController.updateMultiDia,
 );
 
+router.patch(
+  '/:id/suspender',
+  requireRole([ROLES.SUBDIRECTOR, ROLES.COORDINADOR_MEDULAR, ROLES.COORDINADOR_TRANSVERSAL]),
+  horarioController.suspender,
+);
+
 export default router;

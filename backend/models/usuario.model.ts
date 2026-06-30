@@ -142,4 +142,8 @@ export const UsuarioModel = {
     const [rows] = await pool.query(query, excludeId ? [email, excludeId] : [email]);
     return (rows as any[]).length > 0;
   },
+
+  async updateUltimoAcceso(id: number): Promise<void> {
+    await pool.query('UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = ?', [id]);
+  },
 };

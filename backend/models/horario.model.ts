@@ -179,6 +179,13 @@ export const HorarioModel = {
     );
   },
 
+  async suspender(id: number, motivo: string): Promise<void> {
+    await pool.query(
+      'UPDATE horarios SET activo = FALSE, motivo_suspension = ? WHERE id = ?',
+      [motivo, id],
+    );
+  },
+
   async getHorasPorInstructor(instructorId: number, semana: string): Promise<number> {
     const [rows] = await pool.query<RowDataPacket[]>(
       `SELECT COALESCE(SUM(TIMESTAMPDIFF(MINUTE, hora_inicio, hora_fin)), 0) / 60 AS total_horas

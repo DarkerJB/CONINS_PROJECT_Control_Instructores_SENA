@@ -66,3 +66,12 @@ export const updateMultiDia = asyncHandler(async (req: Request, res: Response) =
   });
   ApiResponse.success(res, result, 'Horario actualizado exitosamente');
 });
+
+export const suspender = asyncHandler(async (req: Request, res: Response) => {
+  const { motivo } = req.body;
+  if (!motivo || motivo.trim().length === 0) {
+    return res.status(400).json({ success: false, message: 'El motivo de suspension es obligatorio' });
+  }
+  const result = await HorarioService.suspender(Number(req.params.id), motivo);
+  ApiResponse.success(res, result, 'Horario suspendido exitosamente');
+});

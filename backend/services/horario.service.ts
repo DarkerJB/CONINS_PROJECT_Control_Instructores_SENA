@@ -240,4 +240,12 @@ export const HorarioService = {
 
     return HorarioModel.findAll();
   },
+
+  async suspender(id: number, motivo: string) {
+    const horario = await HorarioModel.findById(id);
+    if (!horario) throw new NotFoundError('Horario no encontrado');
+
+    await HorarioModel.suspender(id, motivo);
+    return HorarioModel.findById(id);
+  },
 };

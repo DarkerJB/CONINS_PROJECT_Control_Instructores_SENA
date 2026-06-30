@@ -17,6 +17,7 @@ export const FichaService = {
     programa_id: number;
     jornada_id: number;
     ambiente_id?: number | null;
+    lider_id?: number | null;
     etapa?: string;
     fecha_inicio_lectiva?: string;
     fecha_fin_lectiva?: string;
@@ -34,6 +35,7 @@ export const FichaService = {
     programa_id?: number;
     jornada_id?: number;
     ambiente_id?: number | null;
+    lider_id?: number | null;
     etapa?: string;
     fecha_inicio_lectiva?: string;
     fecha_fin_lectiva?: string;

@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     password       VARCHAR(255) NULL DEFAULT NULL,
     tipo_documento ENUM('cc','ce','ti','pasaporte') NULL DEFAULT 'cc',
     documento      VARCHAR(20) NULL UNIQUE,
+    ultimo_acceso  DATETIME NULL,
     activo         BOOLEAN NOT NULL DEFAULT TRUE,
     created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
@@ -201,6 +202,7 @@ CREATE TABLE IF NOT EXISTS fichas (
     programa_id          INT NOT NULL,
     jornada_id           INT NOT NULL,
     ambiente_id          INT NULL,
+    lider_id             INT NULL COMMENT 'Usuario lider de programa asignado a esta ficha',
     etapa                ENUM('lectiva','productiva') NOT NULL DEFAULT 'lectiva',
     fecha_inicio_lectiva DATE NULL,
     fecha_fin_lectiva    DATE NULL,
@@ -209,7 +211,8 @@ CREATE TABLE IF NOT EXISTS fichas (
     activo               BOOLEAN NOT NULL DEFAULT TRUE,
     FOREIGN KEY (programa_id) REFERENCES programas(id)  ON DELETE RESTRICT,
     FOREIGN KEY (jornada_id)  REFERENCES jornadas(id)   ON DELETE RESTRICT,
-    FOREIGN KEY (ambiente_id) REFERENCES ambientes(id)  ON DELETE SET NULL
+    FOREIGN KEY (ambiente_id) REFERENCES ambientes(id)  ON DELETE SET NULL,
+    FOREIGN KEY (lider_id) REFERENCES usuarios(id)      ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- ============================================================

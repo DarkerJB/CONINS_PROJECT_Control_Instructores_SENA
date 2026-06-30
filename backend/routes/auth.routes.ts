@@ -27,5 +27,6 @@ router.patch('/cambiar-contrasena', verifyToken, validate(changePasswordSchema),
 router.get('/usuarios', verifyToken, requireRole([ROLES.SUBDIRECTOR, ROLES.COORDINADOR_MEDULAR, ROLES.COORDINADOR_TRANSVERSAL]), authController.getAllUsers);
 router.put('/usuarios/:id', verifyToken, requireRole([ROLES.SUBDIRECTOR, ROLES.COORDINADOR_MEDULAR, ROLES.COORDINADOR_TRANSVERSAL]), validate(updateUserSchema), authController.updateUser);
 router.patch('/usuarios/:id/estado', verifyToken, requireRole([ROLES.SUBDIRECTOR, ROLES.COORDINADOR_MEDULAR, ROLES.COORDINADOR_TRANSVERSAL]), authController.toggleUserEstado);
+router.put('/usuarios/:id/programas', verifyToken, requireRole([ROLES.SUBDIRECTOR, ROLES.COORDINADOR_MEDULAR, ROLES.COORDINADOR_TRANSVERSAL]), authController.assignProgramasToLider);
 
 export default router;

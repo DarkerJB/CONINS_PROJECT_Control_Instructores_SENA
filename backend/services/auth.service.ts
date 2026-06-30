@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import pool from '../config/db.js';
 import { UsuarioModel } from '../models/usuario.model.js';
 import { RolModel } from '../models/rol.model.js';
 import { InstructorModel } from '../models/instructor.model.js';
@@ -100,6 +101,8 @@ export const AuthService = {
     }
 
     recordSuccessfulLogin(email);
+
+    await UsuarioModel.updateUltimoAcceso(user.id);
 
     const roles = await RolModel.findByUsuarioId(user.id);
 
@@ -292,5 +295,27 @@ export const AuthService = {
     await UsuarioModel.toggleActivo(userId, nuevoEstado);
 
     return { activo: nuevoEstado };
+  },
+
+  async assignProgramasToLider(userId: number, programaIds: number[]) {
+    const user = await UsuarioModel.findById(userId);
+    if (!user) throw new NotFoundError('Usuario no encontrado');
+
+    const roles = await RolModel.findByUsuarioId(userId);
+    if (!roles.includes('lider_programa')) {
+      throw new ValidationError('El usuario no tiene el rol de Lider de Programa');
+    }
+
+    const instructor = await InstructorModel.findByUsuarioId(userId);
+    if (!instructor) throw new NotFoundError('El usuario no tiene perfil de instructor');
+
+    await pool.query('DELETE FROM lider_programa WHERE instructor_id = ?', [instructor.id]);
+
+    for (const programaId of programaIds) {
+      await pool.query(
+        'INSERT INTO lider_programa (instructor_id, programa_id) VALUES (?, ?)',
+        [instructor.id, programaId],
+      );
+    }
   },
 };

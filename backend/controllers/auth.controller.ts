@@ -67,3 +67,10 @@ export const toggleUserEstado = asyncHandler(async (req: Request, res: Response)
   const message = result.activo ? 'Usuario activado' : 'Usuario desactivado';
   ApiResponse.success(res, result, message);
 });
+
+export const assignProgramasToLider = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { programa_ids } = req.body;
+  await AuthService.assignProgramasToLider(Number(id), programa_ids);
+  ApiResponse.success(res, null, 'Programas asignados al lider exitosamente');
+});
