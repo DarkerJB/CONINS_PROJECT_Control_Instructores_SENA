@@ -249,9 +249,9 @@ No hardcodear en frontend. Usar constante configurable.
 
 ---
 
-## 8. Modelo de datos — schema v5.2 (27 tablas — cerrado 11/06/2026)
+## 8. Modelo de datos — schema v5 (25 tablas — verificado 30/06/2026)
 
-> Nota de actualización: este documento describe la versión funcional original del modelo (v4, 20 tablas). El schema evolucionó hasta 27 tablas — se agregaron `tipos_novedad_instructor`, `tipos_novedad_ambiente`, `tipos_novedad_ficha`, `ficha_novedades`, `auditoria`, `lider_id` en `fichas` y `ultimo_acceso`/`tipo_documento`/`documento` en `usuarios`. Ver `CHANGELOG.md` para el detalle completo y `CONINS_contexto_general.md` §11 para el modelo vigente.
+> Nota de actualización: este documento describe la versión funcional original del modelo (v4, 20 tablas). El schema evolucionó hasta 25 tablas — se agregaron `tipos_novedad_instructor`, `tipos_novedad_ambiente`, `tipos_novedad_ficha`, `ficha_novedades` y `auditoria`; `lider_id` en `fichas` y `ultimo_acceso`/`tipo_documento`/`documento` en `usuarios` son **columnas** en tablas existentes, no tablas nuevas (corrección de conteo anterior que decía 27 — verificado por conteo directo en `database.sql` el 30/06/2026). Ver `CHANGELOG.md` para el detalle completo y `CONINS_contexto_general.md` §11 para el modelo vigente.
 
 ```
 instructor
@@ -276,7 +276,7 @@ instructor_competencias_habilitadas
 
 **Novedades y bloqueos:**
 ```sql
-instructor_novedades (id, instructor_id, tipo_novedad, fecha_inicio,
+instructor_novedades (id, instructor_id, tipo_novedad_id FK, fecha_inicio,
                       fecha_regreso, observacion, activo)
 ambiente_bloqueos    (id, ambiente_id, fecha_inicio, fecha_fin, motivo, activo)
 ```
@@ -346,9 +346,4 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 | v5.0 | 28/04/2026 | Consolidación lineal — RN-08, RN-09, schema 19 tablas |
 | **v5.1** | **06/05/2026** | **Stack actualizado: Vite → Next.js 15 (Pages Router). Lucide React confirmado. P11 creado. P1–P3, P5–P6 marcados como resueltos. Schema v4 cerrado con 20 tablas.** |
 
-| **v5.2** | **11/06/2026** | **Correcciones de consistencia: horarios (estado, motivo_rechazo, motivo_suspension), P7 marcado resuelto. Conteos actualizados a 27 tablas, 47 RF.** |
-
----
-
-*CONINS · SENA CDMC · Lógica de Negocio v5.2 · 11 de Junio 2026*
-*Autores: Jair Enrique González Buelvas · Laura Sofía Posada*
+| **v5.2** | **11/06/2026** | **Correcciones de consistencia: horarios (estado, motivo_rechazo, motivo_suspension), P7 marcado resuelto. Conteos 

@@ -1,6 +1,6 @@
 # CONINS — Registro de Contexto y Cambios
 **Centro del Diseño y Manufactura del Cuero (CDMC) — SENA**
-*Última actualización: 2026-06-30*
+*Última actualización: 2026-06-30 (fix database.sql + seed_data.sql v5)*
 
 ---
 
@@ -296,6 +296,32 @@ backend/
 ---
 
 ## Historial de cambios
+
+### 2026-06-30 (tarde) — Jair Enrique Gonzalez Buelvas
+
+**Fix database.sql — triggers y stored procedure con columna inexistente + seed_data.sql v5**
+
+Al intentar importar `database.sql` en phpMyAdmin, se producía el error `#1054 - La columna 'tipo_novedad' en NEW es desconocida`. Causa raíz: los tres triggers de `instructor_novedades` (INSERT, UPDATE, DELETE) y el stored procedure `sp_registrar_novedad` usaban `tipo_novedad` (nombre de columna de una versión anterior del schema), pero la tabla real tiene `tipo_novedad_id INT FK` desde que se normalizó con la tabla `tipos_novedad_instructor`. Identificado y corregido sobre el código:
+
+- **Triggers `tr_instructor_novedades_after_insert/update/delete`:** referencias `NEW.tipo_novedad` / `OLD.tipo_novedad` → `NEW.tipo_novedad_id` / `OLD.tipo_novedad_id`.
+- **`sp_registrar_novedad`:** parámetro `p_tipo_novedad VARCHAR(20)` → `p_tipo_novedad_id INT`; `INSERT` corregido a `tipo_novedad_id`; `motivo_suspension` en el `UPDATE` a `horarios` ahora resuelve el nombre via `SELECT nombre INTO v_tipo_nombre FROM tipos_novedad_instructor`.
+- **`vw_instructores_con_novedad`:** agrega `JOIN tipos_novedad_instructor tni ON n.tipo_novedad_id = tni.id` y expone `tni.nombre AS tipo_novedad` en el SELECT, eliminando la referencia a la columna inexistente.
+
+El backend TypeScript no llama a `sp_registrar_novedad` directamente (usa sus propias queries en `instructor.model.ts`), por lo que el bug no afectaba la API en ejecución — solo bloqueaba la importación del schema.
+
+**`seed_data.sql` v4 → v5:**
+
+- Usuario de prueba `instructor.prueba@sena.edu.co` (ID 23, password NULL — activar via crear-password).
+- Corrección de rol: Rocio Medina → `coordinador_transversal` (asumido — confirmar P8/P9).
+- `[TEST DATA]` secciones nuevas: `programas` (ADSO + Calzado + Asistencia Administrativa), `competencias` (2 por programa), `raps` (2 por competencia), `instructor_competencias_habilitadas` para todos los instructores (sin esto RN-13 bloquea toda asignación), `fichas` (1 por programa), `lider_programa` (Juliana Gómez → ADSO).
+
+**CONINS_Logica_Negocio_v5.md — corrección P25 (parcial):**
+- Schema corregido de v5.2/27 tablas → v5/25 tablas.
+- `instructor_novedades` en el listado de tablas corregido a `tipo_novedad_id` (FK).
+
+**Commit:** `671ce5d` — `fix(db): corregir tipo_novedad → tipo_novedad_id en triggers y sp_registrar_novedad`
+
+---
 
 ### 2026-06-30 — Jair Enrique Gonzalez Buelvas
 
@@ -613,64 +639,4 @@ Gaps reales encontrados en el codigo, no documentados hasta ahora:
 - Vite eliminado. Frontend migra a **Next.js 15 con Pages Router**, confirmado en feedback con Juan Pablo Hoyos Maya, Wilmar Zapata y Gloria Eugenia Jaramillo.
 - Pages Router seleccionado sobre App Router — decisión deliberada por simplicidad y tiempo disponible.
 - Lucide React confirmado como biblioteca de íconos.
-- Zustand en revisión — evaluar en Fase 3 si se mantiene o se reemplaza con solución nativa de Next.js.
-- Stack completo confirmado: Next.js 15 · React 19 · TypeScript · Tailwind CSS 4 · Lucide React · Fetch nativo · Node.js · Express 5 · TypeScript · MVC · ESM6 · JWT · bcrypt · Nodemailer · MySQL · phpMyAdmin · Laragon · Git · GitHub · VS Code.
-- Descripción oficial del sistema actualizada con el nuevo stack.
-- P11 creado: definir gestión de estado en Next.js 15.
-
-**Documentos actualizados:**
-- `CONINS_contexto_general.md` → v7.0
-- `CHANGELOG.md` → entrada 06/05/2026
-- `CRONOGRAMA.md` → referencia de stack en actividad 12 actualizada a Next.js 15
-
----
-
-### 2026-05-04 — Jair González Buelvas (`dev/Jair`)
-
-**Fase 2 completada. Schema v4 cerrado. 5 bloqueadores resueltos.**
-
-- Diagramas PlantUML RF-01 al RF-45 completos e integrados al ERS v3.0.
-- Revisión técnica aprobada por Wilmar Zapata.
-- Schema `database.sql` cerrado con 20 tablas.
-- Correcciones aplicadas: `operario` en `programas.tipo_formacion`, `fichas.etapa = ('lectiva','productiva')`, tablas `instructor_novedades` / `ambiente_bloqueos` / `notificaciones` agregadas, roles limpios (5 exactos).
-- BD local sincronizada.
-
-Resueltos: ~~P1~~ (horas: 20–40h) · ~~P2~~ (etapa: `productiva`) · ~~P3~~ (login: correo en BD) · ~~P5~~ (3 tablas nuevas) · ~~P6~~ (`operario` en ENUM)
-
----
-
-### 2026-04-28
-
-- `lider_ficha` eliminado de `roles` → campo `es_lider_ficha BOOLEAN` en `asignacion`.
-- Pantalla `/auth` con dos tabs definida como flujo definitivo.
-- Axios → Fetch nativo.
-- RF v5 (42) → v6 (45): RF-38/39/40 nuevos de notificaciones.
-- Lógica de negocio v5.0.
-
-### 2026-04-24
-
-- 61 archivos .puml generados para módulos Instructores, Fichas, Asignaciones, Ambientes, Alertas y Consulta.
-
-### 2026-04-23
-
-- Bloqueadores B1–B8 resueltos. Schema v3. RF v3 (33) → v4 (40).
-
-### 2026-04-22
-
-- Módulos de datos precargados eliminados del ERS. RF v1 (43) → v2 (33). CONINS definido como sistema de control de malla de horarios.
-
-### 2026-04-21
-
-- ERS_CONINS_v1.docx generado. Módulo AUTH completo. 14 RNF. Glosario.
-
-### 2026-04-20
-
-- Validación pre-existente en registro. `authController` con HTTP 403. Migración controllers a schema v3.
-
-### 2026-04-14
-
-- Identidad Visual SENA. Topbar con dropdown. Sidebar. Bug fichas resuelto. `Usuarios.tsx`. `Perfil.tsx`. 10 violaciones arquitectónicas corregidas.
-
-### 2026-04-10
-
-- BD `instruplan` → `conIns`. 13 tablas iniciales. Backend completo. Auth multi-rol. Paleta SENA frontend. `LAURA_GUIDE.md`.
+- Zustand en revisión — evaluar en Fase 3 si se mantiene o se reemplaza con solución nativa de Next.js
