@@ -765,7 +765,7 @@ FOR EACH ROW
 BEGIN
     INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id, datos_nuevos)
     VALUES (@audit_usuario_id, 'INSERT', 'instructor_novedades', NEW.id,
-            JSON_OBJECT('instructor_id', NEW.instructor_id, 'tipo_novedad', NEW.tipo_novedad, 'fecha_inicio', NEW.fecha_inicio, 'fecha_regreso', NEW.fecha_regreso, 'activo', NEW.activo));
+            JSON_OBJECT('instructor_id', NEW.instructor_id, 'tipo_novedad_id', NEW.tipo_novedad_id, 'fecha_inicio', NEW.fecha_inicio, 'fecha_regreso', NEW.fecha_regreso, 'activo', NEW.activo));
 END$$
 DELIMITER ;
 
@@ -777,8 +777,8 @@ FOR EACH ROW
 BEGIN
     INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id, datos_anteriores, datos_nuevos)
     VALUES (@audit_usuario_id, 'UPDATE', 'instructor_novedades', NEW.id,
-            JSON_OBJECT('instructor_id', OLD.instructor_id, 'tipo_novedad', OLD.tipo_novedad, 'fecha_inicio', OLD.fecha_inicio, 'fecha_regreso', OLD.fecha_regreso, 'activo', OLD.activo),
-            JSON_OBJECT('instructor_id', NEW.instructor_id, 'tipo_novedad', NEW.tipo_novedad, 'fecha_inicio', NEW.fecha_inicio, 'fecha_regreso', NEW.fecha_regreso, 'activo', NEW.activo));
+            JSON_OBJECT('instructor_id', OLD.instructor_id, 'tipo_novedad_id', OLD.tipo_novedad_id, 'fecha_inicio', OLD.fecha_inicio, 'fecha_regreso', OLD.fecha_regreso, 'activo', OLD.activo),
+            JSON_OBJECT('instructor_id', NEW.instructor_id, 'tipo_novedad_id', NEW.tipo_novedad_id, 'fecha_inicio', NEW.fecha_inicio, 'fecha_regreso', NEW.fecha_regreso, 'activo', NEW.activo));
 END$$
 DELIMITER ;
 
@@ -790,7 +790,7 @@ FOR EACH ROW
 BEGIN
     INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id, datos_anteriores)
     VALUES (@audit_usuario_id, 'DELETE', 'instructor_novedades', OLD.id,
-            JSON_OBJECT('instructor_id', OLD.instructor_id, 'tipo_novedad', OLD.tipo_novedad, 'fecha_inicio', OLD.fecha_inicio, 'fecha_regreso', OLD.fecha_regreso, 'activo', OLD.activo));
+            JSON_OBJECT('instructor_id', OLD.instructor_id, 'tipo_novedad_id', OLD.tipo_novedad_id, 'fecha_inicio', OLD.fecha_inicio, 'fecha_regreso', OLD.fecha_regreso, 'activo', OLD.activo));
 END$$
 DELIMITER ;
 
@@ -977,13 +977,14 @@ DROP PROCEDURE IF EXISTS sp_registrar_novedad;
 DELIMITER $$
 CREATE PROCEDURE sp_registrar_novedad(
     IN p_instructor_id INT,
-    IN p_tipo_novedad VARCHAR(20),
+    IN p_tipo_novedad_id INT,
     IN p_fecha_inicio DATE,
     IN p_fecha_regreso DATE,
     IN p_observacion TEXT,
     OUT p_novedad_id INT
 )
 BEGIN
+    DECLARE v_tipo_nombre VARCHAR(100) DEFAULT '';
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -992,12 +993,14 @@ BEGIN
 
     START TRANSACTION;
 
-    INSERT INTO instructor_novedades (instructor_id, tipo_novedad, fecha_inicio, fecha_regreso, observacion)
-    VALUES (p_instructor_id, p_tipo_novedad, p_fecha_inicio, p_fecha_regreso, p_observacion);
+    SELECT nombre INTO v_tipo_nombre FROM tipos_novedad_instructor WHERE id = p_tipo_novedad_id LIMIT 1;
+
+    INSERT INTO instructor_novedades (instructor_id, tipo_novedad_id, fecha_inicio, fecha_regreso, observacion)
+    VALUES (p_instructor_id, p_tipo_novedad_id, p_fecha_inicio, p_fecha_regreso, p_observacion);
     SET p_novedad_id = LAST_INSERT_ID();
 
     UPDATE horarios
-    SET activo = FALSE, motivo_suspension = CONCAT('Novedad: ', p_tipo_novedad)
+    SET activo = FALSE, motivo_suspension = CONCAT('Novedad: ', v_tipo_nombre)
     WHERE instructor_id = p_instructor_id
       AND activo = TRUE
       AND semana >= p_fecha_inicio
@@ -1156,7 +1159,7 @@ SELECT
     i.id AS instructor_id,
     u.nombre AS instructor_nombre,
     u.email AS instructor_email,
-    n.tipo_novedad,
+    tni.nombre AS tipo_novedad,
     n.fecha_inicio,
     n.fecha_regreso,
     n.observacion,
@@ -1165,6 +1168,7 @@ SELECT
 FROM instructores i
 JOIN usuarios u ON i.usuario_id = u.id
 JOIN instructor_novedades n ON n.instructor_id = i.id
+JOIN tipos_novedad_instructor tni ON n.tipo_novedad_id = tni.id
 WHERE n.activo = TRUE
   AND n.fecha_inicio <= CURDATE()
   AND n.fecha_regreso >= CURDATE();
