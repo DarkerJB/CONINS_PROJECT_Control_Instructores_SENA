@@ -1,35 +1,41 @@
-const API_BASE_URL = 'http://localhost:5000/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
-function getAuthHeaders(includeAuth = true): HeadersInit {
+function getAuthHeaders(): HeadersInit {
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
     }
-
-    if (includeAuth) {
-        const token = localStorage.getItem('auth_token')
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`
-        }
+    const token = localStorage.getItem('auth_token')
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`
     }
-
     return headers
 }
 
 async function apiFetch(path: string, options: RequestInit = {}) {
     const url = `${API_BASE_URL}${path}`
 
-    const response = await fetch(url, {
-        ...options,
-        headers: {
-            ...getAuthHeaders(options.headers ? !!(options.headers as Record<string, string>)['Authorization'] : true),
-            ...options.headers,
-        },
-    })
+    let response: Response
+    try {
+        response = await fetch(url, {
+            ...options,
+            headers: {
+                ...getAuthHeaders(),
+                ...options.headers,
+            },
+        })
+    } catch {
+        throw new Error('No se pudo conectar con el servidor. Verifica que el backend este corriendo en ' + API_BASE_URL)
+    }
 
-    const data = await response.json()
+    let data: any
+    try {
+        data = await response.json()
+    } catch {
+        throw new Error(`Error del servidor (${response.status}) — respuesta no es JSON`)
+    }
 
     if (!response.ok) {
-        throw new Error(data.message || 'Error en la peticion')
+        throw new Error(data.message || `Error ${response.status}`)
     }
 
     return data
@@ -268,6 +274,7 @@ export const api = {
         },
         getHorariosPorFicha() {
             return apiFetch('/consultas/horarios-ficha')
+
         },
         getOcupacionAmbientes() {
             return apiFetch('/consultas/ocupacion-ambientes')
