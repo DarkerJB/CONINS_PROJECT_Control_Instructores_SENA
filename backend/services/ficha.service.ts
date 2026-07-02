@@ -21,6 +21,8 @@ export const FichaService = {
     etapa?: string;
     fecha_inicio_lectiva?: string;
     fecha_fin_lectiva?: string;
+    fecha_inicio_productiva?: string;
+    fecha_fin_productiva?: string;
     fecha_fin_ficha?: string;
   }) {
     const existing = await FichaModel.findByNumero(data.numero_ficha);
@@ -39,6 +41,8 @@ export const FichaService = {
     etapa?: string;
     fecha_inicio_lectiva?: string;
     fecha_fin_lectiva?: string;
+    fecha_inicio_productiva?: string;
+    fecha_fin_productiva?: string;
     fecha_fin_ficha?: string;
   }) {
     const ficha = await FichaModel.findById(id);

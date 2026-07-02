@@ -25,6 +25,7 @@ export const HorarioService = {
     dia_semana: number;
     hora_inicio: string;
     hora_fin: string;
+    tipo_actividad_id?: number | null;
     jornada_id: number;
     semana?: string;
   }) {
@@ -101,6 +102,7 @@ export const HorarioService = {
     hora_fin?: string;
     competencia_id?: number;
     ambiente_id?: number | null;
+    tipo_actividad_id?: number | null;
   }) {
     const horario = await HorarioModel.findById(id);
     if (!horario) throw new NotFoundError('Horario no encontrado');

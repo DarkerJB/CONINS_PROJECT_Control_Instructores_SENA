@@ -10,6 +10,7 @@ export interface HorarioRecord extends RowDataPacket {
   dia_semana: number;
   hora_inicio: string;
   hora_fin: string;
+  tipo_actividad_id: number | null;
   jornada_id: number;
   semana: string;
   estado: string;
@@ -25,6 +26,7 @@ export interface HorarioDetail extends RowDataPacket {
   competencia: string;
   ambiente: string;
   jornada: string;
+  tipo_actividad: string | null;
   dias: string;
   horas: string;
   estado: string;
@@ -43,6 +45,7 @@ export const HorarioModel = {
              c.nombre AS competencia,
              COALESCE(ab.nombre, 'Sin asignar') AS ambiente,
              j.nombre AS jornada,
+             ta.nombre AS tipo_actividad,
              GROUP_CONCAT(DISTINCT h.dia_semana ORDER BY h.dia_semana SEPARATOR ',') AS dias,
              CONCAT(TIME_FORMAT(MIN(h.hora_inicio), '%H:%i'), ' - ', TIME_FORMAT(MAX(h.hora_fin), '%H:%i')) AS horas,
              CASE h.estado
@@ -60,6 +63,7 @@ export const HorarioModel = {
       JOIN competencias c ON h.competencia_id = c.id
       LEFT JOIN ambientes ab ON h.ambiente_id = ab.id
       JOIN jornadas j ON h.jornada_id = j.id
+      LEFT JOIN tipos_actividad ta ON h.tipo_actividad_id = ta.id
       GROUP BY h.ficha_id, h.instructor_id, h.competencia_id, h.ambiente_id, h.jornada_id, h.hora_inicio, h.hora_fin, h.estado, h.motivo_rechazo, h.activo
       ORDER BY h.id
     `);
@@ -78,6 +82,7 @@ export const HorarioModel = {
              c.nombre AS competencia,
              COALESCE(ab.nombre, 'Sin asignar') AS ambiente,
              j.nombre AS jornada,
+             ta.nombre AS tipo_actividad,
              GROUP_CONCAT(DISTINCT h2.dia_semana ORDER BY h2.dia_semana SEPARATOR ',') AS dias,
              CONCAT(TIME_FORMAT(MIN(h.hora_inicio), '%H:%i'), ' - ', TIME_FORMAT(MAX(h.hora_fin), '%H:%i')) AS horas,
              CASE h.estado
@@ -95,6 +100,7 @@ export const HorarioModel = {
       JOIN competencias c ON h.competencia_id = c.id
       LEFT JOIN ambientes ab ON h.ambiente_id = ab.id
       JOIN jornadas j ON h.jornada_id = j.id
+      LEFT JOIN tipos_actividad ta ON h.tipo_actividad_id = ta.id
       JOIN horarios h2 ON h2.id = h.id AND h2.activo = TRUE
       WHERE h.id = ?
       GROUP BY h.id, h.estado, h.motivo_rechazo, h.activo
@@ -110,13 +116,14 @@ export const HorarioModel = {
     dia_semana: number;
     hora_inicio: string;
     hora_fin: string;
+    tipo_actividad_id?: number | null;
     jornada_id: number;
     semana: string;
   }): Promise<number> {
     const [result] = await pool.query(
       `INSERT INTO horarios (ficha_id, instructor_id, competencia_id, ambiente_id,
-        dia_semana, hora_inicio, hora_fin, jornada_id, semana)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        dia_semana, hora_inicio, hora_fin, tipo_actividad_id, jornada_id, semana)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.ficha_id,
         data.instructor_id,
@@ -125,6 +132,7 @@ export const HorarioModel = {
         data.dia_semana,
         data.hora_inicio,
         data.hora_fin,
+        data.tipo_actividad_id ?? null,
         data.jornada_id,
         data.semana,
       ],
@@ -138,6 +146,7 @@ export const HorarioModel = {
     hora_fin?: string;
     competencia_id?: number;
     ambiente_id?: number | null;
+    tipo_actividad_id?: number | null;
   }): Promise<void> {
     const updates: string[] = [];
     const values: any[] = [];
@@ -147,6 +156,7 @@ export const HorarioModel = {
     if (data.hora_fin !== undefined) { updates.push('hora_fin = ?'); values.push(data.hora_fin); }
     if (data.competencia_id !== undefined) { updates.push('competencia_id = ?'); values.push(data.competencia_id); }
     if (data.ambiente_id !== undefined) { updates.push('ambiente_id = ?'); values.push(data.ambiente_id); }
+    if (data.tipo_actividad_id !== undefined) { updates.push('tipo_actividad_id = ?'); values.push(data.tipo_actividad_id); }
 
     if (updates.length === 0) return;
 
