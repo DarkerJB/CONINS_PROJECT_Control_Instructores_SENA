@@ -166,7 +166,7 @@ export const AuthService = {
     await UsuarioModel.updatePassword(existingUser.id, hashed);
 
     const roles = await RolModel.findByUsuarioId(existingUser.id);
-    if (roles.includes('instructor')) {
+    if (roles.includes('Instructor')) {
       const instructorExists = await InstructorModel.findByUsuarioId(existingUser.id);
       if (!instructorExists) {
         await InstructorModel.create(
@@ -301,11 +301,9 @@ export const AuthService = {
     const user = await UsuarioModel.findById(userId);
     if (!user) throw new NotFoundError('Usuario no encontrado');
 
-    const roles = await RolModel.findByUsuarioId(userId);
-    if (!roles.includes('lider_programa')) {
-      throw new ValidationError('El usuario no tiene el rol de Lider de Programa');
-    }
-
+    // 01/07/2026: lider_programa ya no es un rol del sistema; la asignación
+    // de programas líderes se maneja solo via la tabla lider_programa.
+    // Se valida que el usuario sea instructor en lugar de verificar el rol.
     const instructor = await InstructorModel.findByUsuarioId(userId);
     if (!instructor) throw new NotFoundError('El usuario no tiene perfil de instructor');
 

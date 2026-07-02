@@ -16,56 +16,19 @@ export const PermisoService = {
     }
   },
 
-  async validarNoLiderParaProvisional(usuarioId: number): Promise<void> {
-    const [rows] = await pool.query(
-      `SELECT 1 FROM usuario_roles ur
-       JOIN roles r ON ur.rol_id = r.id
-       WHERE ur.usuario_id = ? AND r.nombre = 'lider_programa'
-       LIMIT 1`,
-      [usuarioId],
-    );
-    const esLider = (rows as any[]).length > 0;
-
-    const [adminRows] = await pool.query(
-      `SELECT 1 FROM usuario_roles ur
-       JOIN roles r ON ur.rol_id = r.id
-       WHERE ur.usuario_id = ? AND r.nivel <= 2
-       LIMIT 1`,
-      [usuarioId],
-    );
-    const esAdmin = (adminRows as any[]).length > 0;
-
-    if (esLider && !esAdmin) {
-      throw new ForbiddenError('Los lideres de programa no pueden registrar asignaciones provisionales (RN-12)');
-    }
+  // 01/07/2026: lider_programa ya NO es un rol del sistema → esta validación
+  // se conserva por compatibilidad pero nunca bloqueará (esLider siempre false).
+  async validarNoLiderParaProvisional(_usuarioId: number): Promise<void> {
+    // Lider de programa es ahora una marca informativa (tabla lider_programa),
+    // no un rol de sistema. La restricción de asignaciones provisionales para
+    // líderes fue removida. Función mantenida para no romper callers.
+    return;
   },
 
-  async validarAlcanceCoordinador(usuarioId: number, fichaId: number): Promise<void> {
-    const [rows] = await pool.query(
-      `SELECT r.nombre FROM usuario_roles ur
-       JOIN roles r ON ur.rol_id = r.id
-       WHERE ur.usuario_id = ? AND r.nombre LIKE 'coordinador_%'`,
-      [usuarioId],
-    );
-    const roles = (rows as any[]) as { nombre: string }[];
-    if (roles.length === 0) return;
-
-    const esMedular = roles.some((r) => r.nombre === 'coordinador_medular');
-    const esTransversal = roles.some((r) => r.nombre === 'coordinador_transversal');
-
-    const [fichaRows] = await pool.query(
-      `SELECT p.tipo_linea FROM fichas f
-       JOIN programas p ON f.programa_id = p.id
-       WHERE f.id = ?`,
-      [fichaId],
-    );
-    const tipoLinea = ((fichaRows as any[])[0] as { tipo_linea: string })?.tipo_linea;
-
-    if (esMedular && tipoLinea !== 'medular') {
-      throw new ForbiddenError('El coordinador medular solo puede gestionar fichas de linea medular');
-    }
-    if (esTransversal && tipoLinea !== 'transversal') {
-      throw new ForbiddenError('El coordinador transversal solo puede gestionar fichas de linea transversal');
-    }
+  // 01/07/2026: la distinción medular/transversal fue eliminada (feedback coordinadora).
+  // Coordinadora Academica y Asistente Coordinacion gestionan todas las fichas.
+  // Función conservada para no romper callers; ya no aplica restricción de tipo_linea.
+  async validarAlcanceCoordinador(_usuarioId: number, _fichaId: number): Promise<void> {
+    return;
   },
 };

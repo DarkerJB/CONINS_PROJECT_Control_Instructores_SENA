@@ -10,6 +10,8 @@ export interface FichaRecord extends RowDataPacket {
   etapa: string;
   fecha_inicio_lectiva: Date | null;
   fecha_fin_lectiva: Date | null;
+  fecha_inicio_productiva: Date | null;
+  fecha_fin_productiva: Date | null;
   fecha_fin_ficha: Date | null;
   estado: string;
   activo: boolean;
@@ -78,12 +80,14 @@ export const FichaModel = {
     etapa?: string;
     fecha_inicio_lectiva?: string;
     fecha_fin_lectiva?: string;
+    fecha_inicio_productiva?: string;
+    fecha_fin_productiva?: string;
     fecha_fin_ficha?: string;
   }): Promise<number> {
     const [result] = await pool.query(
       `INSERT INTO fichas (numero_ficha, programa_id, jornada_id, ambiente_id, lider_id, etapa,
-        fecha_inicio_lectiva, fecha_fin_lectiva, fecha_fin_ficha)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        fecha_inicio_lectiva, fecha_fin_lectiva, fecha_inicio_productiva, fecha_fin_productiva, fecha_fin_ficha)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.numero_ficha,
         data.programa_id,
@@ -93,6 +97,8 @@ export const FichaModel = {
         data.etapa ?? 'lectiva',
         data.fecha_inicio_lectiva ?? null,
         data.fecha_fin_lectiva ?? null,
+        data.fecha_inicio_productiva ?? null,
+        data.fecha_fin_productiva ?? null,
         data.fecha_fin_ficha ?? null,
       ],
     );
@@ -108,6 +114,8 @@ export const FichaModel = {
     etapa?: string;
     fecha_inicio_lectiva?: string;
     fecha_fin_lectiva?: string;
+    fecha_inicio_productiva?: string;
+    fecha_fin_productiva?: string;
     fecha_fin_ficha?: string;
   }): Promise<void> {
     const updates: string[] = [];
@@ -121,6 +129,8 @@ export const FichaModel = {
     if (data.etapa !== undefined) { updates.push('etapa = ?'); values.push(data.etapa); }
     if (data.fecha_inicio_lectiva !== undefined) { updates.push('fecha_inicio_lectiva = ?'); values.push(data.fecha_inicio_lectiva); }
     if (data.fecha_fin_lectiva !== undefined) { updates.push('fecha_fin_lectiva = ?'); values.push(data.fecha_fin_lectiva); }
+    if (data.fecha_inicio_productiva !== undefined) { updates.push('fecha_inicio_productiva = ?'); values.push(data.fecha_inicio_productiva); }
+    if (data.fecha_fin_productiva !== undefined) { updates.push('fecha_fin_productiva = ?'); values.push(data.fecha_fin_productiva); }
     if (data.fecha_fin_ficha !== undefined) { updates.push('fecha_fin_ficha = ?'); values.push(data.fecha_fin_ficha); }
 
     if (updates.length === 0) return;

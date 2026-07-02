@@ -42,12 +42,19 @@ CREATE TABLE IF NOT EXISTS roles (
     activo BOOLEAN NOT NULL DEFAULT TRUE
 ) ENGINE=InnoDB;
 
-INSERT IGNORE INTO roles (id, nombre, nivel) VALUES
-(1, 'subdirector',             1),
-(2, 'coordinador_medular',     2),
-(3, 'coordinador_transversal', 2),
-(4, 'lider_programa',          3),
-(5, 'instructor',              4);
+-- ⚠ CAMBIO 01/07/2026: 5 roles → 4 roles (Title Case con espacios).
+-- TRUNCATE limpia datos de ejecuciones previas. FK_CHECKS deshabilita
+-- temporalmente la restricción de usuario_roles → roles para permitir TRUNCATE.
+SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE usuario_roles;
+TRUNCATE TABLE roles;
+SET FOREIGN_KEY_CHECKS = 1;
+
+INSERT INTO roles (id, nombre, nivel) VALUES
+(1, 'Subdirector',             1),
+(2, 'Coordinadora Academica',  2),
+(3, 'Asistente Coordinacion',  3),
+(4, 'Instructor',              4);
 
 -- ============================================================
 -- 3. ÁREAS
@@ -204,9 +211,11 @@ CREATE TABLE IF NOT EXISTS fichas (
     ambiente_id          INT NULL,
     lider_id             INT NULL COMMENT 'Usuario lider de programa asignado a esta ficha',
     etapa                ENUM('lectiva','productiva') NOT NULL DEFAULT 'lectiva',
-    fecha_inicio_lectiva DATE NULL,
-    fecha_fin_lectiva    DATE NULL,
-    fecha_fin_ficha      DATE NULL,
+    fecha_inicio_lectiva    DATE NULL,
+    fecha_fin_lectiva       DATE NULL,
+    fecha_inicio_productiva DATE NULL,
+    fecha_fin_productiva    DATE NULL,
+    fecha_fin_ficha         DATE NULL,
     estado               VARCHAR(50) NOT NULL DEFAULT 'Activa',
     activo               BOOLEAN NOT NULL DEFAULT TRUE,
     FOREIGN KEY (programa_id) REFERENCES programas(id)  ON DELETE RESTRICT,
@@ -263,7 +272,32 @@ CREATE TABLE IF NOT EXISTS asignacion_competencia (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 13. LIDER_PROGRAMA
+-- 13. RAP_FICHA_SEGUIMIENTO (agregado 01/07/2026)
+-- Ciclo de vida de cada RAP dentro de una ficha específica.
+-- Granularidad: RAP-001 puede estar evaluado mientras RAP-002
+-- sigue pendiente — nivel que la coordinadora necesita monitorear.
+-- estado_aprobacion solo aplica cuando estado_evaluacion = 'evaluado'.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS rap_ficha_seguimiento (
+    id                        INT AUTO_INCREMENT PRIMARY KEY,
+    asignacion_competencia_id INT NOT NULL,
+    rap_id                    INT NOT NULL,
+    fecha_inicio              DATE NULL,
+    fecha_fin_programada      DATE NULL,
+    estado_evaluacion         ENUM('pendiente_por_evaluar','evaluado')
+                                NOT NULL DEFAULT 'pendiente_por_evaluar',
+    estado_aprobacion         ENUM('aprobado','no_aprobado') NULL
+                                COMMENT 'Solo aplica si estado_evaluacion = evaluado',
+    activo                    BOOLEAN NOT NULL DEFAULT TRUE,
+    FOREIGN KEY (asignacion_competencia_id)
+        REFERENCES asignacion_competencia(id) ON DELETE CASCADE,
+    FOREIGN KEY (rap_id)
+        REFERENCES raps(id) ON DELETE RESTRICT,
+    UNIQUE KEY uq_rap_asignacion (asignacion_competencia_id, rap_id)
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 14. LIDER_PROGRAMA
 -- Instructor designado como líder de un programa específico.
 -- Acceso contextual: ve y gestiona fichas de su programa.
 -- ============================================================
@@ -290,32 +324,64 @@ CREATE TABLE IF NOT EXISTS instructor_competencias_habilitadas (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 15. HORARIOS
+-- 15. TIPOS_ACTIVIDAD (agregado 01/07/2026)
+-- Catálogo de 9 tipos de bloque registrables en el horario semanal.
+-- suma_carga_horaria: si FALSE (ej. "Disponible"), el bloque NO
+-- cuenta para el rango 20–40h semanal del instructor.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS tipos_actividad (
+    id                   INT AUTO_INCREMENT PRIMARY KEY,
+    nombre               VARCHAR(60) NOT NULL,
+    suma_carga_horaria   BOOLEAN NOT NULL DEFAULT TRUE
+        COMMENT 'Si FALSE, no suma a las 20-40h semanales (ej. Disponible)',
+    requiere_ficha       BOOLEAN NOT NULL DEFAULT FALSE,
+    requiere_ambiente    BOOLEAN NOT NULL DEFAULT FALSE,
+    requiere_competencia BOOLEAN NOT NULL DEFAULT FALSE,
+    activo               BOOLEAN NOT NULL DEFAULT TRUE
+) ENGINE=InnoDB;
+
+INSERT INTO tipos_actividad
+    (nombre,                          suma_carga_horaria, requiere_ficha, requiere_ambiente, requiere_competencia) VALUES
+    ('Formación Titulada',            TRUE,  TRUE,  TRUE,  TRUE),
+    ('Complementaria',                TRUE,  TRUE,  TRUE,  FALSE),
+    ('Investigación',                 TRUE,  FALSE, FALSE, FALSE),
+    ('Desarrollo Curricular',         TRUE,  FALSE, FALSE, FALSE),
+    ('Etapa Práctica',                TRUE,  TRUE,  FALSE, FALSE),
+    ('Aseguramiento de la Calidad',   TRUE,  FALSE, FALSE, FALSE),
+    ('Actividades de Apoyo',          TRUE,  FALSE, FALSE, FALSE),
+    ('Disponible',                    FALSE, FALSE, FALSE, FALSE),
+    ('Otros',                         TRUE,  FALSE, FALSE, FALSE);
+
+-- ============================================================
+-- 16. HORARIOS
 -- Un bloque = un período de clase de un instructor en una ficha.
 -- jornada_id FK → jornadas  (reemplaza ENUM jornada)
 -- competencia_id: qué competencia se imparte en este bloque.
 -- semana: DATE del lunes de esa semana (para agrupar por semana).
+-- tipo_actividad_id FK → tipos_actividad (agregado 01/07/2026)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS horarios (
     id            INT AUTO_INCREMENT PRIMARY KEY,
     ficha_id      INT NOT NULL,
     instructor_id INT NOT NULL,
     competencia_id INT NOT NULL,
-    ambiente_id   INT NULL COMMENT 'NULL para fichas virtuales (RN-14)',
-    dia_semana    TINYINT UNSIGNED NOT NULL COMMENT '1=Lunes ... 7=Domingo',
-    hora_inicio   TIME NOT NULL,
-    hora_fin      TIME NOT NULL,
-    jornada_id    INT NOT NULL,
+    ambiente_id       INT NULL COMMENT 'NULL para fichas virtuales (RN-14)',
+    dia_semana        TINYINT UNSIGNED NOT NULL COMMENT '1=Lunes ... 7=Domingo',
+    hora_inicio       TIME NOT NULL,
+    hora_fin          TIME NOT NULL,
+    tipo_actividad_id INT NULL COMMENT 'FK → tipos_actividad; NULL = sin clasificar (01/07/2026)',
+    jornada_id        INT NOT NULL,
     semana        DATE NOT NULL COMMENT 'Fecha del lunes de la semana',
     estado        ENUM('pendiente','aprobado','rechazado') NOT NULL DEFAULT 'pendiente' COMMENT 'Flujo de aprobacion de horarios',
     motivo_rechazo TEXT NULL COMMENT 'Motivo del rechazo cuando estado = rechazado',
     motivo_suspension TEXT NULL COMMENT 'RF-36 — se registra al desactivar un horario',
     activo        BOOLEAN NOT NULL DEFAULT TRUE,
-    FOREIGN KEY (ficha_id)       REFERENCES fichas(id)       ON DELETE CASCADE,
-    FOREIGN KEY (instructor_id)  REFERENCES instructores(id) ON DELETE CASCADE,
-    FOREIGN KEY (competencia_id) REFERENCES competencias(id) ON DELETE RESTRICT,
-    FOREIGN KEY (ambiente_id)    REFERENCES ambientes(id)    ON DELETE SET NULL,
-    FOREIGN KEY (jornada_id)     REFERENCES jornadas(id)     ON DELETE RESTRICT,
+    FOREIGN KEY (ficha_id)         REFERENCES fichas(id)          ON DELETE CASCADE,
+    FOREIGN KEY (instructor_id)    REFERENCES instructores(id)    ON DELETE CASCADE,
+    FOREIGN KEY (competencia_id)   REFERENCES competencias(id)    ON DELETE RESTRICT,
+    FOREIGN KEY (ambiente_id)      REFERENCES ambientes(id)       ON DELETE SET NULL,
+    FOREIGN KEY (jornada_id)       REFERENCES jornadas(id)        ON DELETE RESTRICT,
+    FOREIGN KEY (tipo_actividad_id) REFERENCES tipos_actividad(id) ON DELETE RESTRICT,
     INDEX idx_semana_instructor (semana, instructor_id)
 ) ENGINE=InnoDB;
 
@@ -1158,78 +1224,4 @@ CREATE OR REPLACE VIEW vw_instructores_con_novedad AS
 SELECT
     i.id AS instructor_id,
     u.nombre AS instructor_nombre,
-    u.email AS instructor_email,
-    tni.nombre AS tipo_novedad,
-    n.fecha_inicio,
-    n.fecha_regreso,
-    n.observacion,
-    DATEDIFF(n.fecha_regreso, n.fecha_inicio) + 1 AS dias_novedad,
-    n.activo AS novedad_activa
-FROM instructores i
-JOIN usuarios u ON i.usuario_id = u.id
-JOIN instructor_novedades n ON n.instructor_id = i.id
-JOIN tipos_novedad_instructor tni ON n.tipo_novedad_id = tni.id
-WHERE n.activo = TRUE
-  AND n.fecha_inicio <= CURDATE()
-  AND n.fecha_regreso >= CURDATE();
-
--- --- vw_alertas_pendientes: Alertas no atendidas con prioridad ---
-CREATE OR REPLACE VIEW vw_alertas_pendientes AS
-SELECT
-    al.id AS alerta_id,
-    u.nombre AS instructor_nombre,
-    al.tipo AS alerta_tipo,
-    al.mensaje,
-    al.semana,
-    al.total_horas,
-    al.atendida,
-    al.leida,
-    al.created_at,
-    CASE
-        WHEN al.tipo = 'HORAS_EXCEDIDAS' THEN 'alta'
-        WHEN al.tipo = 'INSTRUCTOR_PLANTA_JORNADA_NOCTURNA' THEN 'alta'
-        WHEN al.tipo = 'AMBIENTE_OCUPADO' THEN 'media'
-        ELSE 'baja'
-    END AS prioridad
-FROM alertas al
-JOIN instructores i ON al.instructor_id = i.id
-JOIN usuarios u ON i.usuario_id = u.id
-WHERE al.atendida = FALSE
-ORDER BY
-    FIELD(CASE
-        WHEN al.tipo = 'HORAS_EXCEDIDAS' THEN 'alta'
-        WHEN al.tipo = 'INSTRUCTOR_PLANTA_JORNADA_NOCTURNA' THEN 'alta'
-        WHEN al.tipo = 'AMBIENTE_OCUPADO' THEN 'media'
-        ELSE 'baja'
-    END, 'alta', 'media', 'baja'),
-    al.created_at DESC;
-
--- ============================================================
--- FIN DEL SCHEMA
--- ============================================================
--- ============================================================
--- 25. UTF-8 COLLATION
--- Todas las tablas en utf8mb4_general_ci para caracteres especiales
--- ============================================================
-
-ALTER DATABASE conIns CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-
-ALTER TABLE jornadas CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE roles CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE areas CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE usuarios CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE usuario_roles CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE instructores CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE programas CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE competencias CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE raps CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE ambientes CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE fichas CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE asignacion CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE asignacion_competencia CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE lider_programa CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE instructor_competencias_habilitadas CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE horarios CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE alertas CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTER TABLE instructor_novedades CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-ALTE
+    u.email AS 

@@ -187,10 +187,15 @@ export const HorarioModel = {
   },
 
   async getHorasPorInstructor(instructorId: number, semana: string): Promise<number> {
+    // LEFT JOIN para que los bloques sin tipo asignado (tipo_actividad_id IS NULL)
+    // sigan sumando — condición OR IS NULL evita romper horarios pre-01/07/2026.
+    // Solo se excluyen bloques con suma_carga_horaria = FALSE (ej. 'Disponible').
     const [rows] = await pool.query<RowDataPacket[]>(
-      `SELECT COALESCE(SUM(TIMESTAMPDIFF(MINUTE, hora_inicio, hora_fin)), 0) / 60 AS total_horas
-       FROM horarios
-       WHERE instructor_id = ? AND semana = ? AND activo = TRUE`,
+      `SELECT COALESCE(SUM(TIMESTAMPDIFF(MINUTE, h.hora_inicio, h.hora_fin)), 0) / 60 AS total_horas
+       FROM horarios h
+       LEFT JOIN tipos_actividad ta ON h.tipo_actividad_id = ta.id
+       WHERE h.instructor_id = ? AND h.semana = ? AND h.activo = TRUE
+         AND (ta.suma_carga_horaria = TRUE OR h.tipo_actividad_id IS NULL)`,
       [instructorId, semana],
     );
     return Number((rows[0] as any)?.total_horas ?? 0);
