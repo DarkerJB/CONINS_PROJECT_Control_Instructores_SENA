@@ -64,7 +64,7 @@ export const AuthService = {
       const expiresIn = (process.env.JWT_EXPIRES_IN || '24h') as jwt.SignOptions['expiresIn'];
 
       const token = jwt.sign(
-        { id: 1, nombre: 'Administrador', roles_globales: ['subdirector'] },
+        { id: 1, nombre: 'Administrador', roles_globales: ['Subdirector'] },
         secret,
         { expiresIn },
       );
@@ -75,7 +75,7 @@ export const AuthService = {
           id: 1,
           nombre: 'Administrador',
           email: superUser,
-          roles: ['subdirector'],
+          roles: ['Subdirector'],
         },
       };
     }
@@ -260,13 +260,13 @@ export const AuthService = {
         throw new ValidationError('Uno o mas rol_ids no existen en el sistema');
       }
 
-      if (!actingRoles.includes('subdirector') && rol_ids.includes(1)) {
+      if (!actingRoles.includes('Subdirector') && rol_ids.includes(1)) {
         throw new ForbiddenError('Solo un Subdirector puede asignar el rol de Subdirector');
       }
 
       await RolModel.assignRoles(targetUserId, rol_ids);
 
-      if (rol_ids.includes(5)) {
+      if (rol_ids.includes(4)) {  // ID 4 = Instructor (era 5 antes del 01/07/2026)
         const instructorExists = await InstructorModel.findByUsuarioId(targetUserId);
         if (!instructorExists) {
           await InstructorModel.create(
