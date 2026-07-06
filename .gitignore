@@ -5,4 +5,22 @@ node_modules/
 dist/
 *.tsbuildinfo
 
-# 
+# Variables de entorno - NUNCA commitear
+.env
+.env.local
+.env.*.local
+
+# Datos reales - NUNCA commitear
+backend/seed_data.sql
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema
+.DS_Store
+*.pem
+Thumbs.db
+
+# Claude Code
+.claude

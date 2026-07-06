@@ -1,6 +1,6 @@
 # CONINS — Registro de Contexto y Cambios
 **Centro del Diseño y Manufactura del Cuero (CDMC) — SENA**
-*Última actualización: 2026-07-02 (roles Title Case + schema v27 + fixes B1/B2/I3)*
+*Última actualización: 2026-07-06 (RF v7.0 + seed_data v6 + gitignores fix)*
 
 ---
 
@@ -296,6 +296,29 @@ backend/
 ---
 
 ## Historial de cambios
+
+### 2026-07-06 — Jair Enrique Gonzalez Buelvas
+
+**RF v7.0 + seed_data v6 + gitignores fix**
+
+**Requisitos Funcionales v7.0 (Opcion A aprobada):**
+- `lider_programa` pasa a figura informativa sin rol del sistema. RF-30 (lider asigna instructores) y RF-43 (lider consulta sus programas) eliminados — funcionalidad absorbida por Coordinadora Academica en RF-27, RF-28 y RF-41.
+- RF-39 reescrito: notificaciones de cambio de asignacion ahora van a Coordinadora Academica y Asistente de Coordinacion (antes al lider de programa).
+- RF-40 ajustado: "coordinadores y subdirector" corregido a "Coordinadora Academica, Asistente de Coordinacion y Subdirector".
+- RF-08 al RF-13: "lideres e instructores" simplificado a "instructores".
+- RF-17: eliminada referencia a "lideres previamente registrados" en creacion de fichas.
+- RF-20 y RF-45: "administradores y lideres" corregido a "administradores".
+- RF-25 y RF-26: reescritos para reflejar gestion informativa de lider_programa sin impacto en permisos.
+- Nuevos RF-48 (filtrado por rol — P22 critico), RF-49 (tipos actividad — P29), RF-50 (seguimiento RAPs — P28), RF-51 (auditoria — ya implementada).
+- Nuevo archivo: `CONINS_Requisitos_Funcionales_v7_0.txt` (49 RF en 9 modulos).
+- Resumen doble heredado de v6.x unificado en uno solo.
+- RN-12 marcada obsoleta en `CONINS_Logica_Negocio_v5.md` (v5.2).
+- `CONINS_contexto_general.md` actualizado a v9.5 — seccion 12 con tabla RF v7.0.
+
+**Gitignores fix + seed_data v6:**
+- Fix critico: los tres `.gitignore` tenian CRLF y caracter em-dash que truncaban el archivo en disco — los patrones `.env` y `seed_data.sql` no estaban activos. Reescritos con LF y sin caracteres no-ASCII. Confirmado con `git check-ignore`: `backend/.env` y `backend/seed_data.sql` ahora muestran `!!` (ignorados).
+- `seed_data.sql` actualizado a v6: Paul Tamayo sin rol (coordinacion medular fuera de alcance); instructores medulares (Calzado/Cuero) removidos de `instructores`, `usuario_roles` y `instructor_competencias_habilitadas`; programa 2 (Calzado), competencias 3-4, RAPs 5-8 y ficha 2 eliminados del test data. Rocio Medina sin rol (pendiente modulo juicios evaluativos). Luis Eladio Porras Camargo agregado como instructor ADSO (usuario 25, instructor 13).
+- Pendiente manual: borrar `.git\index.lock` desde Windows y commitear los gitignores.
 
 ### 2026-07-01 al 2026-07-02 — Jair Enrique Gonzalez Buelvas
 
@@ -672,25 +695,4 @@ Gaps reales encontrados en el codigo, no documentados hasta ahora:
 - Fix SQL `GROUP BY` en `asignacion.model.ts` para cumplir con `only_full_group_by` de MySQL
 - `GET /api/instructores` ahora incluye `tiene_novedad: boolean` y `horas_semana: number`
 - `horario.service.ts` valida hora_fin > hora_inicio
-- `asignacion.service.ts` valida ficha no finalizada antes de crear asignación
-- `instructor.service.ts` valida email único al crear instructor (transacción con rollback)
-
-**Commits:**
-- `546dc62` — Fase 1: Schema y validaciones críticas (RN-04, RN-05, RN-06, RN-14)
-- `0874376` — Fase 2 y 3: Roles, alcance y notificaciones (RN-12, RN-16, RF-38 a RF-40)
-- `a7c681d` — Fixes de inconsistencias pendientes (items 1-5)
-- `1e312f0` — Fix GROUP BY en asignacion.model.ts
-
-**Repositorios actualizados:**
-- `https://github.com/DarkerJB/ConIns_Project` (rama `main`)
-- `https://github.com/Soywaz/conins` (rama `dev/Jair`)
-
----
-
-### 2026-05-06 — Jair González Buelvas
-
-**Stack frontend actualizado — Next.js 15 (Pages Router):**
-- Vite eliminado. Frontend migra a **Next.js 15 con Pages Router**, confirmado en feedback con Juan Pablo Hoyos Maya, Wilmar Zapata y Gloria Eugenia Jaramillo.
-- Pages Router seleccionado sobre App Router — decisión deliberada por simplicidad y tiempo disponible.
-- Lucide React confirmado como biblioteca de íconos.
-- Zustand en revisión — evaluar en Fase 3 si se mantiene o se reemplaza con solución nativa de Next.js
+- `asignacion.service.ts` valida ficha no finalizada ante

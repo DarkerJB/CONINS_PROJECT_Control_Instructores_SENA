@@ -165,7 +165,7 @@ El frontend migra de **React + Vite** a **Next.js 15 con Pages Router**. Ver sec
 | 4 | `Instructor` | 4 | Solo lectura de sus asignaciones | Sus fichas activas |
 
 > `lider_ficha` NO existe en `roles`. Es `es_lider_ficha BOOLEAN DEFAULT FALSE` en la tabla `asignacion`. No otorga permisos adicionales.
-> `lider_programa` (tabla) permanece como información de líder de ficha ADSO — solo lectura, sin permisos de escritura en el sistema.
+> `lider_programa` (tabla) permanece como dato informativo del instructor referente de programa — sin permisos, sin rol del sistema (Opcion A aprobada 06/07/2026).
 > Un usuario puede tener múltiples roles simultáneos vía tabla `usuario_roles` (N:M).
 > La distinción medular / transversal fue eliminada: `Coordinadora Academica` y `Asistente Coordinacion` gestionan todas las fichas sin restricción de línea.
 
@@ -318,19 +318,23 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 
 ---
 
-## 12. Requisitos Funcionales v6.1 — 47 RF en 8 módulos
+## 12. Requisitos Funcionales v7.0 — 49 RF en 9 módulos
 
-| Módulo | Rango | Total | Estado ERS |
+> Actualizado 06/07/2026: RF-30 y RF-43 eliminados (lider_programa pasa a figura informativa).
+> RF-39 reescrito. RF-48 a RF-51 nuevos. Ver `CONINS_Requisitos_Funcionales_v7_0.txt`.
+
+| Módulo | Rango | Total | Notas |
 |---|---|---|---|
-| AUTH | RF-01 al RF-13, RF-46 | 14 | ✅ Documentado completo |
-| Instructores | RF-14 al RF-16 | 3 | ✅ .puml integrados al ERS |
-| Fichas | RF-17 al RF-20, RF-47 | 5 | ✅ .puml integrados al ERS |
-| Horarios | RF-21 al RF-24 | 4 | ✅ Documentado completo |
-| Asignaciones | RF-25 al RF-30 | 6 | ✅ .puml integrados al ERS |
-| Ambientes | RF-31 | 1 | ✅ .puml integrados al ERS |
-| Alertas, Validaciones y Notificaciones | RF-32 al RF-40 | 9 | ✅ .puml integrados al ERS |
-| Consulta y Visualización | RF-41 al RF-45 | 5 | ✅ .puml integrados al ERS |
-| **Total** | | **47** | ✅ ERS v3.0 + RF-46, RF-47 |
+| AUTH | RF-01 al RF-13, RF-46 | 14 | Roles actualizados |
+| Instructores | RF-14 al RF-16 | 3 | Sin cambios |
+| Fichas | RF-17 al RF-20, RF-47 | 5 | RF-17 ajustado |
+| Horarios | RF-21 al RF-24 | 4 | Sin cambios |
+| Asignaciones | RF-25 al RF-29 | 5 | RF-30 eliminado |
+| Ambientes | RF-31 | 1 | Sin cambios |
+| Alertas, Validaciones y Notificaciones | RF-32 al RF-40 | 9 | RF-39 reescrito, RF-40 ajustado |
+| Consulta y Visualización | RF-41, RF-42, RF-44, RF-45 | 4 | RF-43 eliminado |
+| Seguridad y Trazabilidad | RF-48 al RF-51 | 4 | Nuevos v7.0 |
+| **Total** | | **49** | RF v7.0 — 06/07/2026 |
 
 ---
 
@@ -342,7 +346,7 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 | `auth-multirole` | JWT multirol · flujo `/auth` dos tabs · registro de dos pasos |
 | `backend-clean-architecture` | Controller / service / model — validaciones solo en service |
 | `horario-carga-validation` | Cálculo de carga horaria — siempre en backend |
-| `role-based-access-control` | Dos capas: `requireRole` + `permisoService` · `lider_ficha` no es rol |
+| `role-based-access-control` | Dos capas: `requireRole` + `permisoService` · `lider_ficha` no es rol · `lider_programa` no es rol (v7.0) |
 
 ---
 
@@ -382,9 +386,9 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 
 | Archivo | Versión | Descripción |
 |---|---|---|
-| `CONINS_contexto_general.md` | v9.4 | Este documento — contexto completo actualizado |
-| `CONINS_Requisitos_Funcionales_v6_1.txt` | v6.1 | 47 RF en 8 módulos — fuente de verdad (pendiente actualizar con requisitos nuevos de 01/07/2026) |
-| `CONINS_Logica_Negocio_v5.md` | v5.2 | Reglas de negocio, schema, reglas de arquitectura |
+| `CONINS_contexto_general.md` | v9.5 | Este documento — contexto completo actualizado |
+| `CONINS_Requisitos_Funcionales_v7_0.txt` | v7.0 | 49 RF en 9 módulos — fuente de verdad (06/07/2026) |
+| `CONINS_Logica_Negocio_v5.md` | v5.2 | Reglas de negocio, schema, reglas de arquitectura (actualizado 06/07/2026) |
 | `CRONOGRAMA.md` | v4.3 | 20 actividades, 5 fases, fechas y estados |
 | `CHANGELOG.md` | 02/07/2026 | Historial detallado de cambios |
 | `ERS_CONINS_v3.docx` | v3.0 | ERS IEEE 830-1998 — 45 RF originales + adenda RF-46, RF-47 (47 vigentes) |

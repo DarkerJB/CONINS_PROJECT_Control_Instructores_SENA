@@ -30,8 +30,17 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files — ignorar archivos con credenciales, pero mantener .env.example
+# env files - ignorar credenciales, mantener .env.example
 .env
 .env.local
 .env.*.local
-.env.developme
+.env.development.local
+.env.test.local
+.env.production.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts

@@ -243,15 +243,20 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 | ✅ 02/07 | Nueva usuaria: Laura Jaramillo Ospina (Asistente Coordinacion, `ljaramilloo@sena.edu.co`) |
 | ✅ 02/07 | Reporte de cambios para Laura Posada (frontend) — `REPORTE_CAMBIOS_BACKEND_01072026_frontend.md` |
 | ✅ 06/07 | Documentos de contexto actualizados: CHANGELOG, contexto_general v9.4, CRONOGRAMA v4.3, Logica_Negocio_v5 |
-| 🔴 Pendiente — Alta | **P22: backend sin filtrado por rol** en GET /api/horarios, /fichas, /asignaciones, /alertas |
+| ✅ 06/07 | Gitignores fix: CRLF + em-dash truncaban los patrones — reescritos con LF puro. `backend/.env` y `seed_data.sql` ahora ignorados correctamente |
+| ✅ 06/07 | `seed_data.sql` v6: Paul Tamayo y medulares sin rol; Rocio Medina sin rol; Luis Eladio Porras agregado; Calzado eliminado del test data |
+| ✅ 06/07 | **RF v7.0 aprobado** — `CONINS_Requisitos_Funcionales_v7_0.txt` (49 RF en 9 modulos). Opcion A: lider_programa pasa a figura informativa. RF-30/RF-43 eliminados, RF-39 reescrito, RF-48 a RF-51 nuevos |
+| ✅ 06/07 | `CONINS_contexto_general.md` actualizado a v9.5, `CONINS_Logica_Negocio_v5.md` a v5.2 |
+| 🔴 Pendiente — Alta | **P22 (= RF-48): backend sin filtrado por rol** en GET /api/horarios, /fichas, /asignaciones, /alertas — implementar antes de pruebas con usuarios reales |
 | 🔴 Pendiente — Alta | **P26: reducción de alcance a ADSO** — filtros y vistas contextualizados al programa ADSO |
 | 🔴 Pendiente — Alta | **P27: vista día a día** — fichas, instructores, ambientes con filtros cruzados |
-| 🔴 Pendiente — Alta | **P28: endpoints RAP seguimiento** — `rap_ficha_seguimiento` (tabla creada, falta backend) |
+| 🔴 Pendiente — Alta | **P28 (= RF-50): endpoints RAP seguimiento** — `rap_ficha_seguimiento` (tabla creada, falta backend) |
 | 🟡 Pendiente | P21: agregar `ultimo_acceso` al SELECT/mapeo de `GET /api/auth/usuarios` |
-| 🟡 Pendiente | P23: revalidación completa RN-03/RN-05 en `horario.service.ts: update()` |
-| 🟡 Pendiente | P29: endpoint `GET /tipos-actividad` + selector en frontend |
+| 🟡 Pendiente | P23 (= RF-37 gap): revalidación completa RN-03/RN-05 en `horario.service.ts: update()` |
+| 🟡 Pendiente | P29 (= RF-49): endpoint `GET /tipos-actividad` + selector en frontend |
 | 🟡 Pendiente | P30: validar soporte lunes-sábado en horarios |
 | 🟡 Pendiente | Laura Posada: aplicar cambios del reporte frontend (roles, fechas productivas, tipo_actividad_id) |
+| 🟡 Pendiente | Manual: borrar `.git\index.lock` y commitear gitignores (`git add .gitignore backend/.gitignore frontend/.gitignore && git commit`) |
 
 ---
 

@@ -1,9 +1,9 @@
 # CONINS — Lógica de Negocio
 ## Centro del Diseño y Manufactura del Cuero · CDMC SENA
-**Versión:** 5.1 · **Fecha:** 06 de Mayo 2026
-**Basado en:** RF v6.0 · ERS v3.0 · sesiones 23/04, 28/04 y 04/05/2026
+**Versión:** 5.2 · **Fecha:** 06 de Julio 2026
+**Basado en:** RF v7.0 · sesiones 23/04 al 06/07/2026
 
-> Nota de vigencia (ultima actualizacion 02/07/2026): este documento conserva el contenido funcional original de la version 5.1. Las secciones 4 (roles) y 8 (schema) han sido corregidas puntualmente para reflejar los cambios del 01/07/2026 (roles en Title Case, schema v5.3 con 27 tablas). La fuente de verdad para el estado mas reciente del proyecto es CHANGELOG.md y CONINS_contexto_general.md v9.4.
+> Nota de vigencia: secciones 4 (roles), 5 (RN-12), 9 (resumen RF) y 10 (pendientes) actualizadas al 06/07/2026. El rol "lider de programa" paso a figura informativa sin acceso al sistema (Opcion A aprobada). La fuente de verdad para el estado del proyecto es CHANGELOG.md y CONINS_contexto_general.md.
 
 ---
 
@@ -46,6 +46,7 @@ No es un sistema curricular, no es un gestor de infraestructura, no reemplaza a 
 Registra al usuario con correo, nombre y rol. La cuenta queda sin contraseña — el usuario aún no puede entrar.
 
 **Paso 2 (RF-01 / RF-08) — El usuario crea su contraseña:**
+(Mismo flujo para administradores e instructores — endpoint unificado)
 Va a `/auth` → tab "Crear contraseña" → ingresa su correo. Si existe en BD → guarda contraseña → puede hacer login. Si no → alerta amarilla + HTTP 403.
 
 **Paso 3 en adelante:** login normal con correo + contraseña.
@@ -175,11 +176,12 @@ autorizante (autorizado_por_id), fecha_autorizacion, motivo.
 Sin alguno → el sistema no registra la provisional.
 ```
 
-### RN-12 · Alcance del líder de programa (RF-30)
+### RN-12 · Alcance del lider de programa (RF-30 — ELIMINADO v7.0)
 ```
-Solo asigna dentro de sus programas.
-No registra provisionales.
-Validar: programa_id IN (SELECT programa_id FROM lider_programa WHERE instructor_id = ?)
+OBSOLETO desde 06/07/2026: lider_programa ya no es rol del sistema.
+La tabla lider_programa permanece como dato informativo (sin permisos).
+Toda asignacion es realizada por Coordinadora Academica o Asistente de Coordinacion.
+permisoService.validarAlcanceLider() es no-op; validarAlcanceCoordinador() activo.
 ```
 
 ### RN-13 · Competencia habilitada por contrato (RF-27)
@@ -305,19 +307,20 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 
 ---
 
-## 9. Resumen de RF v6.1 — 47 RF en 8 módulos (vigente al 11/06/2026)
+## 9. Resumen de RF v7.0 — 49 RF en 9 modulos (vigente al 06/07/2026)
 
-| Módulo | Rango | Total | Estado ERS |
+| Modulo | Rango | Total | Notas |
 |---|---|---|---|
-| AUTH | RF-01 al RF-13, RF-46 | 14 | ✅ Completo |
-| Instructores | RF-14 al RF-16 | 3 | ✅ Completo |
-| Fichas | RF-17 al RF-20, RF-47 | 5 | ✅ Completo |
-| Horarios | RF-21 al RF-24 | 4 | ✅ Completo |
-| Asignaciones | RF-25 al RF-30 | 6 | ✅ Completo |
-| Ambientes | RF-31 | 1 | ✅ Completo |
-| Alertas, Validaciones y Notificaciones | RF-32 al RF-40 | 9 | ✅ Completo |
-| Consulta y Visualización | RF-41 al RF-45 | 5 | ✅ Completo |
-| **Total** | | **47** | ✅ ERS v3.0 + RF-46, RF-47 (11/06/2026) |
+| AUTH | RF-01 al RF-13, RF-46 | 14 | Roles actualizados |
+| Instructores | RF-14 al RF-16 | 3 | Sin cambios |
+| Fichas | RF-17 al RF-20, RF-47 | 5 | RF-17 sin lider en firma |
+| Horarios | RF-21 al RF-24 | 4 | Sin cambios |
+| Asignaciones | RF-25 al RF-29 | 5 | RF-30 eliminado |
+| Ambientes | RF-31 | 1 | Sin cambios |
+| Alertas, Validaciones y Notificaciones | RF-32 al RF-40 | 9 | RF-39 reescrito, RF-40 ajustado |
+| Consulta y Visualizacion | RF-41, RF-42, RF-44, RF-45 | 4 | RF-43 eliminado |
+| Seguridad y Trazabilidad | RF-48 al RF-51 | 4 | Nuevos en v7.0 |
+| **Total** | | **49** | RF v7.0 — 06/07/2026 |
 
 ---
 
@@ -327,8 +330,8 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 |---|---|---|---|
 | P4 | Lista oficial de instructores con correo estandarizado | CDMC → Jair | 🟡 Media |
 | ~~P7~~ | ~~Migración a Next.js 15 + TypeScript + MVC + ESM6~~ | ~~Resuelto 19/05/2026 — rebuild desde cero en TS~~ | ✅ Resuelto |
-| P8 | Apellido co-líder Rivera (Técnico Medular) | CDMC | 🟢 Baja |
-| P9 | Apellido Catalina (líder Talento Humano) | CDMC | 🟢 Baja |
+| ~~P8~~ | ~~Apellido co-lider Rivera (Tecnico Medular)~~ | ~~CDMC~~ | ✅ Fuera de alcance inicial (P26 — linea medular) |
+| ~~P9~~ | ~~Apellido Catalina (lider Talento Humano)~~ | ~~CDMC~~ | ✅ Fuera de alcance inicial (P26 — linea medular) |
 | P10 | Revisar Resolución 1415/2012 y Acuerdo 0003/2017 | Jair | 🟢 Baja |
 | P11 | Definir gestión de estado en Next.js 15 (¿Zustand o nativo?) | Jair + Laura | 🟡 Media — Fase 3 |
 
@@ -345,6 +348,7 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 | v3 | 23/04/2026 | Bloqueadores B1–B8 resueltos |
 | v4 / v4.1 | 28/04/2026 | Flujo `/auth`, `lider_ficha` eliminado de roles, RF v6 |
 | v5.0 | 28/04/2026 | Consolidación lineal — RN-08, RN-09, schema 19 tablas |
-| **v5.1** | **06/05/2026** | **Stack actualizado: Vite → Next.js 15 (Pages Router). Lucide React confirmado. P11 creado. P1–P3, P5–P6 marcados como resueltos. Schema v4 cerrado con 20 tablas.** |
+| **v5.2** | **06/07/2026** | **RF v7.0: lider_programa pasa a figura informativa. RF-30 y RF-43 eliminados. RF-39 reescrito. RF-48 a RF-51 agregados. RN-12 marcada obsoleta. Pendientes P8/P9 fuera de alcance.** |
+| v5.1 | 06/05/2026 | **Stack actualizado: Vite → Next.js 15 (Pages Router). Lucide React confirmado. P11 creado. P1–P3, P5–P6 marcados como resueltos. Schema v4 cerrado con 20 tablas.** |
 
 | **v5.2** | **11/06/2026** | **Correcciones de consistencia: horarios (estado, motivo_rechazo, motivo_suspension), P7 marcado resuelto. Conteos 
