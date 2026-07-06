@@ -1,6 +1,6 @@
 # CONINS — Registro de Contexto y Cambios
 **Centro del Diseño y Manufactura del Cuero (CDMC) — SENA**
-*Última actualización: 2026-06-30 (fix database.sql + seed_data.sql v5)*
+*Última actualización: 2026-07-02 (roles Title Case + schema v27 + fixes B1/B2/I3)*
 
 ---
 
@@ -296,6 +296,60 @@ backend/
 ---
 
 ## Historial de cambios
+
+### 2026-07-01 al 2026-07-02 — Jair Enrique Gonzalez Buelvas
+
+**Restructuracion de roles (feedback coordinadora 01/07/2026) + schema v27 + fixes B1/B2/I3**
+
+**Contexto:** Sesion de revision con la coordinadora academica (Laura Jaramillo Ospina) del CDMC. Las conclusiones generaron un cambio de convención en los roles del sistema y la adicion de dos tablas nuevas al schema.
+
+**Roles del sistema — BREAKING CHANGE:**
+
+La convencion de nombres cambia de snake_case a Title Case con espacios. El sistema pasa de 5 roles a 4, eliminando `lider_programa` como rol funcional (se mantiene la tabla homónima solo como dato informacional):
+
+| ID | Antes | Ahora |
+|---|---|---|
+| 1 | `subdirector` | `Subdirector` |
+| 2 | `coordinador_medular` | `Coordinadora Academica` |
+| 3 | `coordinador_transversal` | `Asistente Coordinacion` |
+| 4 | `lider_programa` | *(eliminado del sistema de roles)* |
+| 4 | `instructor` (ex ID 5) | `Instructor` |
+
+Impacto: todos los JWT emitidos antes de este cambio quedan invalidos — los usuarios con sesion activa deben hacer login de nuevo. El instructor ID 5 (`instructor`) pasa a ser ID 4.
+
+Nueva usuaria: Laura Jaramillo Ospina (`ljaramilloo@sena.edu.co`) — rol `Asistente Coordinacion` (ID 3).
+
+**`constants/roles.ts`** — reescrito con comentario de ruptura de convencion, cuatro claves (`SUBDIRECTOR`, `COORDINADORA_ACADEMICA`, `ASISTENTE_COORDINACION`, `INSTRUCTOR`), grupos `ROLES_ADMIN` y `ROLES_COORDINACION`.
+
+**Todas las rutas backend actualizadas:** los guards `requireRole([...])` en los 8 archivos de rutas reemplazaron los strings snake_case por los nuevos Title Case. `instructor.routes.ts` incluia guards de `COORDINADOR_MEDULAR` adicionales, todos actualizados.
+
+**`auth.service.ts`:** SUPER_USER (`admin@conins.sena`) actualizado a `'Subdirector'`; check `actingRoles.includes('subdirector')` → `'Subdirector'`; `rol_ids.includes(5)` → `rol_ids.includes(4)`; `roles.includes('instructor')` → `roles.includes('Instructor')`; eliminado check de `lider_programa` en `assignProgramasToLider`.
+
+**`seed_data.sql`** (gitignored): todos los instructores cambian de `rol_id = 5` → `rol_id = 4`; eliminada entrada `(6, 4)` de `usuario_roles` para Juliana (lider_programa); agregados usuario y rol de Laura Jaramillo Ospina (ID 24, `Asistente Coordinacion`); `UPDATE fichas SET fecha_inicio_productiva = '2026-07-14'` para fichas 3065123 y 3065121.
+
+**`database.sql` — schema v27 (27 tablas):**
+- `fichas`: columnas `fecha_inicio_productiva DATE NULL` y `fecha_fin_productiva DATE NULL` (entre `fecha_fin_lectiva` y `fecha_fin_ficha`)
+- Roles: `INSERT IGNORE` reemplazado por bloque con `SET FOREIGN_KEY_CHECKS = 0; TRUNCATE usuario_roles; TRUNCATE roles; SET FOREIGN_KEY_CHECKS = 1;` seguido de `INSERT INTO roles` con los 4 nuevos roles en Title Case
+- Nueva tabla `tipos_actividad` (tabla 26): `id, nombre, descripcion, suma_carga_horaria BOOLEAN`, con 9 filas seed (`Formacion`, `Planeacion`, `Seguimiento`, `Evaluacion`, `Reunion Institucional`, `Apoyo Complementario`, `Disponible`✗, `Permiso/Incapacidad`✗, `Otro`). Los marcados con ✗ tienen `suma_carga_horaria = FALSE` y no cuentan para el calculo 20-40h semanal
+- `horarios`: nueva columna `tipo_actividad_id INT NULL` con FK a `tipos_actividad`
+- Nueva tabla `rap_ficha_seguimiento` (tabla 27): seguimiento de RAPs por ficha con ENUMs `estado_evaluacion` y `estado_aprobacion`
+
+**`permiso.service.ts` (fix I3):** eliminada funcion dead code `validarAlcanceLider` (sin callers). `validarNoLiderParaProvisional` y `validarAlcanceCoordinador` conservadas como no-ops con comentario de contexto.
+
+**`ficha.model.ts`, `ficha.service.ts`, `ficha.schema.ts` (fix B1):** `FichaRecord` incluye `fecha_inicio_productiva` y `fecha_fin_productiva`; INSERT y UPDATE propagados; schemas Zod actualizados en `crearFichaSchema` y `actualizarFichaSchema`.
+
+**`horario.model.ts`, `horario.service.ts`, `horario.schema.ts` (fix B2):** `HorarioRecord` incluye `tipo_actividad_id`; `HorarioDetail` incluye `tipo_actividad` (string, nombre resuelto via JOIN); `findAll` y `findById` con `LEFT JOIN tipos_actividad ta ON h.tipo_actividad_id = ta.id`; INSERT con 10 valores; `update()` maneja `tipo_actividad_id`; `getHorasPorInstructor` con `LEFT JOIN tipos_actividad` y condicion `(ta.suma_carga_horaria = TRUE OR h.tipo_actividad_id IS NULL)`; schema Zod `crearHorarioSchema` incluye `tipo_actividad_id` optional nullable; `create()` y `update()` del service propagados.
+
+**Nuevo modelo:** `models/rap-ficha-seguimiento.model.ts` — interfaces `RapFichaSeguimientoRecord` y `RapFichaSeguimientoDetail`, metodos `findByAsignacionCompetencia`, `findById`, `create`, `update`, `toggleActivo`.
+
+**tsc --noEmit:** 0 errores tras reconstruccion de archivos truncados via Python.
+
+**Commits:**
+- `2998245` — `feat(roles+schema): Title Case roles, schema v27, fichas productivas, tipos_actividad`
+- `717be2b` — `fix(auth): SUPER_USER y auth.service.ts actualizados a nuevos strings de rol`
+- `617bdfd` — `fix(B1/B2/I3): reconstruct truncated files, tsc clean`
+
+---
 
 ### 2026-06-30 (tarde) — Jair Enrique Gonzalez Buelvas
 

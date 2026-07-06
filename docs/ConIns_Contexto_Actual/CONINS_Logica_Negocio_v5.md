@@ -3,7 +3,7 @@
 **Versión:** 5.1 · **Fecha:** 06 de Mayo 2026
 **Basado en:** RF v6.0 · ERS v3.0 · sesiones 23/04, 28/04 y 04/05/2026
 
-> Nota de vigencia (correcciones 10/06 y 11/06/2026): este documento conserva el contenido funcional original de la version 5.1. Los conteos de RF (45→47) y de tablas del schema (20→27) fueron corregidos puntualmente en las secciones 8 y 9 para evitar inconsistencias con CHANGELOG.md y CONINS_contexto_general.md, que son la fuente de verdad para el estado mas reciente del proyecto.
+> Nota de vigencia (ultima actualizacion 02/07/2026): este documento conserva el contenido funcional original de la version 5.1. Las secciones 4 (roles) y 8 (schema) han sido corregidas puntualmente para reflejar los cambios del 01/07/2026 (roles en Title Case, schema v5.3 con 27 tablas). La fuente de verdad para el estado mas reciente del proyecto es CHANGELOG.md y CONINS_contexto_general.md v9.4.
 
 ---
 
@@ -74,19 +74,20 @@ Sin selector de rol · sin campo nombre · sin registro con redes sociales.
 
 ---
 
-## 4. Roles del sistema — tabla `roles` (5 entradas exactas)
+## 4. Roles del sistema — tabla `roles` (4 entradas — vigente al 01/07/2026)
+
+> **Cambio 01/07/2026 (feedback coordinadora):** convención snake_case → Title Case. Sistema pasa de 5 a 4 roles. `lider_programa` deja de ser rol funcional (tabla permanece como dato informacional). La distinción medular/transversal fue eliminada.
 
 | ID | Nombre técnico | Nivel | Descripción | Alcance |
 |---|---|---|---|---|
-| 1 | `subdirector` | 1 | Acceso y control total | CDMC completo |
-| 2 | `coordinador_medular` | 2 | Gestión total línea medular | Calzado, marroquinería, curtición |
-| 3 | `coordinador_transversal` | 2 | Gestión total línea transversal | ADSO, bilingüismo, diseño, gestión |
-| 4 | `lider_programa` | 3 | Asigna dentro de sus programas | Su programa |
-| 5 | `instructor` | 4 | Solo lectura | Sus asignaciones |
+| 1 | `Subdirector` | 1 | Consulta y reportes | CDMC completo |
+| 2 | `Coordinadora Academica` | 2 | Administrador — todos los permisos | CDMC completo |
+| 3 | `Asistente Coordinacion` | 3 | Mismos permisos que Coordinadora | CDMC completo |
+| 4 | `Instructor` | 4 | Solo lectura de sus asignaciones | Sus fichas activas |
 
-> `lider_ficha` NO es un rol ni existe en `roles`. Es `es_lider_ficha BOOLEAN DEFAULT FALSE` en `asignacion`. No otorga permisos adicionales.
+> `lider_ficha` NO es un rol. Es `es_lider_ficha BOOLEAN DEFAULT FALSE` en `asignacion`.
+> `lider_programa` (tabla) permanece como dato informacional del líder de ficha ADSO — sin permisos.
 > Soporte multi-rol vía tabla `usuario_roles` (N:M).
-> Cada coordinador actúa solo dentro de su línea.
 
 ---
 
@@ -249,9 +250,9 @@ No hardcodear en frontend. Usar constante configurable.
 
 ---
 
-## 8. Modelo de datos — schema v5 (25 tablas — verificado 30/06/2026)
+## 8. Modelo de datos — schema v5.3 (27 tablas — actualizado 01/07/2026)
 
-> Nota de actualización: este documento describe la versión funcional original del modelo (v4, 20 tablas). El schema evolucionó hasta 25 tablas — se agregaron `tipos_novedad_instructor`, `tipos_novedad_ambiente`, `tipos_novedad_ficha`, `ficha_novedades` y `auditoria`; `lider_id` en `fichas` y `ultimo_acceso`/`tipo_documento`/`documento` en `usuarios` son **columnas** en tablas existentes, no tablas nuevas (corrección de conteo anterior que decía 27 — verificado por conteo directo en `database.sql` el 30/06/2026). Ver `CHANGELOG.md` para el detalle completo y `CONINS_contexto_general.md` §11 para el modelo vigente.
+> Nota de actualización: este documento describe la versión funcional original del modelo (v4, 20 tablas). El schema evolucionó hasta 27 tablas al 01/07/2026. Adiciones principales: `tipos_novedad_instructor`, `tipos_novedad_ambiente`, `tipos_novedad_ficha`, `ficha_novedades`, `auditoria` (schema v5 — 25 tablas); `tipos_actividad` y `rap_ficha_seguimiento` (schema v5.3 — 27 tablas, 01/07/2026). Columnas nuevas en tablas existentes: `lider_id`/`fecha_inicio_productiva`/`fecha_fin_productiva` en `fichas`; `tipo_actividad_id` en `horarios`; `ultimo_acceso`/`tipo_documento`/`documento` en `usuarios`. Ver `CHANGELOG.md` y `CONINS_contexto_general.md` §11 para el modelo vigente completo.
 
 ```
 instructor
