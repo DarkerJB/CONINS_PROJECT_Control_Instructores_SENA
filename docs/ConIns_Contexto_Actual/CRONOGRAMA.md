@@ -1,6 +1,6 @@
 # CRONOGRAMA — CONINS
 **Centro del Diseño y Manufactura del Cuero (CDMC) — SENA**
-*Última actualización: 02/07/2026*
+*Última actualización: 06/07/2026*
 
 ---
 
@@ -73,7 +73,7 @@
 | # | Actividad | Responsable | Fecha inicio | Fecha fin | Estado |
 |---|---|---|---|---|---|
 | 6 | Modelar funciones con diagramas PlantUML (CU, ACT, SEQ, EST, DEP) | Jair | 04/05/2026 | 04/05/2026 | ✅ |
-| 7 | Verificar modelos con instructor técnico y de seguimiento | Jair + Laura | 04/05/2026 | 04/05/2026 | ✅ Wilmar · 🔄 revisión administrativa pendiente hoy |
+| 7 | Verificar modelos con instructor técnico y de seguimiento | Jair + Laura | 04/05/2026 | 04/05/2026 | ✅ |
 | 8 | Estructurar modelo de datos (20 tablas, relaciones, restricciones) | Jair + Laura | 04/05/2026 | 04/05/2026 | ✅ |
 
 **Notas:**
@@ -103,7 +103,7 @@
 | 13 | Carga y normalización de datos reales desde Sofía Plus | Jair | 07/07/2026 | 17/07/2026 | ⬜ |
 | 14 | Módulo de reportes PDF por área, instructor y jornada | Jair + Laura | 20/07/2026 | 06/08/2026 | ⬜ |
 
-**Nota migración TS:** Backend reconstruido desde cero en **TypeScript + MVC + ESM6** (no migración incremental). Frontend migra de la base en JS a **Next.js 15 con Pages Router + TypeScript**, confirmado en feedback con Juan Pablo Hoyos, Wilmar Zapata y Gloria Jaramillo (06/05/2026).
+**Nota migración TS:** Backend reconstruido desde cero en TypeScript + MVC + ESM6 (no migración incremental). Frontend migra a Next.js 15 con Pages Router + TypeScript (confirmado 06/05/2026).
 
 **Evidencias generadas:**
 - ✅ Script `database.sql` schema v5 — 25 tablas, verificado 30/06/2026 por conteo directo (corrección: se documentó antes como "v5.2, 27 tablas"; `lider_id` y `ultimo_acceso` son columnas, no tablas nuevas) — fixes aplicados: password NULL, roles snake_case, motivo_suspension, ambiente_id en horarios, leida en alertas, auditoria, triggers, procedures, vistas, tipos_novedad_*, ficha_novedades, lider_id en fichas, ultimo_acceso en usuarios
@@ -216,15 +216,9 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 | # | Pendiente | Impacto | Responsable | Prioridad |
 |---|---|---|---|---|
-| ~~P1~~ | ~~Confirmar límite exacto de horas semanales~~ | ~~Bloquea `horarioService` y RF-32~~ | ~~Resuelto 04/05/2026~~ | ✅ |
-| ~~P2~~ | ~~Confirmar término oficial etapa de ficha~~ | ~~Bloquea seed y BD~~ | ~~Resuelto 04/05/2026~~ | ✅ |
-| ~~P3~~ | ~~Confirmar campo de login en producción~~ | ~~Bloquea auth en producción~~ | ~~Resuelto 04/05/2026~~ | ✅ |
 | P4 | Lista oficial de instructores con correo estandarizado del CDMC | Bloquea seed de instructores | CDMC → Jair | 🟡 Media |
-| ~~P5~~ | ~~Crear tablas `instructor_novedades`, `ambiente_bloqueos` y `notificaciones`~~ | ~~RF-16, RF-31, RF-38/39/40~~ | ~~Resuelto 04/05/2026~~ | ✅ |
-| ~~P6~~ | ~~Agregar `operario` al ENUM de `programas.tipo_formacion`~~ | ~~Bloquea seed completo~~ | ~~Resuelto 04/05/2026~~ | ✅ |
-| ~~P7~~ | ~~Migración JS → TypeScript + MVC + ESM6 (backend y frontend)~~ | ~~Inicio Fase 3 sem. 7~~ | ~~Resuelto 19/05/2026 — rebuild desde cero en TS~~ | ✅ |
-| P8 | Apellido completo del co-líder Rivera (Técnico Medular) | Bloquea seed de áreas | CDMC → Jair | 🟢 Baja |
-| P9 | Apellido completo de Catalina (líder Talento Humano) | Bloquea seed de áreas | CDMC → Jair | 🟢 Baja |
+| P8 | Apellido completo del co-líder Rivera (Técnico Medular) | Fuera de alcance ADSO inicial (ver P26) | CDMC → Jair | 🟢 Baja |
+| P9 | Apellido completo de Catalina (líder Talento Humano) | Fuera de alcance ADSO inicial (ver P26) | CDMC → Jair | 🟢 Baja |
 | P10 | Revisar Resolución 1415/2012 y Acuerdo 0003/2017 | Validar reglas de negocio | Jair | 🟢 Baja |
 
 ---
@@ -256,7 +250,6 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 | 🟡 Pendiente | P29 (= RF-49): endpoint `GET /tipos-actividad` + selector en frontend |
 | 🟡 Pendiente | P30: validar soporte lunes-sábado en horarios |
 | 🟡 Pendiente | Laura Posada: aplicar cambios del reporte frontend (roles, fechas productivas, tipo_actividad_id) |
-| 🟡 Pendiente | Manual: borrar `.git\index.lock` y commitear gitignores (`git add .gitignore backend/.gitignore frontend/.gitignore && git commit`) |
 
 ---
 
@@ -312,7 +305,7 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 | Fecha | Cambio |
 |---|---|
-| 02/07/2026 | v4.3 — Feedback coordinadora (01/07/2026): roles restructurados a Title Case (4 roles), schema v27 con `tipos_actividad` y `rap_ficha_seguimiento`, fixes B1/B2/I3 (tsc clean). Nueva usuaria Laura Jaramillo (Asistente Coordinacion). Nuevos pendientes P26-P31 (alcance ADSO, vistas día a día, RAP seguimiento). Documentos actualizados a v9.4. |
+| 02/07/2026 | v4.3 — Roles restructurados a Title Case (4 roles), schema v5.3 con tipos_actividad y rap_ficha_seguimiento, fixes B1/B2/I3, nueva usuaria Laura Jaramillo. Nuevos pendientes P26-P31. |
 | 30/06/2026 | v4.2 — Sincronizacion con feedback Laura (commit `6c2a6f4`): suspender horarios, programas-lider, lider_id en fichas, ultimo_acceso confirmados en codigo. Corregido conteo real de `database.sql`: 25 tablas / schema v5 (antes documentado como 27 tablas / v5.2 por error). Gap critico detectado: backend sin filtrado por rol en listados generales (P22). Documentos de contexto actualizados a v9.3. |
 | 11/06/2026 | v4.1 — Schema v5.2: lider_id en fichas, ultimo_acceso en usuarios. 6 endpoints de catalogo tipificados. Patch suspender horario. PUT programas a lider. Login actualiza ultimo_acceso. Documentos de contexto actualizados a v9.2. |
 | 10/06/2026 | v4.0 — Cambio de equipo directivo: nuevo instructor líder Luis Eladio Porras Camargo, nueva coordinadora Leidy Johana Ruiz Cortés. RN-09 y RN-13 implementadas. Frontend 11 paginas. DB v5 con auditoria, triggers, procedures, vistas. Endpoints de alertas, consultas, ambientes CRUD. Documentos actualizados. |
@@ -325,4 +318,4 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 ---
 
-*CONINS · SENA CDMC · Cronograma v4.3 · 02 de Julio 2026*
+*CONINS · SENA CDMC · Cronograma v4.4 · 06 de Julio 2026*

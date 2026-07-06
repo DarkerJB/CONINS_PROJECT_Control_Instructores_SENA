@@ -28,9 +28,9 @@
 
 > Desarrollar un sistema de información web que permita gestionar, controlar y optimizar la asignación académica y operativa de los instructores del Centro del Diseño y Manufactura del Cuero (CDMC) del SENA, mediante la administración estructurada de competencias, resultados de aprendizaje (RAPs), ambientes de formación, fichas y horarios. El sistema garantiza el cumplimiento de la carga horaria reglamentaria, previene inconsistencias como la duplicidad de asignaciones por ficha, y gestiona situaciones operativas como novedades administrativas de instructores y bloqueos temporales de ambientes.
 >
-> La solución incorpora un modelo de control de acceso basado en roles jerárquicos (Subdirector, Coordinadores de Línea Medular y Transversal, Líderes de Programa e Instructores), con soporte para múltiples roles simultáneos por usuario. Incluye funcionalidades de consulta, filtrado, alertas automáticas, notificaciones internas y por correo electrónico, y generación de reportes exportables en PDF para la toma de decisiones por parte de los directivos del centro.
+> La solución incorpora un modelo de control de acceso basado en roles jerárquicos (Subdirector, Coordinadora Académica, Asistente de Coordinación e Instructores), con soporte para múltiples roles por usuario. Incluye funcionalidades de consulta, filtrado, alertas automáticas, notificaciones internas y por correo electrónico, y generación de reportes exportables en PDF para la toma de decisiones por parte de los directivos del centro.
 >
-> La solución se implementa mediante una arquitectura web cliente-servidor: frontend desarrollado con Next.js 15 (Pages Router), React 19, TypeScript y Tailwind CSS 4, consumiendo una API REST construida con Node.js, Express 5 y TypeScript bajo arquitectura MVC con módulos ESM6. La persistencia de datos se gestiona en una base de datos relacional MySQL (27 tablas, schema v5.2), administrada desde phpMyAdmin, garantizando integridad referencial, trazabilidad de asignaciones y disponibilidad de la información mediante eliminación lógica universal.
+> La solución se implementa mediante una arquitectura web cliente-servidor: frontend desarrollado con Next.js 15 (Pages Router), React 19, TypeScript y Tailwind CSS 4, consumiendo una API REST construida con Node.js, Express 5 y TypeScript bajo arquitectura MVC con módulos ESM6. La persistencia de datos se gestiona en una base de datos relacional MySQL (25 tablas, schema v5), administrada desde phpMyAdmin, garantizando integridad referencial, trazabilidad de asignaciones y disponibilidad de la información mediante eliminación lógica universal.
 
 ---
 
@@ -49,7 +49,7 @@
 | Control de versiones | Git + GitHub |
 | IDE | VS Code |
 
-> **Vite eliminado.** Frontend migra a Next.js 15 con Pages Router — confirmado en feedback con Juan Pablo Hoyos, Wilmar Zapata y Gloria Jaramillo. Zustand en revisión para Fase 3.
+> **Vite eliminado.** Frontend migra a Next.js 15 con Pages Router (confirmado 06/05/2026).
 
 ---
 
@@ -61,7 +61,7 @@
 
 | Tabla | Propósito |
 |---|---|
-| `roles` | 5 entradas: Subdirector · Coordinador Medular · Coordinador Transversal · Lider Programa · Instructor |
+| `roles` | 4 entradas: Subdirector · Coordinadora Academica · Asistente Coordinacion · Instructor |
 | `usuarios` | Autenticación centralizada |
 | `usuario_roles` | N:M usuarios ↔ roles |
 | `instructores` | `tipo_contrato` + `tipo_area` |
@@ -94,7 +94,7 @@ backend/
 │   ├── db.ts                    Conexión MySQL con pool
 │   └── mail.ts                  Nodemailer transporter (condicional)
 ├── constants/
-│   ├── roles.ts                 ROLES.SUBDIRECTOR, COORDINADOR_MEDULAR, etc.
+│   ├── roles.ts                 ROLES.SUBDIRECTOR, COORDINADORA_ACADEMICA, etc.
 │   ├── alertas.ts               Tipos de alertas
 │   ├── etiquetas.ts             Etiquetas de notificaciones
 │   └── horario.ts               Constantes de horarios
@@ -514,13 +514,11 @@ Gaps reales encontrados en el codigo, no documentados hasta ahora:
 - `schemas/instructor.schema.ts` — `registrarNovedadSchema` usa `tipo_novedad_id: number` en vez de enum
 - `schemas/auth.schema.ts` — `updateUserSchema` incluye tipo_documento y documento
 
-**Nuevos Requisitos Funcionales (RF v6.1):**
-- **RF-46** — Permitir a los administradores registrar y consultar el tipo y numero de documento de identidad de cada usuario (CC, CE, TI, pasaporte)
-- **RF-47** — Registrar una novedad administrativa de una ficha activa (comite, paro, actividad fuera, suspension de clases), excluyendola de asignaciones mientras este vigente
+**Nuevos Requisitos Funcionales agregados:**
+- RF-46: tipo y numero de documento de identidad por usuario (CC, CE, TI, pasaporte)
+- RF-47: novedad administrativa de ficha activa
 
-**Documentos actualizados:**
-- `CONINS_Requisitos_Funcionales_v6.txt` → v6.1 (47 RF)
-- `CONINS_contexto_general.md` → v9.1 (schema v5.1, 25 tablas, RF-46, RF-47)
+**Documentos actualizados:** CONINS_Requisitos_Funcionales (→ v6.1, 47 RF), contexto_general (→ v9.1)
 
 ### 2026-06-10 (tarde) — Jair Enrique Gonzalez Buelvas
 
@@ -535,7 +533,7 @@ Gaps reales encontrados en el codigo, no documentados hasta ahora:
 - `findAll` y `findById` actualizados para usar columna `estado` en vez de calcular desde `activo`
 
 **Usuarios — Campo rol como texto:**
-- `GET /api/auth/usuarios` ahora devuelve campo `rol` (string) con el rol de mayor jerarquia (ej: "subdirector", "coordinador_medular")
+- `GET /api/auth/usuarios` ahora devuelve campo `rol` (string) con el rol de mayor jerarquia
 - Mantiene compatibilidad con `roles: string[]` y `rol_ids: number[]`
 - Frontend de Laura espera `rol: string` para mostrar en la tabla de usuarios
 
@@ -621,7 +619,7 @@ Gaps reales encontrados en el codigo, no documentados hasta ahora:
 - `getLunesSemanaActual()` extraida a `backend/utils/date.ts` — eliminada duplicacion en `instructor.service.ts` y `horario.service.ts`
 
 **Correcciones:**
-- Bug en `notificacion.service.ts:onNovedadRegistrada` — `notificarLideresPrograma` recibia `instructor.id` en vez de `fichaId`. Ahora consulta las fichas activas del instructor y notifica lideres por cada una.
+- Bug en `notificacion.service.ts:onNovedadRegistrada` — `notificarLideresPrograma` recibia `instructor.id` en vez de `fichaId`. Corregido: consulta fichas activas del instructor y notifica coordinadores por cada una.
 - Eliminado default export redundante en `middleware/errorHandler.ts`
 
 **Base de datos (Fase 1 — implementado):**
@@ -667,7 +665,7 @@ Gaps reales encontrados en el codigo, no documentados hasta ahora:
 - **RN-05:** Alerta `AMBIENTE_OCUPADO` si ambiente ya ocupado en misma jornada (soft, no bloquea)
 - **RN-06:** Hard block HTTP 409 si RAP de competencia ya asignado a otro instructor en misma ficha
 - **RN-08:** Bloqueo de asignación si instructor tiene novedad activa vigente
-- **RN-12:** Validación de alcance — líder solo asigna en sus programas, coordinador solo en su línea, líder no registra provisionales
+- **RN-12:** Validación de alcance — lider_programa es dato informativo, permisos de escritura controlados por Coordinadora Academica y Asistente Coordinacion
 - **RN-14:** Fichas virtuales sin ambiente físico obligatorio
 - **RN-16:** Trazabilidad de cambio de instructor en `asignacion_competencia` (`instructor_anterior_id` + `fecha_cambio`)
 - **RN-17:** Nomenclatura configurable — `frontend/src/lib/terminology.ts` con constantes para "Ficha"/"Grupo"
@@ -678,9 +676,9 @@ Gaps reales encontrados en el codigo, no documentados hasta ahora:
 
 **Notificaciones (RF-38 a RF-40):**
 - `NotificacionService` con triggers automáticos: `onAsignacionCreada`, `onNovedadRegistrada`, `onAlertaCargaHoraria`, `onAsignacionProvisional`
-- Notificaciones internas para instructor, líderes de programa, coordinadores y subdirector
+- Notificaciones internas para instructor, Coordinadora Academica, Asistente Coordinacion y Subdirector
 - Correo electrónico al instructor vía Nodemailer (condicional — solo si SMTP configurado en `.env`)
-- `PermisoService` con validaciones de alcance: `validarAlcanceLider`, `validarNoLiderParaProvisional`, `validarAlcanceCoordinador`
+- `PermisoService` con validaciones de alcance por rol (lider_programa es informacional — no otorga permisos)
 
 **Frontend integrado (desde rama dev/laura de Laura Posada):**
 - Páginas: `/auth`, `/` (dashboard), `/instructores`, `/fichas`, `/horarios`, `/asignaciones`

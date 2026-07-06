@@ -16,7 +16,7 @@
 | F5 — Documentación y despliegue | 31/08 – 18/09/2026 | ⬜ Pendiente |
 
 **Hitos cerrados al 02/07/2026:**
-- **Roles restructurados (BREAKING):** 5 roles snake_case → 4 roles Title Case. `lider_programa` eliminado como rol del sistema (tabla homónima permanece como dato informacional). `instructor` cambia de ID 5 → 4. Todos los JWT anteriores quedan inválidos. Commits `2998245`, `717be2b`
+- **Roles restructurados:** 5 roles snake_case → 4 roles Title Case. `lider_programa` pasa a dato informacional. `instructor` cambia de ID 5 → 4.
 - **Schema v27 (27 tablas):** nuevas tablas `tipos_actividad` (9 tipos de actividad con flag `suma_carga_horaria`) y `rap_ficha_seguimiento`; columnas `fecha_inicio_productiva`/`fecha_fin_productiva` en `fichas`; `tipo_actividad_id` FK en `horarios`
 - **Fixes B1/B2/I3:** `ficha.schema.ts`, `ficha.service.ts`, `ficha.model.ts` propagados con fechas productivas; `horario.model.ts`, `horario.service.ts`, `horario.schema.ts` propagados con `tipo_actividad_id` y JOIN a `tipos_actividad`; `permiso.service.ts` sin dead code `validarAlcanceLider`. tsc --noEmit: 0 errores. Commit `617bdfd`
 - Nueva usuaria: Laura Jaramillo Ospina (`ljaramilloo@sena.edu.co`) — rol `Asistente Coordinacion` (ID 3)
@@ -36,7 +36,7 @@
 - Flujo de aprobacion de horarios: estado pendiente/aprobado/rechazado, motivo de rechazo
 - Suspension de horarios con motivo obligatorio
 - Frontend Next.js 15 con 11 páginas y 18 componentes modulares
-- Base de datos v5.2 con 27 tablas: tipos_novedad_*, ficha_novedades, documento/tipo_documento en usuarios, lider_id en fichas, ultimo_acceso en usuarios
+- Base de datos schema v5 (25 tablas): tipos_novedad_*, ficha_novedades, documento/tipo_documento en usuarios, lider_id en fichas, ultimo_acceso en usuarios
 - 6 endpoints de catalogo para frontend: tipos de novedad, jornadas, ambientes, programas, competencias, raps, areas
 - Endpoints de consultas y reportes: carga horaria, horarios por ficha, ocupacion de ambientes
 - Endpoint PATCH /api/horarios/:id/suspender y PUT /api/auth/usuarios/:id/programas
@@ -125,7 +125,7 @@ El frontend migra de **React + Vite** a **Next.js 15 con Pages Router**. Ver sec
 |---|---|---|---|
 | Subdirector (e) | Dyron Javier Ramírez Osorio | `Subdirector` | CDMC completo — administrador principal |
 | Coordinadora Académica | Leidy Johana Ruiz Cortés | `Coordinadora Academica` | CDMC completo |
-| Coordinador Académico Medular | Paul Ernesto Tamayo Caviedes | `Coordinadora Academica` (rol unificado) | Calzado, marroquinería, curtición |
+| Coordinador Académico Medular | Paul Ernesto Tamayo Caviedes | — (sin acceso — fuera del alcance ADSO inicial) | Calzado, marroquinería, curtición |
 | Coordinador Académico Transversal (anterior) | Juan Pablo Hoyos Maya | — (ya no está en CDMC) | — |
 | Asistente Coordinación | Laura Jaramillo Ospina | `Asistente Coordinacion` | ljaramilloo@sena.edu.co |
 
@@ -136,8 +136,8 @@ El frontend migra de **React + Vite** a **Next.js 15 con Pages Router**. Ver sec
 | Término | Significado | Implementación |
 |---|---|---|
 | **Ficha** | Grupo de aprendices. Próximamente "grupo" | `numero_ficha` en BD — etiqueta configurable en frontend |
-| **Programa medular** | Razón de ser del CDMC: calzado, marroquinería, curtición | Coordinado por `coordinador_medular` |
-| **Programa transversal** | Programas de apoyo: ADSO, bilingüismo, diseño | Coordinado por `coordinador_transversal` |
+| **Programa medular** | Razón de ser del CDMC: calzado, marroquinería, curtición | Fuera del alcance ADSO inicial (ver P26) |
+| **Programa transversal** | Programas de apoyo: ADSO, bilingüismo, diseño | Coordinado por `Coordinadora Academica` |
 | **Competencia** | Equivalente a asignatura. Agrupa RAPs | Unidad de asignación |
 | **RAP** | Resultado de Aprendizaje. Se hereda al asignar competencia | Solo para conteo y validación de unicidad |
 | **Ambiente** | Aula o taller físico | Aulas 200–208 · Talleres T1–T4 |
@@ -155,7 +155,7 @@ El frontend migra de **React + Vite** a **Next.js 15 con Pages Router**. Ver sec
 
 ## 6. Roles del sistema — tabla `roles` (4 entradas — vigente al 01/07/2026)
 
-> **Cambio de convención 01/07/2026 (feedback coordinadora):** los roles pasan de snake_case a Title Case con espacios. El sistema reduce de 5 a 4 roles. `lider_programa` deja de ser un rol funcional con permisos — la tabla homónima permanece como dato informacional. Todos los JWT anteriores quedaron inválidos.
+> **Roles vigentes desde 01/07/2026:** 4 roles en Title Case. `lider_programa` es dato informacional sin permisos.
 
 | ID | Nombre | Nivel | Permisos | Alcance |
 |---|---|---|---|---|
@@ -355,8 +355,6 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 | # | Pendiente | Responsable | Prioridad |
 |---|---|---|---|
 | P4 | Lista oficial de instructores ADSO con correo estandarizado | CDMC → Jair | 🟡 Media — bloquea seed instructores |
-| P8 | Apellido completo del co-líder Rivera (Técnico Medular) | CDMC | 🟢 Baja |
-| P9 | Apellido completo de Catalina (líder Talento Humano) | CDMC | 🟢 Baja |
 | P10 | Revisar Resolución 1415/2012 y Acuerdo 0003/2017 | Jair | 🟢 Baja |
 | P11 | Definir si Zustand se mantiene o se reemplaza en Next.js 15 | Jair + Laura | 🟡 Media — evaluar en Fase 4 |
 | P16 | Configurar infraestructura de pruebas automatizadas | Jair + Laura | 🟡 Media — Fase 4 |
@@ -374,11 +372,11 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 | P30 | **Jornadas ampliadas a lunes-sábado** — validar que `dia_semana` ya soporta 1-6 (Lunes-Sábado); la jornada de sábado existe en seeds; confirmar UI de horarios | Jair | 🟡 Media |
 | P31 | **Tipos de instructor** — un instructor puede enseñar para: técnico, tecnólogo, complementaria, investigación, desarrollo curricular, etapa productiva, aseguramiento de calidad, actividades de apoyo. Evaluar si esto se modela como `tipo_contrato` ampliado o como campo adicional | Jair | 🟡 Media — diseño |
 
-> P1–P3, P5–P6 resueltos 04/05/2026. P7, P14, P15 resueltos 09/06/2026. P21–P25 detectados 30/06/2026. P24 y P25 cerrados el mismo día. P26–P31 surgen del feedback de coordinadora (01/07/2026).
+> P1–P3, P5–P7, P14, P15, P24, P25 resueltos. P8 y P9 fuera de alcance inicial (linea medular — P26).
 
 **Cuentas de prueba (QA, entorno local):**
 - Rol Instructor: `instructor.prueba@sena.edu.co`
-- Rol Asistente Coordinacion: `ljaramilloo@sena.edu.co` (nueva — activar via crear-password)
+- Rol Asistente Coordinacion: `ljaramilloo@sena.edu.co` (activar via crear-password)
 
 ---
 

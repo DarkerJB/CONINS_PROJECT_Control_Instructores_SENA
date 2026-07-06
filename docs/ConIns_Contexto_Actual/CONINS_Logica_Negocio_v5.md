@@ -3,8 +3,6 @@
 **Versión:** 5.2 · **Fecha:** 06 de Julio 2026
 **Basado en:** RF v7.0 · sesiones 23/04 al 06/07/2026
 
-> Nota de vigencia: secciones 4 (roles), 5 (RN-12), 9 (resumen RF) y 10 (pendientes) actualizadas al 06/07/2026. El rol "lider de programa" paso a figura informativa sin acceso al sistema (Opcion A aprobada). La fuente de verdad para el estado del proyecto es CHANGELOG.md y CONINS_contexto_general.md.
-
 ---
 
 ## 1. Objetivo del sistema
@@ -46,7 +44,6 @@ No es un sistema curricular, no es un gestor de infraestructura, no reemplaza a 
 Registra al usuario con correo, nombre y rol. La cuenta queda sin contraseña — el usuario aún no puede entrar.
 
 **Paso 2 (RF-01 / RF-08) — El usuario crea su contraseña:**
-(Mismo flujo para administradores e instructores — endpoint unificado)
 Va a `/auth` → tab "Crear contraseña" → ingresa su correo. Si existe en BD → guarda contraseña → puede hacer login. Si no → alerta amarilla + HTTP 403.
 
 **Paso 3 en adelante:** login normal con correo + contraseña.
@@ -71,7 +68,7 @@ Sin selector de rol · sin campo nombre · sin registro con redes sociales.
 2. El admin inicial (Subdirector) entra con contraseña definida en el seed.
 3. RF-13 (crear usuarios desde dashboard) aplica para nuevos ingresos futuros.
 
-**Campo de login:** correo electrónico registrado en BD. Puede ser `@sena.edu.co` o correo personal — sin restricción de dominio. (P3 resuelto 04/05/2026)
+**Campo de login:** correo electrónico registrado en BD. Puede ser `@sena.edu.co` o correo personal — sin restricción de dominio.
 
 ---
 
@@ -141,7 +138,7 @@ RAPs heredados al asignar la competencia — no se asignan individualmente.
 ```
 Si SUM(horas_semana) < 20 O > 40
 → Alerta CARGA_HORARIA (no bloquear)
-Rango 20–40h confirmado para todos los instructores (P1 resuelto 04/05/2026)
+Rango 20–40h confirmado para todos los instructores
 ```
 
 ### RN-08 · Novedad administrativa del instructor (RF-16)
@@ -176,12 +173,11 @@ autorizante (autorizado_por_id), fecha_autorizacion, motivo.
 Sin alguno → el sistema no registra la provisional.
 ```
 
-### RN-12 · Alcance del lider de programa (RF-30 — ELIMINADO v7.0)
+### RN-12 · Alcance de coordinacion
 ```
-OBSOLETO desde 06/07/2026: lider_programa ya no es rol del sistema.
-La tabla lider_programa permanece como dato informativo (sin permisos).
 Toda asignacion es realizada por Coordinadora Academica o Asistente de Coordinacion.
-permisoService.validarAlcanceLider() es no-op; validarAlcanceCoordinador() activo.
+lider_programa es dato informativo — no otorga permisos ni modifica el flujo.
+permisoService.validarAlcanceCoordinador() activo para escritura restringida.
 ```
 
 ### RN-13 · Competencia habilitada por contrato (RF-27)
@@ -248,7 +244,6 @@ No hardcodear en frontend. Usar constante configurable.
 | Base de datos | MySQL — `conIns` · phpMyAdmin · Laragon |
 | IDE / VCS | VS Code · Git + GitHub |
 
-> **Nota frontend:** Migración de Vite a Next.js 15 confirmada en feedback con Juan Pablo Hoyos, Wilmar Zapata y Gloria Jaramillo. Se usa Pages Router por decisión deliberada. Zustand en revisión para Fase 3 (P11).
 
 ---
 
@@ -329,13 +324,8 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 | # | Pendiente | Responsable | Prioridad |
 |---|---|---|---|
 | P4 | Lista oficial de instructores con correo estandarizado | CDMC → Jair | 🟡 Media |
-| ~~P7~~ | ~~Migración a Next.js 15 + TypeScript + MVC + ESM6~~ | ~~Resuelto 19/05/2026 — rebuild desde cero en TS~~ | ✅ Resuelto |
-| ~~P8~~ | ~~Apellido co-lider Rivera (Tecnico Medular)~~ | ~~CDMC~~ | ✅ Fuera de alcance inicial (P26 — linea medular) |
-| ~~P9~~ | ~~Apellido Catalina (lider Talento Humano)~~ | ~~CDMC~~ | ✅ Fuera de alcance inicial (P26 — linea medular) |
 | P10 | Revisar Resolución 1415/2012 y Acuerdo 0003/2017 | Jair | 🟢 Baja |
 | P11 | Definir gestión de estado en Next.js 15 (¿Zustand o nativo?) | Jair + Laura | 🟡 Media — Fase 3 |
-
-> P1–P3, P5–P6 resueltos el 04/05/2026.
 
 ---
 
