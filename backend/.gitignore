@@ -1,6 +1,5 @@
+# Dependencias
 node_modules/
-.env
-.DS_Store
-.env.local
-seed_data.sql
-.claude
+dist/
+
+# Variables de entorno —
