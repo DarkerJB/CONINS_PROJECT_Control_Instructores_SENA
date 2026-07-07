@@ -3,8 +3,11 @@ import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
+import { exportarHorariosPDF } from "@/lib/exportPDF"
 import CrearHorarioModal from "@/components/horarios/CrearHorarioModal"
+import CrearBloqueHorarioModal from "@/components/horarios/CrearBloqueHorarioModal"
 import EditarHorarioModal from "@/components/horarios/EditarHorarioModal"
+import GrillaHorarios from "@/components/horarios/GrillaHorarios"
 import ConfirmDialog from "@/components/ui/ConfirmDialog"
 import {
   Search,
@@ -15,6 +18,13 @@ import {
   ChevronRight,
   Loader2,
   AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Ban,
+  FileDown,
+  LayoutGrid,
+  List,
 } from "lucide-react"
 
 type Horario = {
@@ -24,18 +34,13 @@ type Horario = {
   competencia: string
   ambiente: string
   jornada: string
+  tipo_actividad: string | null
   dias: string[]
   horas: string
   estado: string
   activo: boolean
 }
 
-const MOCK_HORARIOS: Horario[] = [
-  { id: 1, ficha_numero: "2995403", instructor_nombre: "Carlos Álvarez", competencia: "Bases de datos", ambiente: "Aula 203", jornada: "Mañana", dias: ["Lun", "Mié", "Vie"], horas: "06:00 - 12:00", estado: "Activo", activo: true },
-  { id: 2, ficha_numero: "2887341", instructor_nombre: "Andrés Pareja", competencia: "Contabilidad básica", ambiente: "Aula 207", jornada: "Mixta", dias: ["Mar", "Jue"], horas: "10:00 - 16:00", estado: "Activo", activo: true },
-  { id: 3, ficha_numero: "3012456", instructor_nombre: "William Ramírez", competencia: "Logística empresarial", ambiente: "Taller T2", jornada: "Noche", dias: ["Lun", "Mar", "Mié", "Jue"], horas: "18:00 - 22:00", estado: "Activo", activo: true },
-  { id: 4, ficha_numero: "2995403", instructor_nombre: "Carlos Álvarez", competencia: "Análisis y diseño de software", ambiente: "Aula 204", jornada: "Mañana", dias: ["Mar", "Jue"], horas: "08:00 - 12:00", estado: "Deshabilitado", activo: false },
-]
 
 export default function HorariosPage() {
   const { user, loading: authLoading } = useProtectedRoute()
@@ -59,6 +64,10 @@ export default function HorariosPage() {
   const [filtroInstructor, setFiltroInstructor] = useState("todos")
   const [filtroJornada, setFiltroJornada] = useState("todas")
   const [filtroEstado, setFiltroEstado] = useState("todos")
+  const [vistaGrilla, setVistaGrilla] = useState(false)
+
+  const rol = user?.roles?.[0]?.trim() || ""
+  const puedeEditar = !["Instructor", "Subdirector"].includes(rol)
 
   useEffect(() => {
     cargarHorarios()
@@ -68,10 +77,10 @@ export default function HorariosPage() {
     setLoading(true)
     try {
       const res = await api.horarios.getAll()
-      setHorarios(res.data)
+      setHorarios(res.data || [])
     } catch (err) {
-      console.warn("Backend no disponible, usando datos mock:", err)
-      setHorarios(MOCK_HORARIOS)
+      console.warn("Error cargando horarios:", err)
+      setHorarios([])
     } finally {
       setLoading(false)
     }
@@ -112,6 +121,7 @@ export default function HorariosPage() {
           hora_fin: data.hora_fin,
           jornada_id: data.jornada_id,
           ambiente_id: data.ambiente_id,
+          tipo_actividad_id: data.tipo_actividad_id ?? null,
           semana,
         }
         await api.horarios.create(payload)
@@ -148,6 +158,43 @@ export default function HorariosPage() {
     }
   }
 
+  const handleAprobar = async (horario: Horario) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Aprobar horario",
+      message: `¿Estas seguro de aprobar el horario de ${horario.instructor_nombre}? Quedará activo oficialmente.`,
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false })
+        try {
+          await api.horarios.aprobar(horario.id)
+          showToast("Horario aprobado exitosamente", "success")
+          cargarHorarios()
+        } catch (err: any) {
+          showToast(err.message || "Error al aprobar horario", "error")
+        }
+      },
+    })
+  }
+
+  const handleRechazar = (horario: Horario) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Rechazar horario",
+      message: `¿Estas seguro de rechazar el horario de ${horario.instructor_nombre}?`,
+      showMotivo: true,
+      onConfirm: async (motivo?: string) => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false })
+        try {
+          await api.horarios.rechazar(horario.id, motivo || "Sin motivo especificado")
+          showToast("Horario rechazado", "success")
+          cargarHorarios()
+        } catch (err: any) {
+          showToast(err.message || "Error al rechazar horario", "error")
+        }
+      },
+    })
+  }
+
   const handleDesactivar = (horario: Horario) => {
     setConfirmDialog({
       isOpen: true,
@@ -162,6 +209,25 @@ export default function HorariosPage() {
           cargarHorarios()
         } catch (err: any) {
           showToast(err.message || "Error al cambiar estado", "error")
+        }
+      },
+    })
+  }
+
+  const handleSuspender = (horario: Horario) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Suspender horario",
+      message: `¿Estas seguro de suspender el horario de ${horario.instructor_nombre}? Se registrara la trazabilidad del cambio.`,
+      showMotivo: true,
+      onConfirm: async (motivo?: string) => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false })
+        try {
+          await api.horarios.suspender(horario.id, motivo || "Sin motivo especificado")
+          showToast("Horario suspendido exitosamente", "success")
+          cargarHorarios()
+        } catch (err: any) {
+          showToast(err.message || "Error al suspender horario", "error")
         }
       },
     })
@@ -187,13 +253,31 @@ export default function HorariosPage() {
             <h1 className="text-2xl font-bold text-gray-900">Horarios</h1>
             <p className="text-gray-500 text-sm">Listado de horarios registrados del CDMC</p>
           </div>
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-sena hover:bg-sena/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Registrar horario
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setVistaGrilla(!vistaGrilla)}
+              className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+            >
+              {vistaGrilla ? <List className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
+              {vistaGrilla ? "Ver tabla" : "Ver grilla"}
+            </button>
+            <button
+              onClick={() => exportarHorariosPDF(listaFiltrada)}
+              className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+            >
+              <FileDown className="w-4 h-4" />
+              Exportar PDF
+            </button>
+            {puedeEditar && (
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-sena hover:bg-sena/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Registrar horario
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -208,7 +292,7 @@ export default function HorariosPage() {
             />
           </div>
 
-          <div className="flex flex-wrap gap-3 w-full md:w-auto">
+          <div className="grid grid-cols-2 gap-3 w-full md:flex md:flex-wrap md:w-auto">
             <select
               value={filtroFicha}
               onChange={(e) => setFiltroFicha(e.target.value)}
@@ -249,12 +333,16 @@ export default function HorariosPage() {
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sena/50 bg-white"
             >
               <option value="todos">Estado: Todos</option>
-              <option value="Activo">Activo</option>
-              <option value="Deshabilitado">Deshabilitado</option>
+              <option value="Aprobado">Aprobado</option>
+              <option value="Pendiente">Pendiente</option>
+              <option value="Rechazado">Rechazado</option>
             </select>
           </div>
         </div>
 
+        {vistaGrilla ? (
+          <GrillaHorarios horarios={listaFiltrada} />
+        ) : (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           {loading ? (
             <div className="p-12 flex flex-col items-center justify-center text-gray-500">
@@ -270,32 +358,36 @@ export default function HorariosPage() {
               <table className="w-full text-sm text-left">
                 <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-4">Ficha</th>
-                    <th className="px-6 py-4">Instructor</th>
-                    <th className="px-6 py-4">Competencia</th>
-                    <th className="px-6 py-4">Ambiente</th>
-                    <th className="px-6 py-4">Jornada</th>
-                    <th className="px-6 py-4">Días</th>
-                    <th className="px-6 py-4">Horas</th>
-                    <th className="px-6 py-4 text-center">Estado</th>
-                    <th className="px-6 py-4 text-center">Acciones</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Ficha</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Instructor</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Competencia</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Ambiente</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Jornada</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Tipo actividad</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Días</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Horas</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4 text-center">Estado</th>
+                    {puedeEditar && <th className="px-3 py-3 md:px-6 md:py-4 text-center">Acciones</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {listaFiltrada.map((h) => (
                     <tr key={h.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900">{h.ficha_numero}</td>
-                      <td className="px-6 py-4 text-gray-700">{h.instructor_nombre}</td>
-                      <td className="px-6 py-4 text-gray-500">{h.competencia}</td>
-                      <td className="px-6 py-4 text-gray-500">{h.ambiente}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-3 md:px-6 md:py-4 font-medium text-gray-900">{h.ficha_numero}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-gray-700">{h.instructor_nombre}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-gray-500">{h.competencia}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-gray-500">{h.ambiente}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           h.jornada === 'Mañana' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                         }`}>
                           {h.jornada}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-gray-500">
+                        {h.tipo_actividad || <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className="px-3 py-3 md:px-6 md:py-4">
                         <div className="flex flex-wrap gap-1">
                           {h.dias.map((d) => (
                             <span key={d} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
@@ -304,31 +396,66 @@ export default function HorariosPage() {
                           ))}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-700 whitespace-nowrap">{h.horas}</td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-gray-700 whitespace-nowrap">{h.horas}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-center">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          h.estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          h.estado === 'Aprobado' ? 'bg-green-100 text-green-800' :
+                          h.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
                         }`}>
+                          {h.estado === 'Pendiente' && <Clock className="w-3 h-3 mr-1" />}
                           {h.estado}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => openEditModal(h)}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                            title="Editar"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDesactivar(h)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title={h.activo ? "Deshabilitar" : "Habilitar"}
-                          >
-                            <Power className="w-4 h-4" />
-                          </button>
-                        </div>
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-center">
+                        {puedeEditar ? (
+                          <div className="flex items-center justify-center gap-2">
+                            {h.estado === 'Pendiente' ? (
+                              <>
+                                <button
+                                  onClick={() => handleAprobar(h)}
+                                  className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                  title="Aprobar"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleRechazar(h)}
+                                  className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                  title="Rechazar"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => openEditModal(h)}
+                                  className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                  title="Editar"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleSuspender(h)}
+                                  className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                                  title="Suspender"
+                                >
+                                  <Ban className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDesactivar(h)}
+                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                  title={h.activo ? "Deshabilitar" : "Habilitar"}
+                                >
+                                  <Power className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -337,7 +464,7 @@ export default function HorariosPage() {
             </div>
           )}
 
-          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
+          <div className="px-3 py-3 md:px-6 md:py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
             <span className="text-sm text-gray-500">
               Mostrando {listaFiltrada.length} de {horarios.length}
             </span>
@@ -352,6 +479,7 @@ export default function HorariosPage() {
             </div>
           </div>
         </div>
+        )}
       </div>
 
       <CrearHorarioModal

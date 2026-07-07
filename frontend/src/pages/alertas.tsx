@@ -25,11 +25,6 @@ type Alerta = {
   created_at: string
 }
 
-const MOCK_ALERTAS: Alerta[] = [
-  { id: 1, instructor_id: 1, instructor_nombre: "Carlos Álvarez", tipo: "HORAS_EXCEDIDAS", mensaje: "Carlos Álvarez tiene 45h — supera el límite de 40h semanales", semana: "2026-06-01", total_horas: 45, atendida: false, created_at: "2026-06-01T10:00:00Z" },
-  { id: 2, instructor_id: 2, instructor_nombre: "Andrés Pareja", tipo: "AMBIENTE_OCUPADO", mensaje: "Aula 203 ocupada en jornada mañana por ficha 2995403", semana: "2026-06-01", total_horas: 32, atendida: false, created_at: "2026-05-31T14:00:00Z" },
-  { id: 3, instructor_id: 3, instructor_nombre: "William Ramírez", tipo: "ASIGNACION_PROVISIONAL", mensaje: "Conflicto de horario detectado para William Ramírez el martes 10:00", semana: "2026-06-01", total_horas: 40, atendida: true, created_at: "2026-05-30T08:00:00Z" },
-]
 
 function getAlertIcon(tipo: string) {
   switch (tipo) {
@@ -99,6 +94,10 @@ export default function AlertasPage() {
   const [search, setSearch] = useState("")
   const [filtroTipo, setFiltroTipo] = useState("todas")
   const [filtroEstado, setFiltroEstado] = useState("todas")
+  const [activeTab, setActiveTab] = useState<"pendientes" | "historial">("pendientes")
+
+  const rol = user?.roles?.[0]?.trim() || ""
+  const esAdmin = rol !== "Instructor"
 
   useEffect(() => {
     cargarAlertas()
@@ -108,14 +107,19 @@ export default function AlertasPage() {
     setLoading(true)
     try {
       const res = await api.alertas.getAll()
-      setAlertas(res.data)
+      setAlertas(res.data || [])
     } catch (err) {
-      console.warn("Backend no disponible, usando datos mock:", err)
-      setAlertas(MOCK_ALERTAS)
+      console.warn("Error cargando alertas:", err)
+      setAlertas([])
     } finally {
       setLoading(false)
     }
   }
+
+  const tabs = [
+    { id: "pendientes", label: "Pendientes", count: alertas.filter(a => !a.atendida).length },
+    { id: "historial", label: "Historial", count: alertas.filter(a => a.atendida).length },
+  ]
 
   const handleMarcarAtendida = async (alerta: Alerta) => {
     try {
@@ -131,6 +135,7 @@ export default function AlertasPage() {
   }
 
   const listaFiltrada = alertas.filter((a) => {
+    const coincideTab = activeTab === "pendientes" ? !a.atendida : a.atendida
     const texto = search.toLowerCase()
     const coincideBusqueda =
       a.mensaje.toLowerCase().includes(texto) ||
@@ -140,7 +145,7 @@ export default function AlertasPage() {
       filtroEstado === "todas" ||
       (filtroEstado === "pendiente" && !a.atendida) ||
       (filtroEstado === "atendida" && a.atendida)
-    return coincideBusqueda && coincideTipo && coincideEstado
+    return coincideTab && coincideBusqueda && coincideTipo && coincideEstado
   })
 
   const pendientes = alertas.filter((a) => !a.atendida).length
@@ -164,8 +169,25 @@ export default function AlertasPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Alertas</h1>
-            <p className="text-gray-500 text-sm">Gestion de alertas del sistema</p>
+            <p className="text-gray-500 text-sm">{esAdmin ? "Gestion de alertas del sistema" : "Tus notificaciones y alertas"}</p>
           </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? "bg-white text-gray-900 shadow-sm border border-gray-200"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
         </div>
 
         {/* Resumen */}
@@ -197,7 +219,7 @@ export default function AlertasPage() {
             />
           </div>
 
-          <div className="flex flex-wrap gap-3 w-full md:w-auto">
+          <div className="grid grid-cols-2 gap-3 w-full md:flex md:flex-wrap md:w-auto">
             <select
               value={filtroTipo}
               onChange={(e) => setFiltroTipo(e.target.value)}

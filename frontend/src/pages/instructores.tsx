@@ -57,6 +57,10 @@ export default function InstructoresPage() {
   const [filtroArea, setFiltroArea] = useState("todas")
   const [filtroEstado, setFiltroEstado] = useState("todos")
 
+  const rol = user?.roles?.[0]?.trim() || ""
+  const esSubdirector = rol === "Subdirector"
+  const puedeEditar = !["Instructor", "Subdirector"].includes(rol)
+
   useEffect(() => {
     cargarInstructores()
   }, [])
@@ -80,7 +84,7 @@ export default function InstructoresPage() {
     cargarInstructores()
   }
 
-  const handleNovedadSubmit = async (data: { tipo: string; fecha_inicio: string; fecha_regreso: string; observacion: string }) => {
+  const handleNovedadSubmit = async (data: { tipo_novedad_id: number; fecha_inicio: string; fecha_regreso: string; observacion: string }) => {
     if (!selectedInstructorId) return
 
     setConfirmDialog({
@@ -147,10 +151,6 @@ export default function InstructoresPage() {
     return coincideBusqueda && coincideContrato && coincideArea && coincideEstado
   })
 
-  const getMockHoras = (id: number): number => {
-    const horas = [22, 30, 40, 45, 18, 35, 28]
-    return horas[id % horas.length]
-  }
 
   if (authLoading || !user) {
     return (
@@ -172,13 +172,15 @@ export default function InstructoresPage() {
             <h1 className="text-2xl font-bold text-gray-900">Instructores</h1>
             <p className="text-gray-500 text-sm">Gestion de instructores del CDMC</p>
           </div>
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-sena hover:bg-sena/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Registrar instructor
-          </button>
+          {puedeEditar && (
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-sena hover:bg-sena/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Registrar instructor
+            </button>
+          )}
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -193,7 +195,7 @@ export default function InstructoresPage() {
             />
           </div>
 
-          <div className="flex flex-wrap gap-3 w-full md:w-auto">
+          <div className="grid grid-cols-2 gap-3 w-full md:flex md:flex-wrap md:w-auto">
             <select
               value={filtroContrato}
               onChange={(e) => setFiltroContrato(e.target.value)}
@@ -242,31 +244,31 @@ export default function InstructoresPage() {
               <table className="w-full text-sm text-left">
                 <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-4">Nombre</th>
-                    <th className="px-6 py-4">Correo</th>
-                    <th className="px-6 py-4">Contrato</th>
-                    <th className="px-6 py-4">Area</th>
-                    <th className="px-6 py-4">Horas/sem</th>
-                    <th className="px-6 py-4 text-center">Estado</th>
-                    <th className="px-6 py-4 text-center">Acciones</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Nombre</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Correo</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Contrato</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Area</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Horas/sem</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4 text-center">Estado</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4 text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {listaFiltrada.map((inst) => (
                     <tr key={inst.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900">{inst.nombre}</td>
-                      <td className="px-6 py-4 text-gray-500">{inst.email}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-3 md:px-6 md:py-4 font-medium text-gray-900">{inst.nombre}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-gray-500">{inst.email}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           inst.tipo_contrato === 'de_planta' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                         }`}>
                           {inst.tipo_contrato === 'de_planta' ? 'Planta' : 'Contratista'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-gray-700 capitalize">{inst.tipo_area}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-gray-700 capitalize">{inst.tipo_area}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4">
                         {(() => {
-                          const horas = inst.horas_semana ?? getMockHoras(inst.id)
+                          const horas = inst.horas_semana ?? 0
                           const limite = 40
                           const porcentaje = Math.min((horas / limite) * 100, 100)
                           let colorBarra = "bg-sena"
@@ -293,14 +295,14 @@ export default function InstructoresPage() {
                           )
                         })()}
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-center">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           inst.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}>
                           {inst.activo ? 'Activo' : 'Inactivo'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => openDetailModal(inst)}
@@ -309,20 +311,24 @@ export default function InstructoresPage() {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => openEditModal(inst)}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                            title="Editar"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => openNovedadModal(inst.id, inst.nombre)}
-                            className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded transition-colors"
-                            title="Registrar novedad"
-                          >
-                            <CalendarX className="w-4 h-4" />
-                          </button>
+                          {puedeEditar && (
+                            <>
+                              <button
+                                onClick={() => openEditModal(inst)}
+                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                title="Editar"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => openNovedadModal(inst.id, inst.nombre)}
+                                className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                                title="Registrar novedad"
+                              >
+                                <CalendarX className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -332,7 +338,7 @@ export default function InstructoresPage() {
             </div>
           )}
 
-          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
+          <div className="px-3 py-3 md:px-6 md:py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
             <span className="text-sm text-gray-500">
               Mostrando {listaFiltrada.length} de {instructores.length}
             </span>

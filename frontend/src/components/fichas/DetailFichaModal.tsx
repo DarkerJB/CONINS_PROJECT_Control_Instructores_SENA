@@ -1,4 +1,6 @@
-import { X, BookOpen, Clock, MapPin, Users, Calendar, FileText } from "lucide-react"
+import { useState, useEffect } from "react"
+import { X, BookOpen, Clock, MapPin, Users, Calendar, FileText, Loader2 } from "lucide-react"
+import { api } from "@/lib/api"
 
 type Ficha = {
   id: number
@@ -15,9 +17,10 @@ type Ficha = {
   ambiente?: string
 }
 
-type Asignacion = {
+type InstructorAsignado = {
   id: number
-  instructor: string
+  instructor_nombre: string
+  competencia: string
   horas: number
   es_lider: boolean
 }
@@ -28,14 +31,29 @@ type DetailFichaModalProps = {
   ficha: Ficha | null
 }
 
-const MOCK_INSTRUCTORES: Asignacion[] = [
-  { id: 1, instructor: "Carlos Álvarez", horas: 20, es_lider: true },
-  { id: 2, instructor: "Ana García", horas: 15, es_lider: false },
-  { id: 3, instructor: "Luis Pérez", horas: 10, es_lider: false },
-  { id: 4, instructor: "Maria López", horas: 5, es_lider: false },
-]
-
 export default function DetailFichaModal({ isOpen, onClose, ficha }: DetailFichaModalProps) {
+  const [instructores, setInstructores] = useState<InstructorAsignado[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (isOpen && ficha) {
+      cargarDetalle()
+    }
+  }, [isOpen, ficha])
+
+  const cargarDetalle = async () => {
+    if (!ficha) return
+    setLoading(true)
+    try {
+      const res = await api.fichas.getById(ficha.id)
+      setInstructores(res.data?.instructores || [])
+    } catch {
+      setInstructores([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (!isOpen || !ficha) return null
 
   return (
@@ -48,7 +66,7 @@ export default function DetailFichaModal({ isOpen, onClose, ficha }: DetailFicha
           </button>
         </div>
 
-        <div className="p-6 space-y-6 overflow-y-auto flex-1">
+        <div className="p-4 md:p-6 space-y-6 overflow-y-auto flex-1">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-sena/10 flex items-center justify-center">
               <BookOpen className="w-8 h-8 text-sena" />
@@ -104,28 +122,42 @@ export default function DetailFichaModal({ isOpen, onClose, ficha }: DetailFicha
             </div>
           </div>
 
+          {/* Instructores asignados */}
           <div>
             <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
               <Users className="w-4 h-4 text-sena" />
-              Instructores asignados ({MOCK_INSTRUCTORES.length})
+              Instructores asignados ({loading ? "..." : instructores.length})
             </h4>
-            <div className="space-y-2">
-              {MOCK_INSTRUCTORES.map((asig) => (
-                <div key={asig.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {asig.instructor}
-                      {asig.es_lider && (
-                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-sena/10 text-sena">
-                          Líder
-                        </span>
+            {loading ? (
+              <div className="py-4 flex items-center justify-center text-gray-400">
+                <Loader2 className="w-5 h-5 animate-spin" />
+              </div>
+            ) : instructores.length > 0 ? (
+              <div className="space-y-2">
+                {instructores.map((asig) => (
+                  <div key={asig.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {asig.instructor_nombre}
+                        {asig.es_lider && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-sena/10 text-sena">
+                            Lider
+                          </span>
+                        )}
+                      </p>
+                      {asig.competencia && (
+                        <p className="text-xs text-gray-500">{asig.competencia}</p>
                       )}
-                    </p>
+                    </div>
+                    {asig.horas > 0 && (
+                      <span className="text-sm font-medium text-gray-700">{asig.horas}h</span>
+                    )}
                   </div>
-                  <span className="text-sm font-medium text-gray-700">{asig.horas}h</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">Sin instructores asignados</p>
+            )}
           </div>
 
           <div className="flex items-center gap-3 pt-2 border-t border-gray-100">

@@ -36,11 +36,6 @@ type Asignacion = {
   tipo: "activa" | "provisional" | "historica"
 }
 
-const MOCK_ASIGNACIONES: Asignacion[] = [
-  { id: 1, instructor_id: 1, ficha_id: 1, competencia_id: 1, instructor_nombre: "Carlos Álvarez", ficha_numero: "2995403", competencia: "ADSO", ambiente: "Aula 203", jornada: "Mañana", es_lider: true, es_provisional: false, activo: true, tipo: "activa" },
-  { id: 2, instructor_id: 2, ficha_id: 2, competencia_id: 2, instructor_nombre: "Andrés Pareja", ficha_numero: "2887341", competencia: "Contabilidad", ambiente: "Aula 207", jornada: "Mixta", es_lider: false, es_provisional: false, activo: true, tipo: "activa" },
-  { id: 3, instructor_id: 3, ficha_id: 3, competencia_id: 3, instructor_nombre: "William Ramírez", ficha_numero: "3012456", competencia: "Logística", ambiente: "Taller T2", jornada: "Noche", es_lider: true, es_provisional: false, activo: true, tipo: "activa" },
-]
 
 export default function AsignacionesPage() {
   const { user, loading: authLoading } = useProtectedRoute()
@@ -65,6 +60,9 @@ export default function AsignacionesPage() {
   const [filtroPrograma, setFiltroPrograma] = useState("todos")
   const [filtroCoordinacion, setFiltroCoordinacion] = useState("todos")
 
+  const rol = user?.roles?.[0]?.trim() || ""
+  const puedeEditar = !["Instructor", "Subdirector"].includes(rol)
+
   useEffect(() => {
     cargarAsignaciones()
   }, [])
@@ -79,8 +77,8 @@ export default function AsignacionesPage() {
       }))
       setAsignaciones(mapped)
     } catch (err) {
-      console.warn("Backend no disponible, usando datos mock:", err)
-      setAsignaciones(MOCK_ASIGNACIONES)
+      console.warn("Error cargando asignaciones:", err)
+      setAsignaciones([])
     } finally {
       setLoading(false)
     }
@@ -95,7 +93,7 @@ export default function AsignacionesPage() {
       asig.competencia.toLowerCase().includes(texto)
     
     const coincidePrograma = filtroPrograma === "todos" || asig.competencia === filtroPrograma
-    const coincideCoordinacion = filtroCoordinacion === "todos" || true // Mock logic
+    const coincideCoordinacion = filtroCoordinacion === "todos" || true
     
     return coincideTab && coincideBusqueda && coincidePrograma && coincideCoordinacion
   })
@@ -219,7 +217,7 @@ export default function AsignacionesPage() {
               />
             </div>
 
-            <div className="flex flex-wrap gap-3 w-full md:w-auto">
+            <div className="grid grid-cols-2 gap-3 w-full md:flex md:flex-wrap md:w-auto">
               <select
                 value={filtroPrograma}
                 onChange={(e) => setFiltroPrograma(e.target.value)}
@@ -244,20 +242,24 @@ export default function AsignacionesPage() {
           </div>
 
           <div className="flex justify-end gap-3">
-            <button
-              onClick={() => setIsProvisionalModalOpen(true)}
-              className="px-4 py-2.5 border border-sena text-sena rounded-lg text-sm font-medium hover:bg-sena/5 transition-colors flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Asignación provisional
-            </button>
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-sena hover:bg-sena/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Asignar competencia
-            </button>
+            {puedeEditar && (
+              <>
+                <button
+                  onClick={() => setIsProvisionalModalOpen(true)}
+                  className="px-4 py-2.5 border border-sena text-sena rounded-lg text-sm font-medium hover:bg-sena/5 transition-colors flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Asignación provisional
+                </button>
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="bg-sena hover:bg-sena/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Asignar competencia
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -277,30 +279,54 @@ export default function AsignacionesPage() {
               <table className="w-full text-sm text-left">
                 <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-4">Instructor</th>
-                    <th className="px-6 py-4">Ficha</th>
-                    <th className="px-6 py-4">Competencia</th>
-                    <th className="px-6 py-4">Ambiente</th>
-                    <th className="px-6 py-4">Jornada</th>
-                    <th className="px-6 py-4 text-center">Líder</th>
-                    <th className="px-6 py-4 text-center">Acciones</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Instructor</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Ficha</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Competencia</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Ambiente</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Jornada</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4 text-center">Líder</th>
+                    {puedeEditar && <th className="px-3 py-3 md:px-6 md:py-4 text-center">Acciones</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {listaFiltrada.map((asig) => (
                     <tr key={asig.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900">{asig.instructor_nombre}</td>
-                      <td className="px-6 py-4 text-gray-700">{asig.ficha_numero}</td>
-                      <td className="px-6 py-4 text-gray-500">{asig.competencia}</td>
-                      <td className="px-6 py-4 text-gray-500">{asig.ambiente}</td>
-                      <td className="px-6 py-4 text-gray-500">{asig.jornada}</td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-3 py-3 md:px-6 md:py-4 font-medium text-gray-900">{asig.instructor_nombre}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-gray-700">{asig.ficha_numero}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-gray-500">{asig.competencia}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-gray-500">{asig.ambiente}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-gray-500">{asig.jornada}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-center">
                         {asig.es_lider && (
                           <Star className="w-5 h-5 text-sena fill-sena mx-auto" />
                         )}
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-center">
+                        {puedeEditar ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => openDetailModal(asig)}
+                              className="p-1.5 text-gray-400 hover:text-sena hover:bg-sena/10 rounded transition-colors"
+                              title="Ver detalle"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => openEditModal(asig)}
+                              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                              title="Editar"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDesactivar(asig)}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title="Desactivar"
+                            >
+                              <Power className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : rol === "Subdirector" ? (
                           <button
                             onClick={() => openDetailModal(asig)}
                             className="p-1.5 text-gray-400 hover:text-sena hover:bg-sena/10 rounded transition-colors"
@@ -308,21 +334,9 @@ export default function AsignacionesPage() {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => openEditModal(asig)}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                            title="Editar"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDesactivar(asig)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Desactivar"
-                          >
-                            <Power className="w-4 h-4" />
-                          </button>
-                        </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -331,7 +345,7 @@ export default function AsignacionesPage() {
             </div>
           )}
 
-          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
+          <div className="px-3 py-3 md:px-6 md:py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
             <span className="text-sm text-gray-500">
               Mostrando {listaFiltrada.length} de {asignaciones.length}
             </span>

@@ -1,41 +1,40 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API_BASE_URL = 'http://localhost:5000/api'
 
-function getAuthHeaders(): HeadersInit {
+function getAuthHeaders(includeAuth = true): HeadersInit {
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
     }
-    const token = localStorage.getItem('auth_token')
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`
+
+    if (includeAuth) {
+        const token = localStorage.getItem('auth_token')
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`
+        }
     }
+
     return headers
 }
 
 async function apiFetch(path: string, options: RequestInit = {}) {
     const url = `${API_BASE_URL}${path}`
 
-    let response: Response
-    try {
-        response = await fetch(url, {
-            ...options,
-            headers: {
-                ...getAuthHeaders(),
-                ...options.headers,
-            },
-        })
-    } catch {
-        throw new Error('No se pudo conectar con el servidor. Verifica que el backend este corriendo en ' + API_BASE_URL)
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            ...getAuthHeaders(options.headers ? !!(options.headers as Record<string, string>)['Authorization'] : true),
+            ...options.headers,
+        },
+    })
+
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('El servidor no respondió con datos válidos (Backend no disponible o ruta inexistente)')
     }
 
-    let data: any
-    try {
-        data = await response.json()
-    } catch {
-        throw new Error(`Error del servidor (${response.status}) — respuesta no es JSON`)
-    }
+    const data = await response.json()
 
     if (!response.ok) {
-        throw new Error(data.message || `Error ${response.status}`)
+        throw new Error(data.message || 'Error en la peticion')
     }
 
     return data
@@ -72,6 +71,39 @@ export const api = {
             return apiFetch('/auth/cambiar-contrasena', {
                 method: 'PATCH',
                 body: JSON.stringify({ contrasena_actual, nueva_contrasena }),
+            })
+        },
+    },
+
+    users: {
+        getAll() {
+            return apiFetch('/auth/usuarios')
+        },
+
+        create(data: { nombre: string; email: string }) {
+            return apiFetch('/auth/register', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            })
+        },
+
+        update(id: number, data: any) {
+            return apiFetch(`/auth/usuarios/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(data),
+            })
+        },
+
+        toggleEstado(id: number) {
+            return apiFetch(`/auth/usuarios/${id}/estado`, {
+                method: 'PATCH',
+            })
+        },
+
+        asignarProgramas(liderId: number, programa_ids: number[]) {
+            return apiFetch(`/auth/usuarios/${liderId}/programas`, {
+                method: 'PUT',
+                body: JSON.stringify({ programa_ids }),
             })
         },
     },
@@ -216,6 +248,23 @@ export const api = {
                 body: JSON.stringify({ motivo }),
             })
         },
+        aprobar(id: number) {
+            return apiFetch(`/horarios/${id}/aprobar`, {
+                method: 'PATCH',
+            })
+        },
+        rechazar(id: number, motivo: string) {
+            return apiFetch(`/horarios/${id}/rechazar`, {
+                method: 'PATCH',
+                body: JSON.stringify({ motivo }),
+            })
+        },
+        suspender(id: number, motivo: string) {
+            return apiFetch(`/horarios/${id}/suspender`, {
+                method: 'PATCH',
+                body: JSON.stringify({ motivo }),
+            })
+        },
     },
 
     programs: {
@@ -230,6 +279,15 @@ export const api = {
         },
         getCompetenciasByPrograma(programaId: number) {
             return apiFetch(`/catalogo/programas/${programaId}/competencias`)
+        },
+        getTiposNovedadInstructor() {
+            return apiFetch('/catalogo/tipos-novedad-instructor')
+        },
+        getTiposNovedadAmbiente() {
+            return apiFetch('/catalogo/tipos-novedad-ambiente')
+        },
+        getTiposActividad() {
+            return apiFetch('/catalogo/tipos-actividad')
         },
     },
 
@@ -268,16 +326,68 @@ export const api = {
         },
     },
 
+    notificaciones: {
+        getMis(soloNoLeidas = false) {
+            return apiFetch(`/notificaciones${soloNoLeidas ? '?solo_no_leidas=true' : ''}`)
+        },
+        getNoLeidasCount() {
+            return apiFetch('/notificaciones/no-leidas/count')
+        },
+        marcarLeida(id: number) {
+            return apiFetch(`/notificaciones/${id}/leida`, { method: 'PATCH' })
+        },
+        marcarTodasLeidas() {
+            return apiFetch('/notificaciones/marcar-todas', { method: 'PATCH' })
+        },
+    },
+
     consultas: {
         getCargaHoraria() {
             return apiFetch('/consultas/carga-horaria')
         },
         getHorariosPorFicha() {
             return apiFetch('/consultas/horarios-ficha')
-
         },
         getOcupacionAmbientes() {
             return apiFetch('/consultas/ocupacion-ambientes')
+        },
+    },
+
+    rapSeguimiento: {
+        getByFicha(fichaId: number) {
+            return apiFetch(`/rap-seguimiento/ficha/${fichaId}`)
+        },
+        getDisponibles(fichaId: number) {
+            return apiFetch(`/rap-seguimiento/disponibles/${fichaId}`)
+        },
+        getByAsignacionCompetencia(acId: number) {
+            return apiFetch(`/rap-seguimiento/asignacion-competencia/${acId}`)
+        },
+        getById(id: number) {
+            return apiFetch(`/rap-seguimiento/${id}`)
+        },
+        create(data: any) {
+            return apiFetch('/rap-seguimiento', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            })
+        },
+        update(id: number, data: any) {
+            return apiFetch(`/rap-seguimiento/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(data),
+            })
+        },
+        evaluar(id: number, estado_aprobacion: 'aprobado' | 'no_aprobado') {
+            return apiFetch(`/rap-seguimiento/${id}/evaluar`, {
+                method: 'PATCH',
+                body: JSON.stringify({ estado_aprobacion }),
+            })
+        },
+        toggleActivo(id: number) {
+            return apiFetch(`/rap-seguimiento/${id}/toggle`, {
+                method: 'PATCH',
+            })
         },
     },
 }
