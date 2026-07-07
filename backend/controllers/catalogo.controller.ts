@@ -55,3 +55,10 @@ export const getTiposNovedadFicha = asyncHandler(async (_req: Request, res: Resp
   const [rows] = await pool.query('SELECT id, nombre, descripcion FROM tipos_novedad_ficha WHERE activo = TRUE ORDER BY id');
   ApiResponse.success(res, rows);
 });
+
+export const getTiposActividad = asyncHandler(async (_req: Request, res: Response) => {
+  const [rows] = await pool.query(
+    'SELECT id, nombre, suma_carga_horaria, requiere_ficha, requiere_ambiente, requiere_competencia FROM tipos_actividad WHERE activo = TRUE ORDER BY id',
+  );
+  ApiResponse.success(res, rows);
+});

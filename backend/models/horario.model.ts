@@ -76,6 +76,44 @@ export const HorarioModel = {
     })) as unknown as HorarioDetail[];
   },
 
+  async findAllByInstructorId(instructorId: number): Promise<HorarioDetail[]> {
+    const [rows] = await pool.query<HorarioDetail[]>(`
+      SELECT h.id, f.numero_ficha AS ficha_numero, u.nombre AS instructor_nombre,
+             c.nombre AS competencia,
+             COALESCE(ab.nombre, 'Sin asignar') AS ambiente,
+             j.nombre AS jornada,
+             ta.nombre AS tipo_actividad,
+             GROUP_CONCAT(DISTINCT h.dia_semana ORDER BY h.dia_semana SEPARATOR ',') AS dias,
+             CONCAT(TIME_FORMAT(MIN(h.hora_inicio), '%H:%i'), ' - ', TIME_FORMAT(MAX(h.hora_fin), '%H:%i')) AS horas,
+             CASE h.estado
+               WHEN 'pendiente' THEN 'Pendiente'
+               WHEN 'aprobado' THEN 'Aprobado'
+               WHEN 'rechazado' THEN 'Rechazado'
+               ELSE 'Pendiente'
+             END AS estado,
+             h.motivo_rechazo,
+             h.activo
+      FROM horarios h
+      JOIN fichas f ON h.ficha_id = f.id
+      JOIN instructores i ON h.instructor_id = i.id
+      JOIN usuarios u ON i.usuario_id = u.id
+      JOIN competencias c ON h.competencia_id = c.id
+      LEFT JOIN ambientes ab ON h.ambiente_id = ab.id
+      JOIN jornadas j ON h.jornada_id = j.id
+      LEFT JOIN tipos_actividad ta ON h.tipo_actividad_id = ta.id
+      WHERE h.instructor_id = ?
+      GROUP BY h.ficha_id, h.instructor_id, h.competencia_id, h.ambiente_id, h.jornada_id, h.hora_inicio, h.hora_fin, h.estado, h.motivo_rechazo, h.activo
+      ORDER BY h.id
+    `, [instructorId]);
+
+    return rows.map((row) => ({
+      ...row,
+      dias: row.dias
+        ? row.dias.split(',').map((d: string) => DIAS_MAP[Number(d)] ?? d)
+        : [],
+    })) as unknown as HorarioDetail[];
+  },
+
   async findById(id: number): Promise<HorarioDetail | null> {
     const [rows] = await pool.query<HorarioDetail[]>(`
       SELECT h.id, f.numero_ficha AS ficha_numero, u.nombre AS instructor_nombre,

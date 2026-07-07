@@ -42,19 +42,8 @@ CREATE TABLE IF NOT EXISTS roles (
     activo BOOLEAN NOT NULL DEFAULT TRUE
 ) ENGINE=InnoDB;
 
--- ⚠ CAMBIO 01/07/2026: 5 roles → 4 roles (Title Case con espacios).
--- TRUNCATE limpia datos de ejecuciones previas. FK_CHECKS deshabilita
--- temporalmente la restricción de usuario_roles → roles para permitir TRUNCATE.
-SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE TABLE usuario_roles;
-TRUNCATE TABLE roles;
-SET FOREIGN_KEY_CHECKS = 1;
-
-INSERT INTO roles (id, nombre, nivel) VALUES
-(1, 'Subdirector',             1),
-(2, 'Coordinadora Academica',  2),
-(3, 'Asistente Coordinacion',  3),
-(4, 'Instructor',              4);
+-- Datos de roles se insertan despues de CREATE TABLE usuario_roles
+-- para que TRUNCATE no falle en importacion sobre BD vacia (ver linea ~106).
 
 -- ============================================================
 -- 3. ÁREAS
@@ -104,6 +93,19 @@ CREATE TABLE IF NOT EXISTS usuario_roles (
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
     FOREIGN KEY (rol_id)     REFERENCES roles(id)    ON DELETE RESTRICT
 ) ENGINE=InnoDB;
+
+-- ⚠ CAMBIO 01/07/2026: 5 roles → 4 roles (Title Case con espacios).
+-- Movido aqui para que TRUNCATE no falle en BD vacia (usuario_roles existe desde la linea anterior).
+SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE usuario_roles;
+TRUNCATE TABLE roles;
+SET FOREIGN_KEY_CHECKS = 1;
+
+INSERT INTO roles (id, nombre, nivel) VALUES
+(1, 'Subdirector',             1),
+(2, 'Coordinadora Academica',  2),
+(3, 'Asistente Coordinacion',  3),
+(4, 'Instructor',              4);
 
 -- ============================================================
 -- 5. INSTRUCTORES (perfil extendido de usuarios)
@@ -993,7 +995,7 @@ BEGIN
     SET p_instructor_id = LAST_INSERT_ID();
 
     INSERT INTO usuario_roles (usuario_id, rol_id)
-    VALUES (p_usuario_id, 5);
+    VALUES (p_usuario_id, 4); -- ID 4 = Instructor (corregido 06/07/2026)
 
     COMMIT;
 END$$

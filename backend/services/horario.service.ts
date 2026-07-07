@@ -4,10 +4,17 @@ import { FichaModel } from '../models/ficha.model.js';
 import { AmbienteModel } from '../models/ambiente.model.js';
 import { NotFoundError, ValidationError, ConflictError } from '../utils/errors.js';
 import { getLunesSemanaActual } from '../utils/date.js';
+import { ROLES, RoleKey } from '../constants/roles.js';
 import pool from '../config/db.js';
 
 export const HorarioService = {
-  async getAll() {
+  async getAll(userId?: number, roles?: RoleKey[]) {
+    // P22: instructor solo ve sus propios horarios
+    if (userId && roles && roles.length === 1 && roles[0] === ROLES.INSTRUCTOR) {
+      const instructor = await InstructorModel.findByUsuarioId(userId);
+      if (!instructor) return [];
+      return HorarioModel.findAllByInstructorId(instructor.id);
+    }
     return HorarioModel.findAll();
   },
 
@@ -104,32 +111,37 @@ export const HorarioService = {
     ambiente_id?: number | null;
     tipo_actividad_id?: number | null;
   }) {
-    const horario = await HorarioModel.findById(id);
-    if (!horario) throw new NotFoundError('Horario no encontrado');
+    // P23: leer registro raw para obtener IDs numericos (findById devuelve HorarioDetail sin ellos)
+    const [rawRows] = await pool.query(
+      'SELECT * FROM horarios WHERE id = ? AND activo = TRUE',
+      [id],
+    );
+    const existing = (rawRows as any[])[0];
+    if (!existing) throw new NotFoundError('Horario no encontrado');
 
-    if (data.hora_inicio && data.hora_fin) {
-      if (new Date(`2000-01-01T${data.hora_fin}`).getTime() <= new Date(`2000-01-01T${data.hora_inicio}`).getTime()) {
-        throw new ValidationError('La hora de fin debe ser posterior a la hora de inicio');
-      }
+    // Valores finales (merge datos nuevos + existentes)
+    const finalDia = data.dia_semana ?? existing.dia_semana;
+    const finalHoraInicio = data.hora_inicio ?? existing.hora_inicio;
+    const finalHoraFin = data.hora_fin ?? existing.hora_fin;
+    const finalAmbienteId = data.ambiente_id !== undefined ? data.ambiente_id : existing.ambiente_id;
+    const semana: string = existing.semana instanceof Date
+      ? existing.semana.toISOString().split('T')[0]
+      : String(existing.semana);
+
+    // Validar hora_fin > hora_inicio
+    const tInicio = new Date(`2000-01-01T${finalHoraInicio}`).getTime();
+    const tFin = new Date(`2000-01-01T${finalHoraFin}`).getTime();
+    if (tFin <= tInicio) {
+      throw new ValidationError('La hora de fin debe ser posterior a la hora de inicio');
     }
 
-    const existing = await HorarioModel.findById(id);
-    if (data.dia_semana || data.hora_inicio || data.hora_fin) {
-      const semana = getLunesSemanaActual();
-
-      const ambienteId = data.ambiente_id ?? (existing as any).ambiente_id;
-      if (ambienteId) {
-        const tieneBloqueo = await AmbienteModel.hasBloqueoVigente(ambienteId, semana);
-        if (tieneBloqueo) {
-          throw new ValidationError('El ambiente tiene un bloqueo temporal vigente en esa semana (RN-09)');
-        }
-      }
-
+    // RN-04: solapamiento del instructor (hard block)
+    if (data.dia_semana !== undefined || data.hora_inicio !== undefined || data.hora_fin !== undefined) {
       const hasOverlap = await HorarioModel.hasOverlap(
-        (existing as any).instructor_id,
-        data.dia_semana ?? (existing as any).dia_semana,
-        data.hora_inicio ?? (existing as any).hora_inicio,
-        data.hora_fin ?? (existing as any).hora_fin,
+        existing.instructor_id,
+        finalDia,
+        finalHoraInicio,
+        finalHoraFin,
         semana,
         id,
       );
@@ -138,8 +150,44 @@ export const HorarioService = {
       }
     }
 
+    // RN-09: bloqueo de ambiente (hard block)
+    if (finalAmbienteId) {
+      const tieneBloqueo = await AmbienteModel.hasBloqueoVigente(finalAmbienteId, semana);
+      if (tieneBloqueo) {
+        throw new ValidationError('El ambiente tiene un bloqueo temporal vigente en esa semana (RN-09)');
+      }
+    }
+
+    // RN-05: ambiente ocupado (soft alert) — revalida si cambia ambiente o dia
+    let alertaAmbienteOcupado = false;
+    if (finalAmbienteId && (data.ambiente_id !== undefined || data.dia_semana !== undefined)) {
+      alertaAmbienteOcupado = await HorarioModel.hasAmbienteOcupado(
+        finalAmbienteId,
+        finalDia,
+        existing.jornada_id,
+        semana,
+        id,
+      );
+    }
+
+    // RN-03: jornada restringida (soft alert) — revalida si cambia dia
+    let alertaJornadaRestringida = false;
+    if (data.dia_semana !== undefined) {
+      const esDePlanta = await HorarioModel.isInstructorDePlanta(existing.instructor_id);
+      const esNocheOFinde = await HorarioModel.isJornadaNocturnaOFinDeSemana(existing.jornada_id, finalDia);
+      if (esDePlanta && esNocheOFinde) {
+        alertaJornadaRestringida = true;
+      }
+    }
+
     await HorarioModel.update(id, data);
-    return HorarioModel.findById(id);
+    const updated = await HorarioModel.findById(id);
+
+    return {
+      ...updated,
+      alerta_ambiente_ocupado: alertaAmbienteOcupado,
+      alerta_jornada_restringida: alertaJornadaRestringida,
+    };
   },
 
   async toggleActivo(id: number, motivo?: string) {

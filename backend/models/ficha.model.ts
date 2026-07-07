@@ -47,6 +47,23 @@ export const FichaModel = {
     return rows;
   },
 
+  async findAllByInstructorId(instructorId: number): Promise<FichaDetail[]> {
+    const [rows] = await pool.query<FichaDetail[]>(`
+      SELECT f.id, f.numero_ficha, f.programa_id, p.nombre AS programa, j.nombre AS jornada,
+             f.etapa, p.modalidad,
+             COUNT(DISTINCT a_all.id) AS instructores_count,
+             f.estado, f.activo
+      FROM fichas f
+      JOIN programas p ON f.programa_id = p.id
+      JOIN jornadas j ON f.jornada_id = j.id
+      JOIN asignacion a ON a.ficha_id = f.id AND a.activo = TRUE AND a.instructor_id = ?
+      LEFT JOIN asignacion a_all ON a_all.ficha_id = f.id AND a_all.activo = TRUE
+      GROUP BY f.id
+      ORDER BY f.numero_ficha
+    `, [instructorId]);
+    return rows;
+  },
+
   async findById(id: number): Promise<FichaDetail | null> {
     const [rows] = await pool.query<FichaDetail[]>(`
       SELECT f.id, f.numero_ficha, f.programa_id, p.nombre AS programa, j.nombre AS jornada,

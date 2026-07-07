@@ -27,6 +27,25 @@ export interface RapFichaSeguimientoDetail extends RowDataPacket {
 }
 
 export const RapFichaSeguimientoModel = {
+  async findByFicha(fichaId: number): Promise<RapFichaSeguimientoDetail[]> {
+    const [rows] = await pool.query<RapFichaSeguimientoDetail[]>(
+      `SELECT rfs.id, rfs.asignacion_competencia_id, rfs.rap_id,
+              r.nombre AS rap_nombre, r.codigo AS rap_codigo,
+              c.nombre AS competencia,
+              rfs.fecha_inicio, rfs.fecha_fin_programada,
+              rfs.estado_evaluacion, rfs.estado_aprobacion, rfs.activo
+       FROM rap_ficha_seguimiento rfs
+       JOIN asignacion_competencia ac ON rfs.asignacion_competencia_id = ac.id
+       JOIN asignacion a ON ac.asignacion_id = a.id
+       JOIN raps r ON rfs.rap_id = r.id
+       JOIN competencias c ON r.competencia_id = c.id
+       WHERE a.ficha_id = ?
+       ORDER BY c.nombre, r.codigo`,
+      [fichaId],
+    );
+    return rows;
+  },
+
   async findByAsignacionCompetencia(
     asignacionCompetenciaId: number,
   ): Promise<RapFichaSeguimientoDetail[]> {

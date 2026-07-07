@@ -41,5 +41,6 @@ router.get('/ambientes', catalogoController.getAmbientes);
 router.get('/tipos-novedad-instructor', catalogoController.getTiposNovedadInstructor);
 router.get('/tipos-novedad-ambiente', catalogoController.getTiposNovedadAmbiente);
 router.get('/tipos-novedad-ficha', catalogoController.getTiposNovedadFicha);
+router.get('/tipos-actividad', catalogoController.getTiposActividad);
 
 export default router;
