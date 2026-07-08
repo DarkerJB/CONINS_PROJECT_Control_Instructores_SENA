@@ -1,6 +1,6 @@
 # CONINS — Registro de Contexto y Cambios
 **Centro del Diseño y Manufactura del Cuero (CDMC) — SENA**
-*Última actualización: 2026-07-06 (RF v7.0 + seed_data v6 + gitignores fix)*
+*Última actualización: 2026-06-30 (fix database.sql + seed_data.sql v5)*
 
 ---
 
@@ -28,9 +28,9 @@
 
 > Desarrollar un sistema de información web que permita gestionar, controlar y optimizar la asignación académica y operativa de los instructores del Centro del Diseño y Manufactura del Cuero (CDMC) del SENA, mediante la administración estructurada de competencias, resultados de aprendizaje (RAPs), ambientes de formación, fichas y horarios. El sistema garantiza el cumplimiento de la carga horaria reglamentaria, previene inconsistencias como la duplicidad de asignaciones por ficha, y gestiona situaciones operativas como novedades administrativas de instructores y bloqueos temporales de ambientes.
 >
-> La solución incorpora un modelo de control de acceso basado en roles jerárquicos (Subdirector, Coordinadora Académica, Asistente de Coordinación e Instructores), con soporte para múltiples roles por usuario. Incluye funcionalidades de consulta, filtrado, alertas automáticas, notificaciones internas y por correo electrónico, y generación de reportes exportables en PDF para la toma de decisiones por parte de los directivos del centro.
+> La solución incorpora un modelo de control de acceso basado en roles jerárquicos (Subdirector, Coordinadores de Línea Medular y Transversal, Líderes de Programa e Instructores), con soporte para múltiples roles simultáneos por usuario. Incluye funcionalidades de consulta, filtrado, alertas automáticas, notificaciones internas y por correo electrónico, y generación de reportes exportables en PDF para la toma de decisiones por parte de los directivos del centro.
 >
-> La solución se implementa mediante una arquitectura web cliente-servidor: frontend desarrollado con Next.js 15 (Pages Router), React 19, TypeScript y Tailwind CSS 4, consumiendo una API REST construida con Node.js, Express 5 y TypeScript bajo arquitectura MVC con módulos ESM6. La persistencia de datos se gestiona en una base de datos relacional MySQL (25 tablas, schema v5), administrada desde phpMyAdmin, garantizando integridad referencial, trazabilidad de asignaciones y disponibilidad de la información mediante eliminación lógica universal.
+> La solución se implementa mediante una arquitectura web cliente-servidor: frontend desarrollado con Next.js 15 (Pages Router), React 19, TypeScript y Tailwind CSS 4, consumiendo una API REST construida con Node.js, Express 5 y TypeScript bajo arquitectura MVC con módulos ESM6. La persistencia de datos se gestiona en una base de datos relacional MySQL (27 tablas, schema v5.2), administrada desde phpMyAdmin, garantizando integridad referencial, trazabilidad de asignaciones y disponibilidad de la información mediante eliminación lógica universal.
 
 ---
 
@@ -49,7 +49,7 @@
 | Control de versiones | Git + GitHub |
 | IDE | VS Code |
 
-> **Vite eliminado.** Frontend migra a Next.js 15 con Pages Router (confirmado 06/05/2026).
+> **Vite eliminado.** Frontend migra a Next.js 15 con Pages Router — confirmado en feedback con Juan Pablo Hoyos, Wilmar Zapata y Gloria Jaramillo. Zustand en revisión para Fase 3.
 
 ---
 
@@ -61,7 +61,7 @@
 
 | Tabla | Propósito |
 |---|---|
-| `roles` | 4 entradas: Subdirector · Coordinadora Academica · Asistente Coordinacion · Instructor |
+| `roles` | 5 entradas: Subdirector · Coordinador Medular · Coordinador Transversal · Lider Programa · Instructor |
 | `usuarios` | Autenticación centralizada |
 | `usuario_roles` | N:M usuarios ↔ roles |
 | `instructores` | `tipo_contrato` + `tipo_area` |
@@ -94,7 +94,7 @@ backend/
 │   ├── db.ts                    Conexión MySQL con pool
 │   └── mail.ts                  Nodemailer transporter (condicional)
 ├── constants/
-│   ├── roles.ts                 ROLES.SUBDIRECTOR, COORDINADORA_ACADEMICA, etc.
+│   ├── roles.ts                 ROLES.SUBDIRECTOR, COORDINADOR_MEDULAR, etc.
 │   ├── alertas.ts               Tipos de alertas
 │   ├── etiquetas.ts             Etiquetas de notificaciones
 │   └── horario.ts               Constantes de horarios
@@ -299,78 +299,63 @@ backend/
 
 ### 2026-07-06 — Jair Enrique Gonzalez Buelvas
 
-**RF v7.0 + seed_data v6 + gitignores fix**
+**RF v7.0 + roles finales + skills actualizadas + gap items dev/laura implementados**
 
-**Requisitos Funcionales v7.0 (Opcion A aprobada):**
-- `lider_programa` pasa a figura informativa sin rol del sistema. RF-30 (lider asigna instructores) y RF-43 (lider consulta sus programas) eliminados — funcionalidad absorbida por Coordinadora Academica en RF-27, RF-28 y RF-41.
-- RF-39 reescrito: notificaciones de cambio de asignacion ahora van a Coordinadora Academica y Asistente de Coordinacion (antes al lider de programa).
-- RF-40 ajustado: "coordinadores y subdirector" corregido a "Coordinadora Academica, Asistente de Coordinacion y Subdirector".
-- RF-08 al RF-13: "lideres e instructores" simplificado a "instructores".
-- RF-17: eliminada referencia a "lideres previamente registrados" en creacion de fichas.
-- RF-20 y RF-45: "administradores y lideres" corregido a "administradores".
-- RF-25 y RF-26: reescritos para reflejar gestion informativa de lider_programa sin impacto en permisos.
-- Nuevos RF-48 (filtrado por rol — P22 critico), RF-49 (tipos actividad — P29), RF-50 (seguimiento RAPs — P28), RF-51 (auditoria — ya implementada).
-- Nuevo archivo: `CONINS_Requisitos_Funcionales_v7_0.txt` (49 RF en 9 modulos).
-- Resumen doble heredado de v6.x unificado en uno solo.
-- RN-12 marcada obsoleta en `CONINS_Logica_Negocio_v5.md` (v5.2).
-- `CONINS_contexto_general.md` actualizado a v9.5 — seccion 12 con tabla RF v7.0.
+**Consolidacion de roles (manana):**
+- Opcion A aprobada: `lider_programa` eliminado como rol del sistema. 4 roles definitivos en BD (Title Case): `Subdirector` (ID 1), `Coordinadora Academica` (ID 2), `Asistente Coordinacion` (ID 3), `Instructor` (ID 4).
+- `CONINS_Requisitos_Funcionales_v7_0.txt` reescrito: 49 RF en 9 modulos, `lider_programa` absorbido por Coordinadora Academica.
+- `CONINS_Logica_Negocio_v5.md` y `CONINS_contexto_general.md` actualizados a roles finales.
+- `database.sql`: views `vw_fichas_con_lider` y `vw_resumen_horario_instructor` corregidas (columnas inexistentes).
+- Limpieza de documentos de contexto: marcadores obsoletos eliminados, referencias a roles old snake_case removidas.
 
-**Gitignores fix + seed_data v6:**
-- Fix critico: los tres `.gitignore` tenian CRLF y caracter em-dash que truncaban el archivo en disco — los patrones `.env` y `seed_data.sql` no estaban activos. Reescritos con LF y sin caracteres no-ASCII. Confirmado con `git check-ignore`: `backend/.env` y `backend/seed_data.sql` ahora muestran `!!` (ignorados).
-- `seed_data.sql` actualizado a v6: Paul Tamayo sin rol (coordinacion medular fuera de alcance); instructores medulares (Calzado/Cuero) removidos de `instructores`, `usuario_roles` y `instructor_competencias_habilitadas`; programa 2 (Calzado), competencias 3-4, RAPs 5-8 y ficha 2 eliminados del test data. Rocio Medina sin rol (pendiente modulo juicios evaluativos). Luis Eladio Porras Camargo agregado como instructor ADSO (usuario 25, instructor 13).
-- Pendiente manual: borrar `.git\index.lock` desde Windows y commitear los gitignores.
+**Skills conins-core actualizadas a v5 (manana):**
+- `auth-multirole`, `role-based-access-control`, `asignacion-competencia-integrity`, `horario-carga-validation`, `backend-clean-architecture` — todas reescritas con 4 roles Title Case, schema v5, arquitectura actual.
 
-### 2026-07-01 al 2026-07-02 — Jair Enrique Gonzalez Buelvas
+**Revision dev/laura + implementacion de gap items (tarde):**
 
-**Restructuracion de roles (feedback coordinadora 01/07/2026) + schema v27 + fixes B1/B2/I3**
+Revision completa de la rama `dev/laura` (ZIP descargado localmente). Implementados en main:
 
-**Contexto:** Sesion de revision con la coordinadora academica (Laura Jaramillo Ospina) del CDMC. Las conclusiones generaron un cambio de convención en los roles del sistema y la adicion de dos tablas nuevas al schema.
+- **P22 (CRITICO — seguridad):** `GET /api/horarios`, `/fichas`, `/asignaciones`, `/alertas` ahora filtran por rol. Instructor solo ve sus propios registros. Implementado en models (`findAllByInstructorId`), services (param `userId + roles`), controllers (pasan `req.user`), y `alerta.controller.ts` (filtra por `i.usuario_id`).
+- **P23 (RF-37):** `horario.service.ts update()` reescrito — ahora revalida RN-04 (hard block), RN-09 (hard block), RN-05 (soft alert — ambiente ocupado) y RN-03 (soft alert — jornada restringida). Fix critico: `update()` leia raw record para obtener IDs numericos que `findById()` (retorna HorarioDetail) no expone. Semana se toma del registro existente, no de `getLunesSemanaActual()`. Controller `update` propaga alertas en respuesta.
+- **P28 (RF-50):** Modulo `rap-ficha-seguimiento` completo portado a main. Archivos nuevos: `rap-seguimiento.service.ts`, `rap-seguimiento.controller.ts`, `rap-seguimiento.routes.ts`, `rap-seguimiento.schema.ts`. Model (`rap-ficha-seguimiento.model.ts`) ya existia en main — agregado `findByFicha()`. Registrado en `server.ts` bajo `/api/rap-seguimiento`. Endpoint `GET /ficha/:fichaId/disponibles` para RAPs sin seguimiento.
+- **P29 (RF-49):** `GET /api/catalogo/tipos-actividad` — funcion `getTiposActividad` en controller y ruta en routes.
+- **P24:** Alias `GET /api/notificaciones/mis` agregado a `notificacion.routes.ts` — frontend llama este path en `api.ts getMis()`.
+- **P21:** `u.ultimo_acceso` agregado al SELECT y mapping en `findAll()` y `findAllActive()` de `usuario.model.ts`. Interfaz `UsuarioWithRoles` actualizada.
+- **database.sql:** `sp_crear_instructor` — `VALUES (p_usuario_id, 5)` corregido a `VALUES (p_usuario_id, 4)` (ID 4 = Instructor).
 
-**Roles del sistema — BREAKING CHANGE:**
+tsc limpio al cierre de sesion.
 
-La convencion de nombres cambia de snake_case a Title Case con espacios. El sistema pasa de 5 roles a 4, eliminando `lider_programa` como rol funcional (se mantiene la tabla homónima solo como dato informacional):
+**Commits:** `d5142f6` (limpieza docs) · `2a075e6` (RF v7.0 + vistas + contexto) · `07de6bd` (gap items + frontend Laura)
 
-| ID | Antes | Ahora |
-|---|---|---|
-| 1 | `subdirector` | `Subdirector` |
-| 2 | `coordinador_medular` | `Coordinadora Academica` |
-| 3 | `coordinador_transversal` | `Asistente Coordinacion` |
-| 4 | `lider_programa` | *(eliminado del sistema de roles)* |
-| 4 | `instructor` (ex ID 5) | `Instructor` |
+---
 
-Impacto: todos los JWT emitidos antes de este cambio quedan invalidos — los usuarios con sesion activa deben hacer login de nuevo. El instructor ID 5 (`instructor`) pasa a ser ID 4.
+### 2026-07-07 — Jair Enrique Gonzalez Buelvas
 
-Nueva usuaria: Laura Jaramillo Ospina (`ljaramilloo@sena.edu.co`) — rol `Asistente Coordinacion` (ID 3).
+**Bugs de sesion de pruebas: CORS + GROUP BY + tsx watch + super admin**
 
-**`constants/roles.ts`** — reescrito con comentario de ruptura de convencion, cuatro claves (`SUBDIRECTOR`, `COORDINADORA_ACADEMICA`, `ASISTENTE_COORDINACION`, `INSTRUCTOR`), grupos `ROLES_ADMIN` y `ROLES_COORDINACION`.
+Durante prueba de navegacion entre modulos del frontend se detectaron y resolvieron 4 bugs:
 
-**Todas las rutas backend actualizadas:** los guards `requireRole([...])` en los 8 archivos de rutas reemplazaron los strings snake_case por los nuevos Title Case. `instructor.routes.ts` incluia guards de `COORDINADOR_MEDULAR` adicionales, todos actualizados.
+**B1 — CORS bloqueado por middleware order (critico):**
+- Root cause: `rateLimiterGlobal` registrado ANTES de `cors()` en `server.ts`. Cuando el rate limiter dispara 429 (facil de alcanzar durante pruebas — 100 req/15min, ~6 requests por navegacion), la respuesta sale sin `Access-Control-Allow-Origin`. El browser lo interpreta como fallo CORS y bloquea TODOS los requests subsiguientes con `TypeError: Failed to fetch`.
+- Fix: `cors()` movido a primera posicion en el stack de middlewares, antes de `securityHeaders` y `rateLimiterGlobal`. OPTIONS preflight ahora es manejado por CORS antes de llegar al rate limiter.
 
-**`auth.service.ts`:** SUPER_USER (`admin@conins.sena`) actualizado a `'Subdirector'`; check `actingRoles.includes('subdirector')` → `'Subdirector'`; `rol_ids.includes(5)` → `rol_ids.includes(4)`; `roles.includes('instructor')` → `roles.includes('Instructor')`; eliminado check de `lider_programa` en `assignProgramasToLider`.
+**B2 — ER_WRONG_FIELD_WITH_GROUP en asignacion.model.ts:**
+- `findById` y `findHistoricas` tenian `ac.competencia_id` en SELECT sin estar en GROUP BY (MySQL `only_full_group_by`).
+- Fix: GROUP BY eliminado de ambos metodos. `findAll` y `findAllByInstructorId` ya estaban limpios desde sesion anterior.
 
-**`seed_data.sql`** (gitignored): todos los instructores cambian de `rol_id = 5` → `rol_id = 4`; eliminada entrada `(6, 4)` de `usuario_roles` para Juliana (lider_programa); agregados usuario y rol de Laura Jaramillo Ospina (ID 24, `Asistente Coordinacion`); `UPDATE fichas SET fecha_inicio_productiva = '2026-07-14'` para fichas 3065123 y 3065121.
+**B3 — tsx watch reiniciando backend en cada error:**
+- Root cause: `errorHandler.ts` escribe en `error.log` via `fs.appendFileSync`. tsx watch detecta el cambio de archivo y reinicia el proceso — outage de 1-2 seg por cada respuesta de error.
+- Fix: `tsx watch --ignore "**/*.log"` en `backend/package.json`.
 
-**`database.sql` — schema v27 (27 tablas):**
-- `fichas`: columnas `fecha_inicio_productiva DATE NULL` y `fecha_fin_productiva DATE NULL` (entre `fecha_fin_lectiva` y `fecha_fin_ficha`)
-- Roles: `INSERT IGNORE` reemplazado por bloque con `SET FOREIGN_KEY_CHECKS = 0; TRUNCATE usuario_roles; TRUNCATE roles; SET FOREIGN_KEY_CHECKS = 1;` seguido de `INSERT INTO roles` con los 4 nuevos roles en Title Case
-- Nueva tabla `tipos_actividad` (tabla 26): `id, nombre, descripcion, suma_carga_horaria BOOLEAN`, con 9 filas seed (`Formacion`, `Planeacion`, `Seguimiento`, `Evaluacion`, `Reunion Institucional`, `Apoyo Complementario`, `Disponible`✗, `Permiso/Incapacidad`✗, `Otro`). Los marcados con ✗ tienen `suma_carga_horaria = FALSE` y no cuentan para el calculo 20-40h semanal
-- `horarios`: nueva columna `tipo_actividad_id INT NULL` con FK a `tipos_actividad`
-- Nueva tabla `rap_ficha_seguimiento` (tabla 27): seguimiento de RAPs por ficha con ENUMs `estado_evaluacion` y `estado_aprobacion`
+**B4 — super admin JWT con id:1 rompia GET /api/auth/perfil:**
+- Super admin (`admin@conins.sena`) tenia `id: 1` hardcodeado en JWT. `getOwnProfile(1)` consulta la BD — si usuario 1 no existe, lanza `NotFoundError`.
+- Fix: JWT usa `id: 0` (sentinel — MySQL AUTO_INCREMENT nunca genera 0). `getOwnProfile` retorna early para `userId === 0` sin tocar la BD.
 
-**`permiso.service.ts` (fix I3):** eliminada funcion dead code `validarAlcanceLider` (sin callers). `validarNoLiderParaProvisional` y `validarAlcanceCoordinador` conservadas como no-ops con comentario de contexto.
+**Limpieza:**
+- `backend/error.log` desindexado del repositorio (ya estaba en `.gitignore` pero fue commiteado antes de que se agregara esa regla). `git rm --cached backend/error.log`.
+- `frontend/package-lock.json` commiteado (generado por npm install al migrar rama Laura).
 
-**`ficha.model.ts`, `ficha.service.ts`, `ficha.schema.ts` (fix B1):** `FichaRecord` incluye `fecha_inicio_productiva` y `fecha_fin_productiva`; INSERT y UPDATE propagados; schemas Zod actualizados en `crearFichaSchema` y `actualizarFichaSchema`.
-
-**`horario.model.ts`, `horario.service.ts`, `horario.schema.ts` (fix B2):** `HorarioRecord` incluye `tipo_actividad_id`; `HorarioDetail` incluye `tipo_actividad` (string, nombre resuelto via JOIN); `findAll` y `findById` con `LEFT JOIN tipos_actividad ta ON h.tipo_actividad_id = ta.id`; INSERT con 10 valores; `update()` maneja `tipo_actividad_id`; `getHorasPorInstructor` con `LEFT JOIN tipos_actividad` y condicion `(ta.suma_carga_horaria = TRUE OR h.tipo_actividad_id IS NULL)`; schema Zod `crearHorarioSchema` incluye `tipo_actividad_id` optional nullable; `create()` y `update()` del service propagados.
-
-**Nuevo modelo:** `models/rap-ficha-seguimiento.model.ts` — interfaces `RapFichaSeguimientoRecord` y `RapFichaSeguimientoDetail`, metodos `findByAsignacionCompetencia`, `findById`, `create`, `update`, `toggleActivo`.
-
-**tsc --noEmit:** 0 errores tras reconstruccion de archivos truncados via Python.
-
-**Commits:**
-- `2998245` — `feat(roles+schema): Title Case roles, schema v27, fichas productivas, tipos_actividad`
-- `717be2b` — `fix(auth): SUPER_USER y auth.service.ts actualizados a nuevos strings de rol`
-- `617bdfd` — `fix(B1/B2/I3): reconstruct truncated files, tsc clean`
+**Commits:** `809f22e` (fixes backend) · `4298612` (untrack error.log + package-lock) · push a main en `4298612`
 
 ---
 
@@ -514,11 +499,13 @@ Gaps reales encontrados en el codigo, no documentados hasta ahora:
 - `schemas/instructor.schema.ts` — `registrarNovedadSchema` usa `tipo_novedad_id: number` en vez de enum
 - `schemas/auth.schema.ts` — `updateUserSchema` incluye tipo_documento y documento
 
-**Nuevos Requisitos Funcionales agregados:**
-- RF-46: tipo y numero de documento de identidad por usuario (CC, CE, TI, pasaporte)
-- RF-47: novedad administrativa de ficha activa
+**Nuevos Requisitos Funcionales (RF v6.1):**
+- **RF-46** — Permitir a los administradores registrar y consultar el tipo y numero de documento de identidad de cada usuario (CC, CE, TI, pasaporte)
+- **RF-47** — Registrar una novedad administrativa de una ficha activa (comite, paro, actividad fuera, suspension de clases), excluyendola de asignaciones mientras este vigente
 
-**Documentos actualizados:** CONINS_Requisitos_Funcionales (→ v6.1, 47 RF), contexto_general (→ v9.1)
+**Documentos actualizados:**
+- `CONINS_Requisitos_Funcionales_v6.txt` → v6.1 (47 RF)
+- `CONINS_contexto_general.md` → v9.1 (schema v5.1, 25 tablas, RF-46, RF-47)
 
 ### 2026-06-10 (tarde) — Jair Enrique Gonzalez Buelvas
 
@@ -533,7 +520,7 @@ Gaps reales encontrados en el codigo, no documentados hasta ahora:
 - `findAll` y `findById` actualizados para usar columna `estado` en vez de calcular desde `activo`
 
 **Usuarios — Campo rol como texto:**
-- `GET /api/auth/usuarios` ahora devuelve campo `rol` (string) con el rol de mayor jerarquia
+- `GET /api/auth/usuarios` ahora devuelve campo `rol` (string) con el rol de mayor jerarquia (ej: "subdirector", "coordinador_medular")
 - Mantiene compatibilidad con `roles: string[]` y `rol_ids: number[]`
 - Frontend de Laura espera `rol: string` para mostrar en la tabla de usuarios
 
@@ -619,7 +606,7 @@ Gaps reales encontrados en el codigo, no documentados hasta ahora:
 - `getLunesSemanaActual()` extraida a `backend/utils/date.ts` — eliminada duplicacion en `instructor.service.ts` y `horario.service.ts`
 
 **Correcciones:**
-- Bug en `notificacion.service.ts:onNovedadRegistrada` — `notificarLideresPrograma` recibia `instructor.id` en vez de `fichaId`. Corregido: consulta fichas activas del instructor y notifica coordinadores por cada una.
+- Bug en `notificacion.service.ts:onNovedadRegistrada` — `notificarLideresPrograma` recibia `instructor.id` en vez de `fichaId`. Ahora consulta las fichas activas del instructor y notifica lideres por cada una.
 - Eliminado default export redundante en `middleware/errorHandler.ts`
 
 **Base de datos (Fase 1 — implementado):**
@@ -665,7 +652,7 @@ Gaps reales encontrados en el codigo, no documentados hasta ahora:
 - **RN-05:** Alerta `AMBIENTE_OCUPADO` si ambiente ya ocupado en misma jornada (soft, no bloquea)
 - **RN-06:** Hard block HTTP 409 si RAP de competencia ya asignado a otro instructor en misma ficha
 - **RN-08:** Bloqueo de asignación si instructor tiene novedad activa vigente
-- **RN-12:** Validación de alcance — lider_programa es dato informativo, permisos de escritura controlados por Coordinadora Academica y Asistente Coordinacion
+- **RN-12:** Validación de alcance — líder solo asigna en sus programas, coordinador solo en su línea, líder no registra provisionales
 - **RN-14:** Fichas virtuales sin ambiente físico obligatorio
 - **RN-16:** Trazabilidad de cambio de instructor en `asignacion_competencia` (`instructor_anterior_id` + `fecha_cambio`)
 - **RN-17:** Nomenclatura configurable — `frontend/src/lib/terminology.ts` con constantes para "Ficha"/"Grupo"
@@ -676,9 +663,9 @@ Gaps reales encontrados en el codigo, no documentados hasta ahora:
 
 **Notificaciones (RF-38 a RF-40):**
 - `NotificacionService` con triggers automáticos: `onAsignacionCreada`, `onNovedadRegistrada`, `onAlertaCargaHoraria`, `onAsignacionProvisional`
-- Notificaciones internas para instructor, Coordinadora Academica, Asistente Coordinacion y Subdirector
+- Notificaciones internas para instructor, líderes de programa, coordinadores y subdirector
 - Correo electrónico al instructor vía Nodemailer (condicional — solo si SMTP configurado en `.env`)
-- `PermisoService` con validaciones de alcance por rol (lider_programa es informacional — no otorga permisos)
+- `PermisoService` con validaciones de alcance: `validarAlcanceLider`, `validarNoLiderParaProvisional`, `validarAlcanceCoordinador`
 
 **Frontend integrado (desde rama dev/laura de Laura Posada):**
 - Páginas: `/auth`, `/` (dashboard), `/instructores`, `/fichas`, `/horarios`, `/asignaciones`
@@ -693,4 +680,85 @@ Gaps reales encontrados en el codigo, no documentados hasta ahora:
 - Fix SQL `GROUP BY` en `asignacion.model.ts` para cumplir con `only_full_group_by` de MySQL
 - `GET /api/instructores` ahora incluye `tiene_novedad: boolean` y `horas_semana: number`
 - `horario.service.ts` valida hora_fin > hora_inicio
-- `asignacion.service.ts` valida ficha no finalizada ante
+- `asignacion.service.ts` valida ficha no finalizada antes de crear asignación
+- `instructor.service.ts` valida email único al crear instructor (transacción con rollback)
+
+**Commits:**
+- `546dc62` — Fase 1: Schema y validaciones críticas (RN-04, RN-05, RN-06, RN-14)
+- `0874376` — Fase 2 y 3: Roles, alcance y notificaciones (RN-12, RN-16, RF-38 a RF-40)
+- `a7c681d` — Fixes de inconsistencias pendientes (items 1-5)
+- `1e312f0` — Fix GROUP BY en asignacion.model.ts
+
+**Repositorios actualizados:**
+- `https://github.com/DarkerJB/ConIns_Project` (rama `main`)
+- `https://github.com/Soywaz/conins` (rama `dev/Jair`)
+
+---
+
+### 2026-05-06 — Jair González Buelvas
+
+**Stack frontend actualizado — Next.js 15 (Pages Router):**
+- Vite eliminado. Frontend migra a **Next.js 15 con Pages Router**, confirmado en feedback con Juan Pablo Hoyos Maya, Wilmar Zapata y Gloria Eugenia Jaramillo.
+- Pages Router seleccionado sobre App Router — decisión deliberada por simplicidad y tiempo disponible.
+- Lucide React confirmado como biblioteca de íconos.
+- Zustand en revisión — evaluar en Fase 3 si se mantiene o se reemplaza con solución nativa de Next.js.
+- Stack completo confirmado: Next.js 15 · React 19 · TypeScript · Tailwind CSS 4 · Lucide React · Fetch nativo · Node.js · Express 5 · TypeScript · MVC · ESM6 · JWT · bcrypt · Nodemailer · MySQL · phpMyAdmin · Laragon · Git · GitHub · VS Code.
+- Descripción oficial del sistema actualizada con el nuevo stack.
+- P11 creado: definir gestión de estado en Next.js 15.
+
+**Documentos actualizados:**
+- `CONINS_contexto_general.md` → v7.0
+- `CHANGELOG.md` → entrada 06/05/2026
+- `CRONOGRAMA.md` → referencia de stack en actividad 12 actualizada a Next.js 15
+
+---
+
+### 2026-05-04 — Jair González Buelvas (`dev/Jair`)
+
+**Fase 2 completada. Schema v4 cerrado. 5 bloqueadores resueltos.**
+
+- Diagramas PlantUML RF-01 al RF-45 completos e integrados al ERS v3.0.
+- Revisión técnica aprobada por Wilmar Zapata.
+- Schema `database.sql` cerrado con 20 tablas.
+- Correcciones aplicadas: `operario` en `programas.tipo_formacion`, `fichas.etapa = ('lectiva','productiva')`, tablas `instructor_novedades` / `ambiente_bloqueos` / `notificaciones` agregadas, roles limpios (5 exactos).
+- BD local sincronizada.
+
+Resueltos: ~~P1~~ (horas: 20–40h) · ~~P2~~ (etapa: `productiva`) · ~~P3~~ (login: correo en BD) · ~~P5~~ (3 tablas nuevas) · ~~P6~~ (`operario` en ENUM)
+
+---
+
+### 2026-04-28
+
+- `lider_ficha` eliminado de `roles` → campo `es_lider_ficha BOOLEAN` en `asignacion`.
+- Pantalla `/auth` con dos tabs definida como flujo definitivo.
+- Axios → Fetch nativo.
+- RF v5 (42) → v6 (45): RF-38/39/40 nuevos de notificaciones.
+- Lógica de negocio v5.0.
+
+### 2026-04-24
+
+- 61 archivos .puml generados para módulos Instructores, Fichas, Asignaciones, Ambientes, Alertas y Consulta.
+
+### 2026-04-23
+
+- Bloqueadores B1–B8 resueltos. Schema v3. RF v3 (33) → v4 (40).
+
+### 2026-04-22
+
+- Módulos de datos precargados eliminados del ERS. RF v1 (43) → v2 (33). CONINS definido como sistema de control de malla de horarios.
+
+### 2026-04-21
+
+- ERS_CONINS_v1.docx generado. Módulo AUTH completo. 14 RNF. Glosario.
+
+### 2026-04-20
+
+- Validación pre-existente en registro. `authController` con HTTP 403. Migración controllers a schema v3.
+
+### 2026-04-14
+
+- Identidad Visual SENA. Topbar con dropdown. Sidebar. Bug fichas resuelto. `Usuarios.tsx`. `Perfil.tsx`. 10 violaciones arquitectónicas corregidas.
+
+### 2026-04-10
+
+- BD `instruplan` → `conIns`. 13 tablas iniciales. Backend completo. Auth multi-rol. Paleta SENA frontend. `LAURA_GUIDE.md`.

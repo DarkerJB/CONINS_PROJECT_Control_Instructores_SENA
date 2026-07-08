@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { X, BookOpen, Clock, MapPin, Users, Calendar, FileText, Loader2 } from "lucide-react"
+import { X, BookOpen, Clock, MapPin, Users, Calendar, FileText, Loader2, Home } from "lucide-react"
 import { api } from "@/lib/api"
 
 type Ficha = {
@@ -12,9 +12,13 @@ type Ficha = {
   instructores_count: number
   estado: string
   activo: boolean
-  fecha_inicio?: string
-  fecha_fin?: string
   ambiente?: string
+  lider_nombre?: string
+  fecha_inicio_lectiva?: string | null
+  fecha_fin_lectiva?: string | null
+  fecha_inicio_productiva?: string | null
+  fecha_fin_productiva?: string | null
+  fecha_fin_ficha?: string | null
 }
 
 type InstructorAsignado = {
@@ -32,6 +36,7 @@ type DetailFichaModalProps = {
 }
 
 export default function DetailFichaModal({ isOpen, onClose, ficha }: DetailFichaModalProps) {
+  const [detalle, setDetalle] = useState<Ficha | null>(null)
   const [instructores, setInstructores] = useState<InstructorAsignado[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -46,15 +51,24 @@ export default function DetailFichaModal({ isOpen, onClose, ficha }: DetailFicha
     setLoading(true)
     try {
       const res = await api.fichas.getById(ficha.id)
+      setDetalle(res.data || ficha)
       setInstructores(res.data?.instructores || [])
     } catch {
+      setDetalle(ficha)
       setInstructores([])
     } finally {
       setLoading(false)
     }
   }
 
+  const formatDate = (d: string | null | undefined) => {
+    if (!d) return "No definida"
+    return new Date(d).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })
+  }
+
   if (!isOpen || !ficha) return null
+
+  const data = detalle || ficha
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -67,58 +81,94 @@ export default function DetailFichaModal({ isOpen, onClose, ficha }: DetailFicha
         </div>
 
         <div className="p-4 md:p-6 space-y-6 overflow-y-auto flex-1">
+          {/* Header */}
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-sena/10 flex items-center justify-center">
               <BookOpen className="w-8 h-8 text-sena" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Ficha {ficha.numero_ficha}</h3>
-              <p className="text-sm text-gray-500">{ficha.programa}</p>
+              <h3 className="text-xl font-bold text-gray-900">Ficha {data.numero_ficha}</h3>
+              <p className="text-sm text-gray-500">{data.programa}</p>
             </div>
           </div>
 
+          {/* Info general */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-start gap-3">
               <Clock className="w-5 h-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="text-xs text-gray-500">Jornada</p>
-                <p className="text-sm text-gray-900">{ficha.jornada}</p>
+                <p className="text-sm text-gray-900">{data.jornada}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <FileText className="w-5 h-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="text-xs text-gray-500">Etapa</p>
-                <p className="text-sm text-gray-900 capitalize">{ficha.etapa}</p>
+                <p className="text-sm text-gray-900 capitalize">{data.etapa}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="text-xs text-gray-500">Modalidad</p>
-                <p className="text-sm text-gray-900">{ficha.modalidad}</p>
+                <p className="text-sm text-gray-900">{data.modalidad}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <Users className="w-5 h-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="text-xs text-gray-500">Instructores</p>
-                <p className="text-sm text-gray-900">{ficha.instructores_count} asignados</p>
+                <p className="text-sm text-gray-900">{data.instructores_count} asignados</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
+            {data.ambiente && (
+              <div className="flex items-start gap-3">
+                <Home className="w-5 h-5 text-gray-400 mt-0.5" />
+                <div>
+                  <p className="text-xs text-gray-500">Ambiente</p>
+                  <p className="text-sm text-gray-900">{data.ambiente}</p>
+                </div>
+              </div>
+            )}
+            {data.lider_nombre && (
+              <div className="flex items-start gap-3">
+                <Users className="w-5 h-5 text-gray-400 mt-0.5" />
+                <div>
+                  <p className="text-xs text-gray-500">Lider de programa</p>
+                  <p className="text-sm text-gray-900">{data.lider_nombre}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Fechas */}
+          <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+            <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-sena" />
+              Fechas
+            </h4>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs text-gray-500">Fecha inicio</p>
-                <p className="text-sm text-gray-900">{ficha.fecha_inicio || "No definida"}</p>
+                <p className="text-xs text-gray-500">Inicio lectiva</p>
+                <p className="text-sm text-gray-900">{formatDate(data.fecha_inicio_lectiva)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Fin lectiva</p>
+                <p className="text-sm text-gray-900">{formatDate(data.fecha_fin_lectiva)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Inicio productiva</p>
+                <p className="text-sm text-gray-900">{formatDate(data.fecha_inicio_productiva)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Fin productiva</p>
+                <p className="text-sm text-gray-900">{formatDate(data.fecha_fin_productiva)}</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div>
-                <p className="text-xs text-gray-500">Fecha fin</p>
-                <p className="text-sm text-gray-900">{ficha.fecha_fin || "No definida"}</p>
-              </div>
+            <div className="pt-2 border-t border-gray-200">
+              <p className="text-xs text-gray-500">Fecha fin ficha</p>
+              <p className="text-sm font-medium text-gray-900">{formatDate(data.fecha_fin_ficha)}</p>
             </div>
           </div>
 
@@ -160,13 +210,14 @@ export default function DetailFichaModal({ isOpen, onClose, ficha }: DetailFicha
             )}
           </div>
 
+          {/* Estado */}
           <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-              ficha.estado === "Activa" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+              data.estado === "Activa" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
             }`}>
-              {ficha.estado}
+              {data.estado}
             </span>
-            {!ficha.activo && (
+            {!data.activo && (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                 Inactiva
               </span>

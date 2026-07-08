@@ -1,6 +1,6 @@
 # CRONOGRAMA — CONINS
 **Centro del Diseño y Manufactura del Cuero (CDMC) — SENA**
-*Última actualización: 06/07/2026*
+*Ultima actualizacion: 06/07/2026*
 
 ---
 
@@ -73,7 +73,7 @@
 | # | Actividad | Responsable | Fecha inicio | Fecha fin | Estado |
 |---|---|---|---|---|---|
 | 6 | Modelar funciones con diagramas PlantUML (CU, ACT, SEQ, EST, DEP) | Jair | 04/05/2026 | 04/05/2026 | ✅ |
-| 7 | Verificar modelos con instructor técnico y de seguimiento | Jair + Laura | 04/05/2026 | 04/05/2026 | ✅ |
+| 7 | Verificar modelos con instructor técnico y de seguimiento | Jair + Laura | 04/05/2026 | 04/05/2026 | ✅ Wilmar · 🔄 revisión administrativa pendiente hoy |
 | 8 | Estructurar modelo de datos (20 tablas, relaciones, restricciones) | Jair + Laura | 04/05/2026 | 04/05/2026 | ✅ |
 
 **Notas:**
@@ -103,7 +103,7 @@
 | 13 | Carga y normalización de datos reales desde Sofía Plus | Jair | 07/07/2026 | 17/07/2026 | ⬜ |
 | 14 | Módulo de reportes PDF por área, instructor y jornada | Jair + Laura | 20/07/2026 | 06/08/2026 | ⬜ |
 
-**Nota migración TS:** Backend reconstruido desde cero en TypeScript + MVC + ESM6 (no migración incremental). Frontend migra a Next.js 15 con Pages Router + TypeScript (confirmado 06/05/2026).
+**Nota migración TS:** Backend reconstruido desde cero en **TypeScript + MVC + ESM6** (no migración incremental). Frontend migra de la base en JS a **Next.js 15 con Pages Router + TypeScript**, confirmado en feedback con Juan Pablo Hoyos, Wilmar Zapata y Gloria Jaramillo (06/05/2026).
 
 **Evidencias generadas:**
 - ✅ Script `database.sql` schema v5 — 25 tablas, verificado 30/06/2026 por conteo directo (corrección: se documentó antes como "v5.2, 27 tablas"; `lider_id` y `ultimo_acceso` son columnas, no tablas nuevas) — fixes aplicados: password NULL, roles snake_case, motivo_suspension, ambiente_id en horarios, leida en alertas, auditoria, triggers, procedures, vistas, tipos_novedad_*, ficha_novedades, lider_id en fichas, ultimo_acceso en usuarios
@@ -216,44 +216,43 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 | # | Pendiente | Impacto | Responsable | Prioridad |
 |---|---|---|---|---|
+| ~~P1~~ | ~~Confirmar límite exacto de horas semanales~~ | ~~Bloquea `horarioService` y RF-32~~ | ~~Resuelto 04/05/2026~~ | ✅ |
+| ~~P2~~ | ~~Confirmar término oficial etapa de ficha~~ | ~~Bloquea seed y BD~~ | ~~Resuelto 04/05/2026~~ | ✅ |
+| ~~P3~~ | ~~Confirmar campo de login en producción~~ | ~~Bloquea auth en producción~~ | ~~Resuelto 04/05/2026~~ | ✅ |
 | P4 | Lista oficial de instructores con correo estandarizado del CDMC | Bloquea seed de instructores | CDMC → Jair | 🟡 Media |
-| P8 | Apellido completo del co-líder Rivera (Técnico Medular) | Fuera de alcance ADSO inicial (ver P26) | CDMC → Jair | 🟢 Baja |
-| P9 | Apellido completo de Catalina (líder Talento Humano) | Fuera de alcance ADSO inicial (ver P26) | CDMC → Jair | 🟢 Baja |
+| ~~P5~~ | ~~Crear tablas `instructor_novedades`, `ambiente_bloqueos` y `notificaciones`~~ | ~~RF-16, RF-31, RF-38/39/40~~ | ~~Resuelto 04/05/2026~~ | ✅ |
+| ~~P6~~ | ~~Agregar `operario` al ENUM de `programas.tipo_formacion`~~ | ~~Bloquea seed completo~~ | ~~Resuelto 04/05/2026~~ | ✅ |
+| ~~P7~~ | ~~Migración JS → TypeScript + MVC + ESM6 (backend y frontend)~~ | ~~Inicio Fase 3 sem. 7~~ | ~~Resuelto 19/05/2026 — rebuild desde cero en TS~~ | ✅ |
+| P8 | Apellido completo del co-líder Rivera (Técnico Medular) | Bloquea seed de áreas | CDMC → Jair | 🟢 Baja |
+| P9 | Apellido completo de Catalina (líder Talento Humano) | Bloquea seed de áreas | CDMC → Jair | 🟢 Baja |
 | P10 | Revisar Resolución 1415/2012 y Acuerdo 0003/2017 | Validar reglas de negocio | Jair | 🟢 Baja |
 
 ---
 
 ## Semana en curso
 
-### Semana del 30/06/2026 al 06/07/2026
-**Feedback coordinadora (01/07) — restructuración de roles + schema v27 + fixes B1/B2/I3 + actualizacion de documentos**
+### Semana del 06/07/2026
+**RF v7.0 (roles finales) + skills v5 + revision dev/laura + gap items implementados**
 
 | Prioridad | Tarea |
 |---|---|
-| ✅ 01/07 | Roles restructurados: snake_case → Title Case, 5 → 4 roles, `lider_programa` eliminado del sistema |
-| ✅ 01/07 | Schema v5.3: tabla `tipos_actividad` (26) + `rap_ficha_seguimiento` (27) + columnas nuevas en `fichas` y `horarios` |
-| ✅ 01/07 | `constants/roles.ts`, todos los route guards, `auth.service.ts` actualizados — commits `2998245`, `717be2b` |
-| ✅ 02/07 | Fixes B1 (fichas + fechas productivas), B2 (horarios + tipo_actividad_id), I3 (dead code) — tsc clean — commit `617bdfd` |
-| ✅ 02/07 | Nueva usuaria: Laura Jaramillo Ospina (Asistente Coordinacion, `ljaramilloo@sena.edu.co`) |
-| ✅ 02/07 | Reporte de cambios para Laura Posada (frontend) — `REPORTE_CAMBIOS_BACKEND_01072026_frontend.md` |
-| ✅ 06/07 | Documentos de contexto actualizados: CHANGELOG, contexto_general v9.4, CRONOGRAMA v4.3, Logica_Negocio_v5 |
-| ✅ 06/07 | Gitignores fix: CRLF + em-dash truncaban los patrones — reescritos con LF puro. `backend/.env` y `seed_data.sql` ahora ignorados correctamente |
-| ✅ 06/07 | `seed_data.sql` v6: Paul Tamayo y medulares sin rol; Rocio Medina sin rol; Luis Eladio Porras agregado; Calzado eliminado del test data |
-| ✅ 06/07 | **RF v7.0 aprobado** — `CONINS_Requisitos_Funcionales_v7_0.txt` (49 RF en 9 modulos). Opcion A: lider_programa pasa a figura informativa. RF-30/RF-43 eliminados, RF-39 reescrito, RF-48 a RF-51 nuevos |
-| ✅ 06/07 | `CONINS_contexto_general.md` actualizado a v9.5, `CONINS_Logica_Negocio_v5.md` a v5.2 |
-| 🔴 Pendiente — Alta | **P22 (= RF-48): backend sin filtrado por rol** en GET /api/horarios, /fichas, /asignaciones, /alertas — implementar antes de pruebas con usuarios reales |
-| 🔴 Pendiente — Alta | **P26: reducción de alcance a ADSO** — filtros y vistas contextualizados al programa ADSO |
-| 🔴 Pendiente — Alta | **P27: vista día a día** — fichas, instructores, ambientes con filtros cruzados |
-| 🔴 Pendiente — Alta | **P28 (= RF-50): endpoints RAP seguimiento** — `rap_ficha_seguimiento` (tabla creada, falta backend) |
-| 🟡 Pendiente | P21: agregar `ultimo_acceso` al SELECT/mapeo de `GET /api/auth/usuarios` |
-| 🟡 Pendiente | P23 (= RF-37 gap): revalidación completa RN-03/RN-05 en `horario.service.ts: update()` |
-| 🟡 Pendiente | P29 (= RF-49): endpoint `GET /tipos-actividad` + selector en frontend |
-| 🟡 Pendiente | P30: validar soporte lunes-sábado en horarios |
-| 🟡 Pendiente | Laura Posada: aplicar cambios del reporte frontend (roles, fechas productivas, tipo_actividad_id) |
+| ✅ 06/07 | RF v7.0: 4 roles definitivos (Title Case), lider_programa absorbido por Coordinadora Academica |
+| ✅ 06/07 | Skills conins-core actualizadas a v5: auth-multirole, RBAC, asignacion, horario, arquitectura |
+| ✅ 06/07 | Revision completa de rama dev/laura — gap items confirmados e implementados |
+| ✅ 06/07 | **P22 (CRITICO):** filtrado por rol en GET /horarios, /fichas, /asignaciones, /alertas — Instructor ve solo sus datos |
+| ✅ 06/07 | **P23 (RF-37):** horario update() revalida RN-03, RN-04, RN-05, RN-09 — alertas propagadas en respuesta |
+| ✅ 06/07 | **P28 (RF-50):** modulo rap-ficha-seguimiento completo (model + service + controller + routes + schema) |
+| ✅ 06/07 | **P29 (RF-49):** GET /api/catalogo/tipos-actividad implementado |
+| ✅ 06/07 | **P24:** alias GET /api/notificaciones/mis agregado — frontend ya puede llamar esa ruta |
+| ✅ 06/07 | **P21:** ultimo_acceso incluido en SELECT y mapeo de findAll()/findAllActive() en usuario.model.ts |
+| ✅ 06/07 | database.sql: sp_crear_instructor corregido (rol_id 5 → 4) |
+| ✅ 06/07 | tsc limpio al cierre de sesion |
+| 🟡 Pendiente | Revisar seguridad: xss-clean, CSRF, validacion en rutas pendientes (P17) |
+| 🟡 Pendiente | Configurar infraestructura de pruebas automatizadas (P16) |
 
 ---
 
-### Semana del 22/06/2026 al 30/06/2026
+### Semana del 22/06/2026 al 30/06/2026 (historico)
 **Sincronizacion endpoints con frontend Laura (dev/laura) + verificacion directa del backend contra el codigo**
 
 | Prioridad | Tarea |
@@ -261,12 +260,8 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 | ✅ 30/06 | Commit `6c2a6f4`: suspender horarios, programas-lider, lider_id en fichas, ultimo_acceso |
 | ✅ 30/06 | Confirmado en codigo: catalogo tipos-novedad-*, aprobar/rechazar/suspender horarios, RF-35 (RN-06) |
 | ✅ 30/06 | Confirmado en codigo: tabla `notificaciones` + GET /api/notificaciones + PATCH /:id/leida |
-| ✅ 30/06 | Credenciales de prueba (rol Instructor) recibidas de Laura para validar sidebar/vistas filtradas |
 | ✅ 30/06 | Corregido conteo real de `database.sql`: 25 tablas, schema v5 (no 27 / v5.2 como se documentaba) |
 | ✅ 30/06 | Documentos de contexto actualizados a v9.3 / CRONOGRAMA v4.2 |
-| ✅ 30/06 | P23 confirmado por Laura: revalidar RN-03/RN-05 al editar horarios |
-| ✅ 30/06 | P24 cerrado: Laura usa ruta real `/api/notificaciones` sin cambio |
-| ✅ 30/06 | P25 cerrado: schema corregido a 25 tablas / v5 en documentación |
 
 ---
 
@@ -305,7 +300,7 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 | Fecha | Cambio |
 |---|---|
-| 02/07/2026 | v4.3 — Roles restructurados a Title Case (4 roles), schema v5.3 con tipos_actividad y rap_ficha_seguimiento, fixes B1/B2/I3, nueva usuaria Laura Jaramillo. Nuevos pendientes P26-P31. |
+| 06/07/2026 | v4.5 — RF v7.0: 4 roles definitivos (lider absorbido), skills v5. Gap items de dev/laura: P22 (filtrado por rol), P23 (update() RN-03/RN-05), P28 (rap-seguimiento), P29 (tipos-actividad), P24 (alias /mis), P21 (ultimo_acceso), database.sql sp_crear_instructor. tsc limpio. |
 | 30/06/2026 | v4.2 — Sincronizacion con feedback Laura (commit `6c2a6f4`): suspender horarios, programas-lider, lider_id en fichas, ultimo_acceso confirmados en codigo. Corregido conteo real de `database.sql`: 25 tablas / schema v5 (antes documentado como 27 tablas / v5.2 por error). Gap critico detectado: backend sin filtrado por rol en listados generales (P22). Documentos de contexto actualizados a v9.3. |
 | 11/06/2026 | v4.1 — Schema v5.2: lider_id en fichas, ultimo_acceso en usuarios. 6 endpoints de catalogo tipificados. Patch suspender horario. PUT programas a lider. Login actualiza ultimo_acceso. Documentos de contexto actualizados a v9.2. |
 | 10/06/2026 | v4.0 — Cambio de equipo directivo: nuevo instructor líder Luis Eladio Porras Camargo, nueva coordinadora Leidy Johana Ruiz Cortés. RN-09 y RN-13 implementadas. Frontend 11 paginas. DB v5 con auditoria, triggers, procedures, vistas. Endpoints de alertas, consultas, ambientes CRUD. Documentos actualizados. |
@@ -318,4 +313,4 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 ---
 
-*CONINS · SENA CDMC · Cronograma v4.4 · 06 de Julio 2026*
+*CONINS · SENA CDMC · Cronograma v4.5 · 06 de Julio 2026*
