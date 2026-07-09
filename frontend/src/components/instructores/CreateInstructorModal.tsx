@@ -69,31 +69,17 @@ export default function CreateInstructorModal({ isOpen, onClose, onSubmit }: Cre
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de contrato</label>
-              <select
-                name="tipo_contrato"
-                value={formData.tipo_contrato}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sena/50 bg-white"
-              >
-                <option value="contratista">Contratista</option>
-                <option value="de_planta">De Planta</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de area</label>
-              <select
-                name="tipo_area"
-                value={formData.tipo_area}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sena/50 bg-white"
-              >
-                <option value="tecnica">Tecnica</option>
-                <option value="transversal">Transversal</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de area</label>
+            <select
+              name="tipo_area"
+              value={formData.tipo_area}
+              onChange={handleInputChange}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sena/50 bg-white"
+            >
+              <option value="tecnica">Tecnica</option>
+              <option value="transversal">Transversal</option>
+            </select>
           </div>
 
           <div className="pt-4 flex items-center justify-end gap-3">

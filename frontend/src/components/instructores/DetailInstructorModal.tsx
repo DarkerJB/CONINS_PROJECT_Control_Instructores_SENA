@@ -94,15 +94,6 @@ export default function DetailInstructorModal({ isOpen, onClose, instructor }: D
             <div className="flex items-start gap-3">
               <FileText className="w-5 h-5 text-gray-400 mt-0.5" />
               <div>
-                <p className="text-xs text-gray-500">Contrato</p>
-                <p className="text-sm text-gray-900 capitalize">
-                  {instructor.tipo_contrato === "de_planta" ? "De Planta" : "Contratista"}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <FileText className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div>
                 <p className="text-xs text-gray-500">Area</p>
                 <p className="text-sm text-gray-900 capitalize">{instructor.tipo_area}</p>
               </div>
@@ -149,7 +140,7 @@ export default function DetailInstructorModal({ isOpen, onClose, instructor }: D
 
           {/* Novedades */}
           <div>
-            <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <h4 className="text-sm font-semibond text-gray-900 mb-3 flex items-center gap-2">
               <Calendar className="w-4 h-4 text-orange-500" />
               Novedades ({MOCK_NOVEDADES.length})
             </h4>
