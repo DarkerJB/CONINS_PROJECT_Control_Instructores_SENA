@@ -28,6 +28,11 @@ export interface FichaDetail extends RowDataPacket {
   instructores_count: number;
   ambiente: string | null;
   lider_nombre: string | null;
+  fecha_inicio_lectiva: string | null;
+  fecha_fin_lectiva: string | null;
+  fecha_inicio_productiva: string | null;
+  fecha_fin_productiva: string | null;
+  fecha_fin_ficha: string | null;
   estado: string;
   activo: boolean;
 }
@@ -52,6 +57,8 @@ export const FichaModel = {
              COUNT(DISTINCT a.id) AS instructores_count,
              ab.nombre AS ambiente,
              lu.nombre AS lider_nombre,
+             f.fecha_inicio_lectiva, f.fecha_fin_lectiva,
+             f.fecha_inicio_productiva, f.fecha_fin_productiva, f.fecha_fin_ficha,
              f.estado, f.activo
       FROM fichas f
       JOIN programas p ON f.programa_id = p.id
@@ -72,6 +79,8 @@ export const FichaModel = {
              COUNT(DISTINCT a_all.id) AS instructores_count,
              ab.nombre AS ambiente,
              lu.nombre AS lider_nombre,
+             f.fecha_inicio_lectiva, f.fecha_fin_lectiva,
+             f.fecha_inicio_productiva, f.fecha_fin_productiva, f.fecha_fin_ficha,
              f.estado, f.activo
       FROM fichas f
       JOIN programas p ON f.programa_id = p.id
@@ -93,6 +102,8 @@ export const FichaModel = {
              COUNT(DISTINCT a.id) AS instructores_count,
              ab.nombre AS ambiente,
              lu.nombre AS lider_nombre,
+             f.fecha_inicio_lectiva, f.fecha_fin_lectiva,
+             f.fecha_inicio_productiva, f.fecha_fin_productiva, f.fecha_fin_ficha,
              f.estado, f.activo
       FROM fichas f
       JOIN programas p ON f.programa_id = p.id

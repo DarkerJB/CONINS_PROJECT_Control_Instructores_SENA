@@ -69,6 +69,18 @@ export const api = {
                 body: JSON.stringify({ contrasena_actual, nueva_contrasena }),
             })
         },
+        solicitarRecuperacion(email: string) {
+            return apiFetch('/auth/recuperar-contrasena', {
+                method: 'POST',
+                body: JSON.stringify({ email }),
+            })
+        },
+        resetearContrasena(token: string, nueva_contrasena: string) {
+            return apiFetch('/auth/resetear-contrasena', {
+                method: 'POST',
+                body: JSON.stringify({ token, nueva_contrasena }),
+            })
+        },
     },
 
     users: {
