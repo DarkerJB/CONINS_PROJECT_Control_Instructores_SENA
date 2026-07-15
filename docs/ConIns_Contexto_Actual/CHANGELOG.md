@@ -359,6 +359,80 @@ Durante prueba de navegacion entre modulos del frontend se detectaron y resolvie
 
 ---
 
+### 2026-07-14 — Jair Enrique Gonzalez Buelvas
+
+**tipo_contrato eliminado del backend + recuperar-contrasena + fichas findById + novedades RF-47 + onAlertaCargaHoraria + seed ADSO**
+
+**tipo_contrato eliminado (L4):**
+- Columna `tipo_contrato ENUM('contratista','de_planta')` eliminada del modelo `instructores` (model, schemas, services, controllers).
+- RN-03 (JORNADA_RESTRINGIDA) ahora aplica a todos los instructores — `isInstructorDePlanta` siempre retorna `true`.
+- Limites de carga: 20-40h para todos sin distincion por tipo de contrato.
+
+**Recuperar/resetear contrasena con token (L5):**
+- Tabla `password_reset_tokens` agregada al schema: token hex 64 chars, expira 1h, single-use.
+- `POST /api/auth/recuperar-contrasena` — genera token, envia correo via Nodemailer si SMTP configurado.
+- `POST /api/auth/resetear-contrasena` — valida token, actualiza password, invalida token.
+- Frontend: pagina `recuperar-contrasena.tsx` + link en `LoginForm`.
+
+**fichas findById ampliado (L1):**
+- `GET /api/fichas/:id` incluye `fecha_inicio_lectiva`, `fecha_fin_lectiva`, `fecha_inicio_productiva`, `fecha_fin_productiva`, `ambiente_nombre`, `lider_nombre`.
+
+**Novedades de fichas RF-47 (L2):**
+- `GET /api/fichas/:id/novedades` — lista novedades de la ficha.
+- `POST /api/fichas/:id/novedades` — registrar novedad.
+- `PATCH /api/fichas/:fichaId/novedades/:novedadId` — actualizar novedad.
+
+**onAlertaCargaHoraria conectado (L6):**
+- `NotificacionService.onAlertaCargaHoraria` conectado en `horario.controller.ts` al crear y actualizar horario.
+
+**Frontend fixes de dev/laura integrados:**
+- `exportPDF` — fix null check (crash cuando jsPDF no carga).
+- `api.ts` — metodos alineados con endpoints reales del backend.
+
+**Seed ADSO 228118 (SEED-ADSO):**
+- Competencias y RAPs reales importados desde Reporte Juicios Evaluativos Ficha 2995403.
+- 7 competencias tecnicas (38392/38376/38362/38367/38368/38356/38369) + 12 transversales + 1 productiva = 22 competencias, 79 RAPs.
+- `instructor_competencias_habilitadas`: tecnicos → comp 1-7, transversales → comp 8-19, lider tecnico → comp 1-7+20.
+- Programa ADSO codigo corregido: 228118 (antes TEST-228108).
+
+**Commits:** pendiente al cierre de sesion
+
+---
+
+### 2026-07-15 — Jair Enrique Gonzalez Buelvas
+
+**database.sql + seed_data.sql tipo_contrato cleanup + RF v8.0 + Logica de Negocio v5.4 + Contexto General v9.5**
+
+**database.sql — 8 fixes:**
+- C1: DDL `instructores` — columna `tipo_contrato` eliminada del `CREATE TABLE`.
+- C2: trigger `tr_instructores_after_insert` — `tipo_contrato` eliminado del `JSON_OBJECT`.
+- C3: trigger `tr_instructores_after_update` — `tipo_contrato` eliminado de OLD y NEW en `JSON_OBJECT`.
+- C4: trigger `tr_instructores_after_delete` — `tipo_contrato` eliminado del `JSON_OBJECT`.
+- C5: `sp_crear_instructor` — parametro `IN p_tipo_contrato VARCHAR(20)` eliminado; INSERT corregido a `(usuario_id, tipo_area)`.
+- C6: `vw_carga_horaria_instructor` — `i.tipo_contrato` eliminado de SELECT y GROUP BY.
+- C7: `vw_asignaciones_activas` — `i.tipo_contrato` eliminado de SELECT.
+- C8: `INSERT INTO tipos_actividad` cambiado a `INSERT IGNORE` — evita duplicate key en re-importacion.
+
+**seed_data.sql — 1 fix:**
+- C9: INSERT de `instructores` — columna `tipo_contrato` y valores `'contratista'` eliminados de todos los rows.
+
+**RF v8.0 — reestructuracion completa:**
+- Archivo nuevo: `CONINS_Requisitos_Funcionales_v8_0.txt` — 53 RF en 11 modulos, numeracion secuencial RF-01 a RF-53.
+- AUTH: 14 → 7 RF (pares admin/instructor unificados).
+- Nuevo modulo PROGRAMAS (RF-18, RF-19).
+- AMBIENTES: 1 → 5 RF (CRUD + bloqueos).
+- HORARIOS: 4 → 7 RF (aprobacion RF-29, suspension RF-30, tipo actividad RF-31).
+- Nuevo modulo RAP-SEGUIMIENTO (RF-52, RF-53).
+- Todas las referencias a `tipo_contrato` eliminadas. Tabla RN-01 a RN-17 y LIMITES_HORAS incluidas.
+
+**Documentacion:**
+- `CONINS_Logica_Negocio_v5.md` → v5.4: 4 roles Title Case, RN-03 sin tipo_contrato, RN-12 reescrita (lider_programa no es rol), RN-15 RAPs heredados, schema 28 tablas, RF v8.0 en tabla de modulos.
+- `CONINS_contexto_general.md` → v9.5: hitos al 15/07, 4 roles Title Case, 28 tablas, RF v8.0.
+
+**Commits:** pendiente al cierre de sesion
+
+---
+
 ### 2026-06-30 (tarde) — Jair Enrique Gonzalez Buelvas
 
 **Fix database.sql — triggers y stored procedure con columna inexistente + seed_data.sql v5**

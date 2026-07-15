@@ -231,7 +231,32 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 ## Semana en curso
 
-### Semana del 06/07/2026
+### Semana del 14/07/2026
+**tipo_contrato cleanup (DB + backend) + RF v8.0 + documentacion v5.4/v9.5**
+
+| Prioridad | Tarea |
+|---|---|
+| ✅ 14/07 | **L4:** `tipo_contrato` eliminado del backend (model, schemas, services, controllers) — RN-03 aplica a todos |
+| ✅ 14/07 | **L5:** endpoints recuperar/resetear-contrasena + tabla `password_reset_tokens` (token 1h, single-use) |
+| ✅ 14/07 | **L1:** fichas `findById` amplido — fechas lectiva/productiva + ambiente_nombre + lider_nombre |
+| ✅ 14/07 | **L2/RF-47:** novedades de fichas — GET/POST/PATCH `/api/fichas/:id/novedades` |
+| ✅ 14/07 | **L6:** `onAlertaCargaHoraria` conectado en `horario.controller.ts` |
+| ✅ 14/07 | Frontend Laura: `exportPDF` null fix + `api.ts` metodos alineados |
+| ✅ 14/07 | **SEED-ADSO:** competencias y RAPs reales ADSO 228118 — 22 competencias, 79 RAPs |
+| ✅ 15/07 | `database.sql` — 8 fixes tipo_contrato (DDL + 3 triggers + sp_crear_instructor + 2 views + INSERT IGNORE tipos_actividad) |
+| ✅ 15/07 | `seed_data.sql` — tipo_contrato eliminado de INSERT instructores (C9) |
+| ✅ 15/07 | **RF v8.0:** `CONINS_Requisitos_Funcionales_v8_0.txt` — 53 RF en 11 modulos, numeracion secuencial |
+| ✅ 15/07 | `CONINS_Logica_Negocio_v5.md` → v5.4: 4 roles Title Case, RN-03/12/15 actualizadas, 28 tablas |
+| ✅ 15/07 | `CONINS_contexto_general.md` → v9.5: hitos al 15/07, 4 roles, 28 tablas, RF v8.0 |
+| 🟡 Pendiente | Commit y push de sesiones 14/07 y 15/07 (pendiente tsc limpio) |
+| 🟡 Pendiente | Configurar SMTP (P27) para activar recuperar-contrasena y notificaciones por correo |
+| 🟡 Pendiente | Fix CrearBloqueHorarioModal — usa ficha.id en lugar de ficha.programa_id (P28) |
+| 🟡 Pendiente | Revisar seguridad: xss-clean, CSRF, validacion en rutas pendientes (P17) |
+| 🟡 Pendiente | Configurar infraestructura de pruebas automatizadas (P16) |
+
+---
+
+### Semana del 06/07/2026 (historico)
 **RF v7.0 (roles finales) + skills v5 + revision dev/laura + gap items implementados**
 
 | Prioridad | Tarea |
@@ -247,8 +272,6 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 | ✅ 06/07 | **P21:** ultimo_acceso incluido en SELECT y mapeo de findAll()/findAllActive() en usuario.model.ts |
 | ✅ 06/07 | database.sql: sp_crear_instructor corregido (rol_id 5 → 4) |
 | ✅ 06/07 | tsc limpio al cierre de sesion |
-| 🟡 Pendiente | Revisar seguridad: xss-clean, CSRF, validacion en rutas pendientes (P17) |
-| 🟡 Pendiente | Configurar infraestructura de pruebas automatizadas (P16) |
 
 ---
 
@@ -300,6 +323,8 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 | Fecha | Cambio |
 |---|---|
+| 15/07/2026 | v4.6 — database.sql + seed_data.sql: tipo_contrato eliminado (DDL, 3 triggers, sp_crear_instructor, 2 views, seed INSERT). RF v8.0: 53 RF en 11 modulos, numeracion secuencial. Logica de Negocio v5.4. Contexto General v9.5. CHANGELOG entradas 14/07 y 15/07. |
+| 14/07/2026 | v4.5b — tipo_contrato eliminado del backend. recuperar/resetear-contrasena + password_reset_tokens. fichas findById ampliado. novedades RF-47 (GET/POST/PATCH). onAlertaCargaHoraria conectado. Frontend Laura: exportPDF fix + api.ts. Seed ADSO 228118: 22 competencias, 79 RAPs reales. |
 | 06/07/2026 | v4.5 — RF v7.0: 4 roles definitivos (lider absorbido), skills v5. Gap items de dev/laura: P22 (filtrado por rol), P23 (update() RN-03/RN-05), P28 (rap-seguimiento), P29 (tipos-actividad), P24 (alias /mis), P21 (ultimo_acceso), database.sql sp_crear_instructor. tsc limpio. |
 | 30/06/2026 | v4.2 — Sincronizacion con feedback Laura (commit `6c2a6f4`): suspender horarios, programas-lider, lider_id en fichas, ultimo_acceso confirmados en codigo. Corregido conteo real de `database.sql`: 25 tablas / schema v5 (antes documentado como 27 tablas / v5.2 por error). Gap critico detectado: backend sin filtrado por rol en listados generales (P22). Documentos de contexto actualizados a v9.3. |
 | 11/06/2026 | v4.1 — Schema v5.2: lider_id en fichas, ultimo_acceso en usuarios. 6 endpoints de catalogo tipificados. Patch suspender horario. PUT programas a lider. Login actualiza ultimo_acceso. Documentos de contexto actualizados a v9.2. |
@@ -313,4 +338,4 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 ---
 
-*CONINS · SENA CDMC · Cronograma v4.5 · 06 de Julio 2026*
+*CONINS · SENA CDMC · Cronograma v4.6 · 15 de Julio 2026*

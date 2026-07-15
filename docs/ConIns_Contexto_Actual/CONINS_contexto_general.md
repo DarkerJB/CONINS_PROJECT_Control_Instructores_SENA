@@ -1,7 +1,7 @@
 # CONINS — Contexto General
 ### Sistema de Control de Instructores · SENA CDMC
-**Versión:** 9.3 · **Fecha:** Junio 2026
-**Basado en:** RF v6.1 · ERS v3.0 · Lógica de Negocio v5.2 · CRONOGRAMA v4.2 · CHANGELOG al 30/06/2026
+**Versión:** 9.5 · **Fecha:** 15 de Julio 2026
+**Basado en:** RF v8.0 · ERS v3.0 · Lógica de Negocio v5.4 · CRONOGRAMA v4.3 · CHANGELOG al 15/07/2026
 
 ---
 
@@ -10,42 +10,38 @@
 | Fase | Período | Estado |
 |---|---|---|
 | F1 — Análisis y requisitos | 09/04 – 30/04/2026 | ✅ Completada |
-| F2 — Modelado y diseño | 04/05 – 15/05/2026 | ✅ Completada anticipadamente (sem. 5 — 04/05/2026) |
-| F3 — Construcción | 19/05 – 06/08/2026 | 🔄 En curso (semana del 22/06 al 30/06 — sync de endpoints con frontend Laura completado; gap de filtrado por rol detectado y pendiente) |
+| F2 — Modelado y diseño | 04/05 – 15/05/2026 | ✅ Completada anticipadamente |
+| F3 — Construcción | 19/05 – 06/08/2026 | 🔄 En curso |
 | F4 — Pruebas y ajustes | 10/08 – 28/08/2026 | ⬜ Pendiente |
 | F5 — Documentación y despliegue | 31/08 – 18/09/2026 | ⬜ Pendiente |
 
+**Hitos cerrados al 15/07/2026:**
+- **Reestructuración completa de RF v8.0** (53 RF, 11 módulos, numeración secuencial sin huecos). Ver `CONINS_Requisitos_Funcionales_v8_0.txt`
+- **database.sql y seed_data.sql corregidos**: eliminado `tipo_contrato` de DDL `instructores`, triggers de auditoría, `sp_crear_instructor`, vistas `vw_carga_horaria_instructor` y `vw_asignaciones_activas`; `INSERT INTO tipos_actividad` → `INSERT IGNORE`; `seed_data.sql` instructores sin columna `tipo_contrato`
+- **Lógica de Negocio v5.4**: roles corregidos a 4 vigentes, RN-03 universal, RN-15 actualizada (RAPs heredados), schema 28 tablas
+
+**Hitos cerrados al 14/07/2026:**
+- `tipo_contrato` eliminado del backend (modelo, schema Zod, service, controller) — RN-03 activa para todos los instructores
+- Endpoints `POST /api/auth/recuperar-contrasena` y `POST /api/auth/resetear-contrasena` con tabla `password_reset_tokens` (token hex 64 chars, expira 1h, un solo uso)
+- `fichas.findById` incluye fechas lectiva/productiva, ambiente y lider_nombre
+- Novedades de ficha (RF-17 v8.0): `GET /api/fichas/:id/novedades`, `POST`, `PATCH /:novedadId`
+- `onAlertaCargaHoraria` conectado en `horario.controller.ts`
+- Frontend: `recuperar-contrasena.tsx` (flujo 3 pasos), `LoginForm` link actualizado, `exportPDF.ts` null fix, `api.ts` con `solicitarRecuperacion` y `resetearContrasena`
+- Seed ADSO real: 22 competencias (7 técnicas + 12 transversales + 1 productiva + 2 TEST), 79 RAPs, 91 entradas `instructor_competencias_habilitadas`
+
+**Hitos cerrados al 07/07/2026:**
+- Frontend de rama `dev/laura` migrado a `main` — 11 páginas + 18 componentes integrados
+- Fixes: CORS middleware order, GROUP BY en asignacion.model.ts, tsx watch --ignore log, super admin JWT id:0
+
+**Hitos cerrados al 06/07/2026:**
+- RF v7.0 (49 RF) — roles unificados a 4, lider_programa como figura informativa
+- Todos los gaps P21-P25 cerrados: filtrado por rol (P22), update() horario revalida RN-03/RN-05 (P23), alias /api/notificaciones/mis (P24), ultimo_acceso en GET /api/auth/usuarios (P21)
+- Módulos nuevos backend: rap-seguimiento (RF-50 previo), tipos-actividad endpoint
+- Schema verificado en 27 tablas (tipos_actividad tabla 26, rap_ficha_seguimiento tabla 27)
+
 **Hitos cerrados al 30/06/2026:**
-- Sincronización completa con frontend de Laura (commits en `dev/laura`): dropdowns dinámicos de tipos de novedad (instructor/ambiente/ficha), campos `tipo_documento`/`documento` en usuarios, página de Novedades de Fichas (RF-47), rol "Líder de Programa" expuesto en UI (ya existía en BD desde schema v4 — tabla `lider_programa` —, esta sync solo lo muestra en frontend), campo `lider_id` en fichas, modal "Asignar programas a líder", botón "Suspender" en horarios, exportación a PDF con `jspdf` (100% cliente, sin endpoint backend)
-- Endpoints nuevos verificados en código (no solo en changelog): catálogos de tipos de novedad, `PATCH /api/horarios/:id/suspender`, `PUT /api/auth/usuarios/:id/programas`, `lider_id` en `POST/PATCH /api/fichas`, `tipo_documento`/`documento` en `PUT /api/auth/usuarios/:id` — commit `6c2a6f4` (30/06/2026)
-- RF-35 (RAP único por ficha) confirmado implementado en `asignacion.service.ts` (RN-06, HTTP 409)
-- Tabla `notificaciones` y `GET /api/notificaciones` / `PATCH /api/notificaciones/:id/leida` confirmados operativos
-- **Verificación directa del código del backend (vs. lo que decía la documentación anterior) encontró 5 gaps reales — ver sección 14, P21–P25.** El más crítico: ninguno de los listados generales (`GET /api/horarios`, `/api/fichas`, `/api/asignaciones`, `/api/alertas`) filtra por rol en backend — solo exigen `verifyToken`. El frontend filtra visualmente, pero un Instructor o Líder autenticado puede pedir el dataset completo del CDMC directamente a la API
-- Corrección de inventario: `database.sql` real tiene **25 tablas** y comentario interno `Schema: v5` (verificado por conteo directo de `CREATE TABLE`) — no 27 tablas / v5.2 como se documentó antes. El conteo de 27 surgió de contar dos columnas nuevas (`lider_id` en `fichas`, `ultimo_acceso` en `usuarios`) como si fueran tablas nuevas
-
-**Hitos cerrados al 11/06/2026:**
-- Backend completo: módulos Auth, Instructores, Fichas, Horarios, Asignaciones, Notificaciones, Ambientes, Consultas, Auditoria, Catalogo
-- Todas las reglas de negocio implementadas (RN-01 a RN-17) incluyendo RN-09 (bloqueo ambiente) y RN-13 (competencia habilitada)
-- Notificaciones internas y por correo (RF-38 a RF-40)
-- Flujo de aprobacion de horarios: estado pendiente/aprobado/rechazado, motivo de rechazo
-- Suspension de horarios con motivo obligatorio
-- Frontend Next.js 15 con 11 páginas y 18 componentes modulares
-- Base de datos v5.2 con 27 tablas: tipos_novedad_*, ficha_novedades, documento/tipo_documento en usuarios, lider_id en fichas, ultimo_acceso en usuarios
-- 6 endpoints de catalogo para frontend: tipos de novedad, jornadas, ambientes, programas, competencias, raps, areas
-- Endpoints de consultas y reportes: carga horaria, horarios por ficha, ocupacion de ambientes
-- Endpoint PATCH /api/horarios/:id/suspender y PUT /api/auth/usuarios/:id/programas
-- Integracion completa entre backend y frontend (dev/Jair + dev/laura sincronizadas)
-- RF-46 (documento de identidad) y RF-47 (novedades de fichas) implementados
-- Cambio de equipo directivo: nuevo instructor líder Luis Eladio Porras, nueva coordinadora Leidy Johana Ruiz
-
-**Hitos cerrados al 04/05/2026:**
-- Diagramas PlantUML RF-01 al RF-45 completos — integrados en ERS_CONINS_v3.docx
-- Schema `database.sql` cerrado definitivamente con 20 tablas — validado por Wilmar Zapata
-- P1, P2, P3, P5 y P6 del CHANGELOG resueltos
-- Fase 2 completada. Siguiente: inicio de Fase 3 el 19/05/2026
-
-**Cambio de stack confirmado (feedback Juan Pablo Hoyos + Wilmar Zapata + Gloria Jaramillo):**
-El frontend migra de **React + Vite** a **Next.js 15 con Pages Router**. Ver sección 3.
+- Sincronización con frontend de Laura: dropdowns dinámicos, campos tipo_documento/documento, lider_id en fichas, modal "Asignar programas a líder", exportación PDF
+- Corrección de conteo schema: 25 tablas / v5 (verificado directo en database.sql)
 
 ---
 
@@ -146,19 +142,19 @@ El frontend migra de **React + Vite** a **Next.js 15 con Pages Router**. Ver sec
 
 ---
 
-## 6. Roles del sistema — tabla `roles` (5 entradas exactas)
+## 6. Roles del sistema — tabla `roles` (4 entradas exactas, Title Case)
 
-| ID | Nombre | Nivel | Alcance |
+| ID | Nombre en BD | Nivel | Alcance |
 |---|---|---|---|
-| 1 | Subdirector | 1 | CDMC completo |
-| 2 | Coordinador Medular | 2 | Línea medular |
-| 3 | Coordinador Transversal | 2 | Línea transversal |
-| 4 | Lider Programa | 3 | Su programa |
-| 5 | Instructor | 4 | Sus asignaciones — solo lectura |
+| 1 | `Subdirector` | 1 | CDMC completo — administrador principal |
+| 2 | `Coordinadora Academica` | 2 | Alcance ADSO — todos los permisos de gestión |
+| 3 | `Asistente Coordinacion` | 3 | Mismos permisos que Coordinadora Academica |
+| 4 | `Instructor` | 4 | Solo lectura de sus fichas activas |
 
-> `lider_ficha` NO existe en `roles`. Es `es_lider_ficha BOOLEAN DEFAULT FALSE` en la tabla `asignacion`. No otorga permisos adicionales.
-> Un usuario puede tener múltiples roles simultáneos vía tabla `usuario_roles` (N:M).
-> Cada coordinador actúa solo dentro de su línea.
+> Constantes en `backend/constants/roles.ts`. ROLES_ADMIN = [Subdirector, Coordinadora Academica, Asistente Coordinacion].
+> `lider_programa` NO es un rol. Es una relación en tabla `lider_programa` — dato organizativo sin impacto en permisos.
+> `es_lider_ficha` NO es un rol. Es `BOOLEAN DEFAULT FALSE` en tabla `asignacion` — dato organizativo sin impacto en permisos.
+> Autorización en dos capas: `requireRole` (roles globales) + `permisoService` (acceso contextual por ficha/programa).
 
 ---
 
@@ -229,7 +225,7 @@ Paso 3 en adelante: login normal con correo + contraseña
 |---|---|---|---|
 | RN-01 | Onboarding dos pasos — sin paso 1 → HTTP 403 | Hard | ✅ Implementado |
 | RN-02 | Correo como identificador único — sin restricción de dominio | Hard | ✅ Implementado |
-| RN-03 | Alerta `JORNADA_RESTRINGIDA` si instructor de planta en jornada nocturna o fin de semana | Soft | ✅ Implementado |
+| RN-03 | Alerta `JORNADA_RESTRINGIDA` si cualquier instructor tiene horario en jornada nocturna o fin de semana (tipo_contrato eliminado 14/07/2026) | Soft | ✅ Implementado |
 | RN-04 | Hard block si instructor tiene horarios superpuestos — HTTP 409 | Hard | ✅ Implementado |
 | RN-05 | Soft alert `AMBIENTE_OCUPADO` si ambiente ya ocupado en la misma jornada | Soft | ✅ Implementado |
 | RN-06 | `UNIQUE(ficha_id, rap_id)` — mismo RAP no puede tener dos instructores en la misma ficha — HTTP 409 | Hard | ✅ Implementado |
@@ -248,9 +244,9 @@ Paso 3 en adelante: login normal con correo + contraseña
 
 ---
 
-## 11. Modelo de datos — schema v5 (25 tablas — verificado 30/06/2026)
+## 11. Modelo de datos — schema v5 (28 tablas — verificado 15/07/2026)
 
-> **Nota de corrección (30/06/2026):** documentación previa registraba "27 tablas, schema v5.2". Verificación directa sobre `database.sql` (conteo de `CREATE TABLE IF NOT EXISTS` + comentario interno del archivo, que dice `Schema: v5`) confirma **25 tablas**. `lider_id` (en `fichas`) y `ultimo_acceso` (en `usuarios`) son columnas agregadas a tablas existentes, no tablas nuevas — el conteo de 27 fue un error de registro. Lista completa de las 25: `jornadas, roles, areas, usuarios, usuario_roles, instructores, programas, competencias, raps, ambientes, fichas, asignacion, asignacion_competencia, lider_programa, instructor_competencias_habilitadas, horarios, alertas, tipos_novedad_instructor, instructor_novedades, ambiente_bloqueos, tipos_novedad_ambiente, tipos_novedad_ficha, ficha_novedades, notificaciones, auditoria`.
+> **Historial de conteo:** 25 tablas (30/06/2026, corrección de error) → 27 tablas (06/07/2026, +tipos_actividad +rap_ficha_seguimiento) → 28 tablas (15/07/2026, +password_reset_tokens). La columna `tipo_contrato` fue eliminada de `instructores` el 14/07/2026. Lista completa de las 28: `jornadas, roles, areas, usuarios, usuario_roles, instructores, programas, competencias, raps, ambientes, fichas, asignacion, asignacion_competencia, lider_programa, instructor_competencias_habilitadas, horarios, alertas, tipos_novedad_instructor, instructor_novedades, ambiente_bloqueos, tipos_novedad_ambiente, tipos_novedad_ficha, ficha_novedades, notificaciones, auditoria, tipos_actividad, rap_ficha_seguimiento, password_reset_tokens`.
 
 ```
 instructor
@@ -303,19 +299,24 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 
 ---
 
-## 12. Requisitos Funcionales v6.1 — 47 RF en 8 módulos
+## 12. Requisitos Funcionales v8.0 — 53 RF en 11 módulos
 
-| Módulo | Rango | Total | Estado ERS |
-|---|---|---|---|
-| AUTH | RF-01 al RF-13, RF-46 | 14 | ✅ Documentado completo |
-| Instructores | RF-14 al RF-16 | 3 | ✅ .puml integrados al ERS |
-| Fichas | RF-17 al RF-20, RF-47 | 5 | ✅ .puml integrados al ERS |
-| Horarios | RF-21 al RF-24 | 4 | ✅ Documentado completo |
-| Asignaciones | RF-25 al RF-30 | 6 | ✅ .puml integrados al ERS |
-| Ambientes | RF-31 | 1 | ✅ .puml integrados al ERS |
-| Alertas, Validaciones y Notificaciones | RF-32 al RF-40 | 9 | ✅ .puml integrados al ERS |
-| Consulta y Visualización | RF-41 al RF-45 | 5 | ✅ .puml integrados al ERS |
-| **Total** | | **47** | ✅ ERS v3.0 + RF-46, RF-47 |
+| Módulo | Rango | Total |
+|---|---|---|
+| AUTH — Autenticación y gestión de cuentas | RF-01 al RF-07 | 7 |
+| Instructores | RF-08 al RF-12 | 5 |
+| Fichas | RF-13 al RF-17 | 5 |
+| Programas | RF-18 al RF-19 | 2 |
+| Ambientes | RF-20 al RF-24 | 5 |
+| Horarios | RF-25 al RF-31 | 7 |
+| Asignaciones | RF-32 al RF-36 | 5 |
+| Alertas y Notificaciones | RF-37 al RF-43 | 7 |
+| Consulta y Reportes | RF-44 al RF-47 | 4 |
+| Seguridad y Trazabilidad | RF-48 al RF-51 | 4 |
+| RAP-Seguimiento | RF-52 al RF-53 | 2 |
+| **Total** | | **53** |
+
+Ver `CONINS_Requisitos_Funcionales_v8_0.txt` para el texto completo. El archivo v7_0.txt se conserva como historial.
 
 ---
 
@@ -331,32 +332,23 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 
 ---
 
-## 14. Pendientes activos
+## 14. Pendientes activos (al 15/07/2026)
 
 | # | Pendiente | Responsable | Prioridad |
 |---|---|---|---|
-| P4 | Lista oficial de instructores con correo estandarizado | CDMC → Jair | 🟡 Media — bloquea seed instructores |
-| P7 | Migración JS → TypeScript + Next.js 15 + MVC + ESM6 | Jair + Laura | ✅ Resuelto 19/05/2026 |
+| P4 | Lista oficial de instructores con correo estandarizado | CDMC → Jair | 🟡 Media |
 | P8 | Apellido completo del co-líder Rivera (Técnico Medular) | CDMC | 🟢 Baja |
 | P9 | Apellido completo de Catalina (líder Talento Humano) | CDMC | 🟢 Baja |
 | P10 | Revisar Resolución 1415/2012 y Acuerdo 0003/2017 | Jair | 🟢 Baja |
-| P11 | Definir si Zustand se mantiene o se reemplaza en Next.js 15 | Jair + Laura | 🟡 Media — evaluar en Fase 4 |
-| P14 | Implementar RN-09 (bloqueo temporal de ambiente) | Jair | ✅ Resuelto 09/06/2026 |
-| P15 | Implementar RN-13 (validar competencia habilitada antes de asignar) | Jair | ✅ Resuelto 09/06/2026 |
 | P16 | Configurar infraestructura de pruebas automatizadas | Jair + Laura | 🟡 Media — Fase 4 |
-| P17 | Implementar seguridad: xss-clean, CSRF, validacion en rutas pendientes | Jair | 🟡 Media |
-| P18 | Continuous Integration (GitHub Actions) | Jair | 🟢 Baja — Fase 4 |
-| P19 | Docker (Dockerfile + docker-compose) | Jair | 🟢 Baja — Fase 5 |
-| P20 | Migración a PostgreSQL | Jair | 🟢 Baja — Fase 6 |
-| P21 | `ultimo_acceso` no se devuelve en `GET /api/auth/usuarios` — la columna existe y se actualiza en login, pero `findAll()`/`findAllActive()` en `usuario.model.ts` no la incluye en el `SELECT` ni en el mapeo de respuesta. **El frontend de Laura ya tiene el campo preparado en la UI** — hay una "ranura vacía" esperando del lado del cliente | Jair | 🟡 Media — fix de 2 líneas |
-| P22 | **Sin filtrado por rol en listados generales** — `GET /api/horarios`, `/api/fichas`, `/api/asignaciones`, `/api/alertas` solo exigen `verifyToken` y devuelven el dataset completo del CDMC sin importar el rol del usuario autenticado (Instructor o Líder incluidos). El frontend filtra visualmente, pero el backend no impone el alcance | Jair | 🔴 Alta — pendiente de seguridad más crítico antes de pruebas con usuarios reales |
-| P23 | **Implementar revalidación completa en `horario.service.ts: update()`** — alcance confirmado por Laura (30/06/2026): al editar un horario deben recalcularse tanto las reglas duras (RN-04, RN-09) como las suaves (RN-03 `JORNADA_RESTRINGIDA`, RN-05 `AMBIENTE_OCUPADO`). Hoy solo se recalculan RN-04/RN-09. Ejemplo: si un coordinador cambia la jornada de "Mañana" a "Noche" para un instructor de planta, la alerta RN-03 debe dispararse en ese momento | Jair | 🟡 Media |
-| ~~P24~~ | ~~Discrepancia de ruta en notificaciones~~ — ~~Resuelto 30/06/2026~~: Laura confirmó que el frontend **nunca llamó** a `/notificaciones/mis` en el código real (era solo en el spec escrito). Sin cambio en ninguno de los dos lados | ~~Jair~~ | ✅ Resuelto sin acción |
-| ~~P25~~ | ~~Unificar nomenclatura de versión del schema SQL~~ — ~~Resuelto 30/06/2026~~: corregido en `CONINS_contexto_general.md`, `CHANGELOG.md` y `CRONOGRAMA.md`. Laura alinea su documentación por su lado | ~~Jair~~ | ✅ Resuelto |
+| P17 | Implementar seguridad: xss-clean, CSRF, validación en rutas pendientes | Jair | 🟡 Media |
+| P26 | Expansión línea medular (Calzado/Cuero) — usuarios 5, 10, 11, 12 sin rol ni registro instructor hasta completarse | CDMC | 🟢 Baja |
+| P27 | Configurar SMTP_USER y SMTP_PASS en .env para activar recuperación de contraseña y notificaciones por correo | Jair | 🟡 Media |
+| P28 | CrearBloqueHorarioModal usa ficha.id en lugar de ficha.programa_id para cargar competencias dinámicas | Laura | 🟡 Media |
 
-> P1–P3, P5–P6 resueltos el 04/05/2026. P7, P14, P15 resueltos el 09/06/2026. P21–P25 detectados el 30/06/2026 en verificación directa de código. P24 y P25 cerrados el mismo día tras respuesta de Laura.
+**Resueltos al 15/07/2026:** P1-P3, P5-P7 (04-19/05/2026) · P14, P15 (09/06/2026) · P21-P25 (06-07/07/2026) · L1-L6, SEED-ADSO (14/07/2026) · database.sql/seed_data.sql tipo_contrato cleanup (15/07/2026)
 
-**Cuentas de prueba (QA, entorno local):** Laura entregó credenciales de prueba para el rol Instructor (`instructor.prueba@sena.edu.co`) para validar sidebar limitado y vistas filtradas en frontend. Sirven también para probar manualmente P22 una vez corregido en backend.
+**Cuenta de prueba (QA, entorno local):** `instructor.prueba@sena.edu.co` — rol Instructor, para validar filtrado por rol y sidebar limitado.
 
 ---
 
@@ -364,14 +356,15 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 
 | Archivo | Versión | Descripción |
 |---|---|---|
-| `CONINS_contexto_general.md` | v9.3 | Este documento — contexto completo actualizado |
-| `CONINS_Requisitos_Funcionales_v6_1.txt` | v6.1 | 47 RF en 8 módulos — fuente de verdad |
-| `CONINS_Logica_Negocio_v5.md` | v5.2 | Reglas de negocio, schema, reglas de arquitectura — pendiente alinear conteo de tablas (P25) |
-| `CRONOGRAMA.md` | v4.2 | 20 actividades, 5 fases, fechas y estados |
-| `CHANGELOG.md` | 30/06/2026 | Historial detallado de cambios |
-| `ERS_CONINS_v3.docx` | v3.0 | ERS IEEE 830-1998 — 45 RF originales + adenda RF-46, RF-47 (47 vigentes) |
+| `CONINS_contexto_general.md` | v9.5 | Este documento — contexto completo actualizado |
+| `CONINS_Requisitos_Funcionales_v8_0.txt` | v8.0 | 53 RF en 11 módulos — fuente de verdad vigente |
+| `CONINS_Requisitos_Funcionales_v7_0.txt` | v7.0 | 49 RF — conservado como historial |
+| `CONINS_Logica_Negocio_v5.md` | v5.4 | Reglas de negocio, schema 28 tablas, 4 roles vigentes |
+| `CRONOGRAMA.md` | v4.3 | Fases, fechas y estados |
+| `CHANGELOG.md` | 15/07/2026 | Historial detallado de cambios |
+| `ERS_CONINS_v3.docx` | v3.0 | ERS IEEE 830-1998 — documento original (RF renumerados en v8.0) |
 | `SENA_identidad_visual_resumen_tecnico.md` | — | Paleta, tipografía y logosímbolo SENA 2024 |
-| `.agents/skills/conins-core/` | — | 5 skills de Claude Code |
+| `.claude/skills/conins-core/` | — | 5 skills del proyecto |
 | `.claude/CLAUDE.md` | — | Governance del proyecto |
 
 ---
@@ -390,6 +383,5 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 
 ---
 
-*CONINS · SENA CDMC · Contexto General v9.3 · Junio 2026*
+*CONINS · SENA CDMC · Contexto General v9.5 · 15 de Julio 2026*
 *Autores: Jair Enrique González Buelvas · Laura Sofía Posada*
-*Versión anterior: CONINS_contexto_general_v9.2.md*
