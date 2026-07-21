@@ -489,6 +489,42 @@ la implementacion en backend abre la Fase 1 y 2 (pendientes P29-P36).
 - FASE 3: frontend (P32, P28).
 - FASE 4: pendientes previos (P16, P17, P27).
 
+**AVANCE BACKEND (misma sesion, tras reporte de frontend de Laura):**
+
+Laura reporto el frontend del rework ya avanzado (terminologia GRUPO +20
+archivos, paginas CRUD competencias, programas con referente, referente de
+grupo) llamando endpoints placeholder. Se implementaron en backend las
+piezas que su frontend ya consume y que NO requieren migracion de schema:
+
+- **P34 — CRUD Competencias y RAPs (RF-25 a RF-28):** modulo nuevo.
+  `competencia.controller.ts` + `competencia.routes.ts`, registrado en
+  `server.ts` bajo `/api/competencias`. Endpoints: GET/POST `/`, GET `/:id`,
+  PATCH `/:id`, PATCH `/:id/estado`, GET/POST `/:id/raps`, PATCH
+  `/:id/raps/:rapId`, PATCH `/:id/raps/:rapId/estado`. Tablas competencias
+  y raps YA existian (seed). Se aliasa `raps.nombre AS descripcion` para
+  casar con el frontend. Escritura restringida a ROLES_ADMIN.
+- **RF-24 — Referente de programa:** decision adoptada = reusar
+  `lider_programa` (no columna nueva). `ProgramaModel` expone `referente_id`
+  y `referente_nombre` (subquery sobre lider_programa) en findAll/findById;
+  nuevo `setReferente` fuerza 1:1 (borra previos, inserta uno). GET
+  `/api/programas` ahora devuelve detalle + referente; PATCH
+  `/api/programas/:id/referente`.
+- **RF-44 — Referente de grupo:** decision adoptada = reusar `fichas.lider_id`
+  (no columna nueva). `ficha.controller` mapea `referente_id → lider_id` en
+  create/update. `ficha.model.findById` expone `lider_id`, `referente_id`,
+  `referente_nombre`. Schema acepta ambos alias.
+- **P29 — verificado, ya resuelto:** `fichas.fecha_fin_productiva` y
+  `ambientes.capacidad` ya existen en el schema. No requiere cambio.
+
+tsc --noEmit limpio (exit 0). Archivos nuevos: competencia.controller.ts,
+competencia.routes.ts. Modificados: server.ts, programa.model.ts,
+programa.controller.ts, programa.routes.ts, ficha.controller.ts,
+ficha.model.ts, ficha.schema.ts.
+
+Pendiente del rework (requiere schema): P29b (asignacion_rap), P35
+(asignacion explicita de RAP), P36 (rap_id en horarios + RN-27), P30, P31,
+P33.
+
 **Nota:** el intermedio `CONINS_Logica_Negocio_v5_5_1.txt` debe eliminarse
 del repo (superado por v5.6). El sandbox no pudo borrarlo por permisos.
 

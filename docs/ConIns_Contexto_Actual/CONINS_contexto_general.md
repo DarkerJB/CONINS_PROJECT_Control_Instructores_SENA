@@ -370,19 +370,16 @@ Ver `CONINS_Requisitos_Funcionales_v10_1.txt` para el texto completo y el mapa d
 | P26 | Expansión línea medular (Calzado/Cuero) — usuarios 5, 10, 11, 12 sin rol ni registro instructor hasta completarse | CDMC | 🟢 Baja |
 | P27 | Configurar SMTP_USER y SMTP_PASS en .env para activar recuperación de contraseña y notificaciones por correo | Jair | 🟡 Media |
 | P28 | CrearBloqueHorarioModal usa ficha.id en lugar de ficha.programa_id para cargar competencias dinámicas | Laura | 🟡 Media |
-| **P29** | **Schema: agregar `fecha_fin_productiva` a fichas + verificar `capacidad` en ambientes** | Jair | 🔴 Alta |
 | **P29b** | **Schema: tabla nueva `asignacion_rap` (modelo RAP directo)** | Jair | 🔴 Alta |
 | **P30** | **Verificar 3 estados en `rap_ficha_seguimiento` (pendiente/aprobado/no_aprobado) + registro en bitácora** | Jair | 🔴 Alta |
 | **P31** | **Confirmar/implementar bitácora de auditoría transversal (RF-59, RNF-24 inalterable)** | Jair | 🔴 Alta |
-| **P32** | **Frontend: aplicar terminología GRUPO en todas las pantallas (terminology)** | Laura | 🔴 Alta |
 | **P33** | **Selector de rol activo al login para usuarios multi-rol (RF-11, RN-18)** | Jair + Laura | 🟡 Media |
-| **P34** | **Módulo CRUD Competencias y RAPs (RF-25 a RF-28, RN-25) — hoy solo seed** | Jair | 🔴 Alta |
 | **P35** | **Asignación explícita de RAP (RF-42, RN-15 redefinida) — hoy herencia automática** | Jair | 🔴 Alta |
 | **P36** | **Horario vinculado a RAP (`rap_id` en horarios) + validación RN-27** | Jair | 🔴 Alta |
 
-**Resueltos al 21/07/2026:** P1-P3, P5-P7 (04-19/05/2026) · P14, P15 (09/06/2026) · P21-P25 (06-07/07/2026) · L1-L6, SEED-ADSO (14/07/2026) · database.sql/seed_data.sql tipo_contrato cleanup (15/07/2026)
+**Resueltos al 21/07/2026:** P1-P3, P5-P7 (04-19/05/2026) · P14, P15 (09/06/2026) · P21-P25 (06-07/07/2026) · L1-L6, SEED-ADSO (14/07/2026) · database.sql/seed_data.sql tipo_contrato cleanup (15/07/2026) · **P29** (fecha_fin_productiva y capacidad ya existían en schema — verificado 21/07) · **P32** (terminología GRUPO frontend, Laura — 21/07) · **P34** (backend CRUD competencias/RAPs — 21/07) · **RF-24** (referente de programa vía lider_programa — 21/07) · **RF-44** (referente de grupo vía lider_id — 21/07)
 
-> **P29-P36 abren la Fase 1 y 2 del rework 21/07/2026.** Orden sugerido: schema (P29, P29b, P30, P31) → backend nuevo (P34, P35, P36, P33) → frontend (P32, P28). Ver plan de acción en CHANGELOG entrada 21/07/2026.
+> **Pendiente del rework (Fase 1 y 2):** el núcleo RAP directo — P29b (tabla `asignacion_rap`), P35 (asignación explícita), P36 (`rap_id` en horarios + RN-27) — más P30, P31, P33. El frontend de los selectores de RAP en asignaciones y horarios (RF-42/RF-34) queda a la espera de esos endpoints. Ver plan de acción en CHANGELOG entrada 21/07/2026.
 
 **Cuenta de prueba (QA, entorno local):** `instructor.prueba@sena.edu.co` — rol Instructor, para validar filtrado por rol y sidebar limitado.
 

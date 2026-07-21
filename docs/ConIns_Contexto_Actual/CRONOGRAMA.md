@@ -241,17 +241,22 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 | ✅ 21/07 | **Logica de Negocio v5.6:** RN-15 redefinida (RAP directo, sin herencia), RN-25/26/27 nuevas, tabla asignacion_rap |
 | ✅ 21/07 | `CONINS_contexto_general.md` → v9.6 · `CRONOGRAMA.md` → v4.7 · CHANGELOG entrada 21/07 |
 | ✅ 21/07 | Decisiones adoptadas: RAP directo, CRUD competencias/RAPs, horario-RAP, terminologia GRUPO, etapas con fechas |
-| 🔴 FASE 1 | **P29/P29b:** schema — fecha_fin_productiva, capacidad ambientes, tabla asignacion_rap, rap_id en horarios |
+| ✅ 21/07 | **P34 (backend):** modulo CRUD Competencias y RAPs (RF-25 a RF-28) — competencia.controller/routes, /api/competencias |
+| ✅ 21/07 | **RF-24:** referente de programa via lider_programa (setReferente 1:1) + GET detalle con referente |
+| ✅ 21/07 | **RF-44:** referente de grupo mapeado a fichas.lider_id (sin columna nueva) |
+| ✅ 21/07 | **P29 verificado:** fecha_fin_productiva y capacidad ya existian en schema — sin cambio |
+| ✅ 21/07 | **P32 (Laura):** terminologia GRUPO aplicada en +20 archivos frontend |
+| ✅ 21/07 | tsc --noEmit limpio (exit 0) |
+| 🔴 FASE 1 | **P29b:** schema — tabla asignacion_rap (modelo RAP directo) |
 | 🔴 FASE 1 | **P30/P31:** estados RAP en rap_ficha_seguimiento + bitacora auditoria transversal (RF-59) |
-| 🔴 FASE 2 | **P34:** modulo CRUD Competencias y RAPs (RF-25 a RF-28, RN-25) |
 | 🔴 FASE 2 | **P35:** asignacion explicita de RAP (RF-42, RN-15 redefinida) |
-| 🔴 FASE 2 | **P36:** horario vinculado a RAP + validacion RN-27 |
+| 🔴 FASE 2 | **P36:** horario vinculado a RAP (rap_id) + validacion RN-27 |
 | 🟡 FASE 2 | **P33:** selector de rol activo al login para multi-rol (RF-11) |
-| 🔴 FASE 3 | **P32:** frontend terminologia GRUPO en todas las pantallas |
 | 🟡 FASE 3 | **P28:** fix CrearBloqueHorarioModal (ficha.id → ficha.programa_id) |
+| 🟡 FASE 3 | Frontend: selectores de RAP en asignaciones (RF-42) y horarios (RF-34) — esperan P35/P36 |
 | 🟡 FASE 4 | **P16/P17/P27:** pruebas automatizadas, seguridad, SMTP |
 | 🟡 Pendiente | Eliminar `CONINS_Logica_Negocio_v5_5_1.txt` del repo (superado por v5.6) |
-| 🟡 Pendiente | Commit y push del rework documental |
+| 🟡 Pendiente | Commit y push del rework (docs + backend) |
 
 ---
 
