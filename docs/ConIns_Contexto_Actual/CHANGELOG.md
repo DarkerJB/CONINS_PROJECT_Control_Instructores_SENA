@@ -429,6 +429,69 @@ Durante prueba de navegacion entre modulos del frontend se detectaron y resolvie
 - `CONINS_Logica_Negocio_v5.md` → v5.4: 4 roles Title Case, RN-03 sin tipo_contrato, RN-12 reescrita (lider_programa no es rol), RN-15 RAPs heredados, schema 28 tablas, RF v8.0 en tabla de modulos.
 - `CONINS_contexto_general.md` → v9.5: hitos al 15/07, 4 roles Title Case, 28 tablas, RF v8.0.
 
+**Commits:** `c9402f5` (docs sesion 15/07). La sesion 14/07 quedo en `9d81e82`.
+
+---
+
+### 2026-07-21 — Jair Enrique Gonzalez Buelvas
+
+**Rework por feedback del lider tecnico: RF v10.1 + RNF v1.0 + Logica de Negocio v5.6**
+
+Feedback del lider tecnico (21/07/2026) sobre el modelo de asignacion y la
+gestion de catalogos. Reestructuracion documental completa antes de tocar
+codigo. Todas las decisiones de negocio quedaron adoptadas en documentos;
+la implementacion en backend abre la Fase 1 y 2 (pendientes P29-P36).
+
+**Decisiones de negocio adoptadas:**
+- **RAP directo al instructor:** se revierte la herencia automatica. La
+  asignacion llega hasta el RAP (instructor → grupo → competencia → RAP),
+  con maximo un instructor por RAP en cada grupo. RN-15 redefinida, RN-06
+  reforzada.
+- **CRUD de competencias y RAPs:** dejan de ser solo precarga. Se conserva
+  el seed de Sofia Plus como carga base y se habilita gestion administrativa
+  (RF-25 a RF-28, RN-25 nueva).
+- **Horario vinculado a RAP:** el bloque referencia el RAP que se dicta,
+  validando que pertenezca al programa del grupo (RN-27 nueva).
+- **Etapas del grupo con fechas propias:** RF-18 dedicado + RN-19.
+- **Terminologia GRUPO:** "ficha" pasa a "grupo" en toda la UI. La BD
+  conserva la tabla fichas; traduccion en frontend via terminology (RN-17,
+  RNF-16).
+
+**Documentos reestructurados:**
+- `CONINS_Requisitos_Funcionales_v10_1.txt` — 62 RF en 12 modulos. Nuevo
+  modulo Competencias y RAPs (RF-25 a RF-28). Grupos 5→6 RF (RF-18 etapas).
+  Sintaxis normativa estandar "El sistema debe permitir a [rol]...".
+- `CONINS_Requisitos_No_Funcionales_v1_0.txt` — NUEVO. 24 RNF en 8
+  categorias. Consolida los 16 RNF del ERS v3 + los extraidos de los RF
+  durante el rework (tokens, JWT, HTTP codes, terminologia, triggers).
+- `CONINS_Logica_Negocio_v5_6.txt` — RN-15 redefinida, RN-25/26/27 nuevas,
+  seccion 5 (RAP no heredado), seccion 8 (tabla asignacion_rap, rap_id en
+  horarios, fecha_fin_productiva, capacidad ambientes), resumen RF v10.1.
+  Reemplaza el intermedio v5.5 (basado en RF v9.0, RN-15 contradictoria).
+- `CONINS_contexto_general.md` → v9.6.
+- `CRONOGRAMA.md` → v4.7.
+
+**Pendientes nuevos (rework — Fase 1 y 2):**
+- P29: `fecha_fin_productiva` en fichas + verificar `capacidad` en ambientes.
+- P29b: tabla nueva `asignacion_rap` (modelo RAP directo). Schema 28→29.
+- P30: verificar 3 estados en `rap_ficha_seguimiento` + registro en bitacora.
+- P31: confirmar/implementar bitacora de auditoria transversal (RF-59).
+- P32: frontend terminologia GRUPO en todas las pantallas.
+- P33: selector de rol activo al login para multi-rol (RF-11).
+- P34: modulo CRUD Competencias y RAPs (RF-25 a RF-28).
+- P35: asignacion explicita de RAP (RF-42, RN-15 redefinida).
+- P36: horario vinculado a RAP (`rap_id`) + validacion RN-27.
+
+**Plan de accion (orden sugerido):**
+- FASE 0 (esta sesion): alinear documentacion. HECHO.
+- FASE 1: cambios de schema (P29, P29b, P30, P31).
+- FASE 2: backend nuevo (P34, P35, P36, P33).
+- FASE 3: frontend (P32, P28).
+- FASE 4: pendientes previos (P16, P17, P27).
+
+**Nota:** el intermedio `CONINS_Logica_Negocio_v5_5_1.txt` debe eliminarse
+del repo (superado por v5.6). El sandbox no pudo borrarlo por permisos.
+
 **Commits:** pendiente al cierre de sesion
 
 ---

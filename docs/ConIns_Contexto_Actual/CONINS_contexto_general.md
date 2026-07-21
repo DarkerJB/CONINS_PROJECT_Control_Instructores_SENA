@@ -1,7 +1,7 @@
 # CONINS — Contexto General
 ### Sistema de Control de Instructores · SENA CDMC
-**Versión:** 9.5 · **Fecha:** 15 de Julio 2026
-**Basado en:** RF v8.0 · ERS v3.0 · Lógica de Negocio v5.4 · CRONOGRAMA v4.3 · CHANGELOG al 15/07/2026
+**Versión:** 9.6 · **Fecha:** 21 de Julio 2026
+**Basado en:** RF v10.1 · RNF v1.0 · ERS v3.0 · Lógica de Negocio v5.6 · CRONOGRAMA v4.7 · CHANGELOG al 21/07/2026
 
 ---
 
@@ -14,6 +14,12 @@
 | F3 — Construcción | 19/05 – 06/08/2026 | 🔄 En curso |
 | F4 — Pruebas y ajustes | 10/08 – 28/08/2026 | ⬜ Pendiente |
 | F5 — Documentación y despliegue | 31/08 – 18/09/2026 | ⬜ Pendiente |
+
+**Hitos cerrados al 21/07/2026 (rework por feedback del líder técnico):**
+- **Reestructuración documental a RF v10.1** (62 RF, 12 módulos) + **RNF v1.0** separados en documento propio (24 RNF en 8 categorías). Ver `CONINS_Requisitos_Funcionales_v10_1.txt` y `CONINS_Requisitos_No_Funcionales_v1_0.txt`
+- **Lógica de Negocio v5.6**: RN-15 redefinida (RAP directo, sin herencia), RN-25/26/27 nuevas, tabla `asignacion_rap`, `rap_id` en horarios. Ver `CONINS_Logica_Negocio_v5_6.txt`
+- **Decisiones de negocio adoptadas** (feedback líder técnico): modelo RAP directo al instructor (máx. 1 instructor por RAP en cada grupo), CRUD de competencias y RAPs sobre carga base de Sofía Plus, horario vinculado a RAP, terminología GRUPO (antes ficha), etapas del grupo con fechas propias
+- **Backend pendiente de implementar** el rework: tabla `asignacion_rap` (P29b), `rap_id` en horarios (P36), módulo CRUD competencias/RAPs (P34), asignación explícita de RAP (P35), `fecha_fin_productiva` (P29)
 
 **Hitos cerrados al 15/07/2026:**
 - **Reestructuración completa de RF v8.0** (53 RF, 11 módulos, numeración secuencial sin huecos). Ver `CONINS_Requisitos_Funcionales_v8_0.txt`
@@ -124,11 +130,11 @@
 
 | Término | Significado | Implementación |
 |---|---|---|
-| **Ficha** | Grupo de aprendices. Próximamente "grupo" | `numero_ficha` en BD — etiqueta configurable en frontend |
+| **Grupo (ficha)** | Grupo de aprendices. "Grupo" es el término oficial de UI desde 21/07/2026 | `numero_ficha` en BD — etiqueta traducida en frontend vía terminology (RN-17, RNF-16) |
 | **Programa medular** | Razón de ser del CDMC: calzado, marroquinería, curtición | Coordinado por `coordinador_medular` |
 | **Programa transversal** | Programas de apoyo: ADSO, bilingüismo, diseño | Coordinado por `coordinador_transversal` |
-| **Competencia** | Equivalente a asignatura. Agrupa RAPs | Unidad de asignación |
-| **RAP** | Resultado de Aprendizaje. Se hereda al asignar competencia | Solo para conteo y validación de unicidad |
+| **Competencia** | Equivalente a asignatura. Agrupa RAPs. Carga base Sofía Plus + CRUD admin | Unidad de asignación (RF-25, RN-25) |
+| **RAP** | Resultado de Aprendizaje. Se asigna EXPLÍCITAMENTE al instructor (no heredado desde 21/07/2026) | Asignación directa vía `asignacion_rap` — máx. 1 instructor por RAP por grupo (RN-06, RN-15) |
 | **Ambiente** | Aula o taller físico | Aulas 200–208 · Talleres T1–T4 |
 | **Líder de ficha** | Responsable administrativo del grupo | Campo `es_lider_ficha BOOLEAN` en `asignacion` — NO es rol |
 | **Novedad administrativa** | Ausencia temporal del instructor (licencia, incapacidad, comisión) | Tabla `instructor_novedades` — excluye del sistema mientras vigente |
@@ -237,10 +243,26 @@ Paso 3 en adelante: login normal con correo + contraseña
 | RN-12 | Líder solo asigna dentro de sus programas — no registra provisionales | Hard | ✅ Implementado |
 | RN-13 | Instructor solo asignable a competencias en `instructor_competencias_habilitadas` | Hard | ✅ Implementado |
 | RN-14 | Fichas virtuales — sin asignación ni validación de ambiente físico | Hard | ✅ Implementado |
-| RN-15 | RAPs heredados al asignar competencia — no se asignan individualmente | Hard | ✅ Implementado |
-| RN-16 | Nomenclatura "ficha" configurable en frontend — no hardcodear | Soft | ✅ Implementado |
+| RN-15 | **Asignación explícita de RAP** — se revierte la herencia. El administrador asigna cada RAP al instructor dentro de la competencia (redefinida 21/07/2026) | Hard | ⏳ Pendiente (hoy herencia — P35) |
+| RN-16 | Trazabilidad del cambio de instructor en competencia/RAP activo | Hard | ✅ Implementado |
 
-> **Nota (30/06/2026):** las RN de esta tabla están implementadas, pero RF-37 (más amplio que cualquier RN individual — "verificar que cambios en horarios/jornadas/instructores/ambientes no generen conflictos") solo se cubre completamente en `create()`. En `update()` de horario solo se revalidan RN-04 y RN-09; RN-03 y RN-05 no se recalculan al editar. Ver P23.
+**Reglas nuevas del rework 21/07/2026 (definidas en Lógica de Negocio v5.6, pendientes de implementar):**
+
+| RN | Regla | Tipo | Estado Backend |
+|---|---|---|---|
+| RN-17 | Terminología GRUPO configurable en frontend — no hardcodear "ficha" | Soft | ⏳ Pendiente (P32) |
+| RN-18 | Herencia de rol instructor — un directivo opera bajo un solo rol a la vez, sin sumar permisos | Hard | ⏳ Parcial (P33) |
+| RN-19 | Fechas de las dos etapas del grupo (lectiva + productiva) | Hard | ⏳ Parcial (falta `fecha_fin_productiva` — P29) |
+| RN-20 | Ambiente y jornada únicos del grupo — ambiente editable solo en etapa lectiva | Hard | ⏳ Pendiente |
+| RN-21 | Estados del RAP en seguimiento (pendiente / aprobado / no aprobado) | Hard | ⏳ Verificar (P30) |
+| RN-22 | Estados automáticos por fechas (novedades y bloqueos vencidos) | Auto | ✅ Parcial (triggers RN-08/RN-09) |
+| RN-23 | Integridad total de horarios — toda ocupación pasa por horarios | Hard | ✅ Implementado |
+| RN-24 | Flujos multi-camino equivalentes — mismas validaciones desde cualquier módulo | Hard | ✅ Implementado |
+| RN-25 | Gestión (CRUD) de competencias y RAPs sobre carga base de Sofía Plus | Hard | ⏳ Pendiente (P34) |
+| RN-26 | Estado de asignación del RAP (asignado / disponible) — no deshabilitar RAP con asignación activa | Hard | ⏳ Pendiente |
+| RN-27 | RAP del horario debe pertenecer al programa del grupo | Hard | ⏳ Pendiente (P36) |
+
+> **Nota (30/06/2026):** RF-37 (más amplio que cualquier RN individual — "verificar que cambios en horarios/jornadas/instructores/ambientes no generen conflictos") se cubre completamente en `create()` y en `update()` desde el 06/07/2026 (P23 resuelto: `update()` revalida RN-03, RN-04, RN-05, RN-09).
 
 ---
 
@@ -252,9 +274,11 @@ Paso 3 en adelante: login normal con correo + contraseña
 instructor
   └── asignacion  (instructor_id, ficha_id, es_lider_ficha, es_provisional)
         └── asignacion_competencia  (asignacion_id, competencia_id, ambiente_excepcion_id)
-              └── competencia
-                    └── raps  ← heredados automáticamente
+              └── asignacion_rap  (asignacion_competencia_id, rap_id)  ← NUEVA — asignación explícita (P29b, pendiente)
+                    └── raps
 ```
+
+> **Cambio de modelo (21/07/2026):** la herencia automática de RAPs se reemplaza por asignación explícita vía `asignacion_rap`. Lleva el schema de 28 → 29 tablas una vez implementado. `horarios` sumará `rap_id` (RN-27). `fichas` sumará `fecha_fin_productiva`. Ver P29, P29b, P36 y la Lógica de Negocio v5.6 sección 8.
 
 **Catálogos base (seed — sin CRUD en UI):**
 ```sql
@@ -299,24 +323,25 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 
 ---
 
-## 12. Requisitos Funcionales v8.0 — 53 RF en 11 módulos
+## 12. Requisitos Funcionales v10.1 — 62 RF en 12 módulos
 
 | Módulo | Rango | Total |
 |---|---|---|
-| AUTH — Autenticación y gestión de cuentas | RF-01 al RF-07 | 7 |
-| Instructores | RF-08 al RF-12 | 5 |
-| Fichas | RF-13 al RF-17 | 5 |
-| Programas | RF-18 al RF-19 | 2 |
-| Ambientes | RF-20 al RF-24 | 5 |
-| Horarios | RF-25 al RF-31 | 7 |
-| Asignaciones | RF-32 al RF-36 | 5 |
-| Alertas y Notificaciones | RF-37 al RF-43 | 7 |
-| Consulta y Reportes | RF-44 al RF-47 | 4 |
-| Seguridad y Trazabilidad | RF-48 al RF-51 | 4 |
-| RAP-Seguimiento | RF-52 al RF-53 | 2 |
-| **Total** | | **53** |
+| AUTH — Autenticación y gestión de cuentas | RF-01 al RF-11 | 11 |
+| Instructores | RF-12 al RF-16 | 5 |
+| Grupos (antes Fichas) | RF-17 al RF-22 | 6 |
+| Programas | RF-23 al RF-24 | 2 |
+| Competencias y RAPs | RF-25 al RF-28 | 4 |
+| Ambientes | RF-29 al RF-33 | 5 |
+| Horarios | RF-34 al RF-40 | 7 |
+| Asignaciones | RF-41 al RF-46 | 6 |
+| Alertas y Notificaciones | RF-47 al RF-53 | 7 |
+| Consulta y Reportes | RF-54 al RF-57 | 4 |
+| Seguridad y Trazabilidad | RF-58 al RF-60 | 3 |
+| Seguimiento de RAPs | RF-61 al RF-62 | 2 |
+| **Total** | | **62** |
 
-Ver `CONINS_Requisitos_Funcionales_v8_0.txt` para el texto completo. El archivo v7_0.txt se conserva como historial.
+Ver `CONINS_Requisitos_Funcionales_v10_1.txt` para el texto completo y el mapa de decisiones del feedback del líder técnico. Requisitos no funcionales en `CONINS_Requisitos_No_Funcionales_v1_0.txt` (24 RNF). Los archivos v8_0.txt y v7_0.txt se conservan como historial.
 
 ---
 
@@ -332,7 +357,7 @@ Ver `CONINS_Requisitos_Funcionales_v8_0.txt` para el texto completo. El archivo 
 
 ---
 
-## 14. Pendientes activos (al 15/07/2026)
+## 14. Pendientes activos (al 21/07/2026)
 
 | # | Pendiente | Responsable | Prioridad |
 |---|---|---|---|
@@ -345,8 +370,19 @@ Ver `CONINS_Requisitos_Funcionales_v8_0.txt` para el texto completo. El archivo 
 | P26 | Expansión línea medular (Calzado/Cuero) — usuarios 5, 10, 11, 12 sin rol ni registro instructor hasta completarse | CDMC | 🟢 Baja |
 | P27 | Configurar SMTP_USER y SMTP_PASS en .env para activar recuperación de contraseña y notificaciones por correo | Jair | 🟡 Media |
 | P28 | CrearBloqueHorarioModal usa ficha.id en lugar de ficha.programa_id para cargar competencias dinámicas | Laura | 🟡 Media |
+| **P29** | **Schema: agregar `fecha_fin_productiva` a fichas + verificar `capacidad` en ambientes** | Jair | 🔴 Alta |
+| **P29b** | **Schema: tabla nueva `asignacion_rap` (modelo RAP directo)** | Jair | 🔴 Alta |
+| **P30** | **Verificar 3 estados en `rap_ficha_seguimiento` (pendiente/aprobado/no_aprobado) + registro en bitácora** | Jair | 🔴 Alta |
+| **P31** | **Confirmar/implementar bitácora de auditoría transversal (RF-59, RNF-24 inalterable)** | Jair | 🔴 Alta |
+| **P32** | **Frontend: aplicar terminología GRUPO en todas las pantallas (terminology)** | Laura | 🔴 Alta |
+| **P33** | **Selector de rol activo al login para usuarios multi-rol (RF-11, RN-18)** | Jair + Laura | 🟡 Media |
+| **P34** | **Módulo CRUD Competencias y RAPs (RF-25 a RF-28, RN-25) — hoy solo seed** | Jair | 🔴 Alta |
+| **P35** | **Asignación explícita de RAP (RF-42, RN-15 redefinida) — hoy herencia automática** | Jair | 🔴 Alta |
+| **P36** | **Horario vinculado a RAP (`rap_id` en horarios) + validación RN-27** | Jair | 🔴 Alta |
 
-**Resueltos al 15/07/2026:** P1-P3, P5-P7 (04-19/05/2026) · P14, P15 (09/06/2026) · P21-P25 (06-07/07/2026) · L1-L6, SEED-ADSO (14/07/2026) · database.sql/seed_data.sql tipo_contrato cleanup (15/07/2026)
+**Resueltos al 21/07/2026:** P1-P3, P5-P7 (04-19/05/2026) · P14, P15 (09/06/2026) · P21-P25 (06-07/07/2026) · L1-L6, SEED-ADSO (14/07/2026) · database.sql/seed_data.sql tipo_contrato cleanup (15/07/2026)
+
+> **P29-P36 abren la Fase 1 y 2 del rework 21/07/2026.** Orden sugerido: schema (P29, P29b, P30, P31) → backend nuevo (P34, P35, P36, P33) → frontend (P32, P28). Ver plan de acción en CHANGELOG entrada 21/07/2026.
 
 **Cuenta de prueba (QA, entorno local):** `instructor.prueba@sena.edu.co` — rol Instructor, para validar filtrado por rol y sidebar limitado.
 
@@ -356,12 +392,13 @@ Ver `CONINS_Requisitos_Funcionales_v8_0.txt` para el texto completo. El archivo 
 
 | Archivo | Versión | Descripción |
 |---|---|---|
-| `CONINS_contexto_general.md` | v9.5 | Este documento — contexto completo actualizado |
-| `CONINS_Requisitos_Funcionales_v8_0.txt` | v8.0 | 53 RF en 11 módulos — fuente de verdad vigente |
-| `CONINS_Requisitos_Funcionales_v7_0.txt` | v7.0 | 49 RF — conservado como historial |
-| `CONINS_Logica_Negocio_v5.md` | v5.4 | Reglas de negocio, schema 28 tablas, 4 roles vigentes |
-| `CRONOGRAMA.md` | v4.3 | Fases, fechas y estados |
-| `CHANGELOG.md` | 15/07/2026 | Historial detallado de cambios |
+| `CONINS_contexto_general.md` | v9.6 | Este documento — contexto completo actualizado |
+| `CONINS_Requisitos_Funcionales_v10_1.txt` | v10.1 | 62 RF en 12 módulos — fuente de verdad vigente |
+| `CONINS_Requisitos_No_Funcionales_v1_0.txt` | v1.0 | 24 RNF en 8 categorías — fuente de verdad vigente |
+| `CONINS_Requisitos_Funcionales_v8_0.txt` | v8.0 | 53 RF — conservado como historial |
+| `CONINS_Logica_Negocio_v5_6.txt` | v5.6 | Reglas de negocio (RN-01 a RN-27), schema, modelo RAP directo |
+| `CRONOGRAMA.md` | v4.7 | Fases, fechas y estados |
+| `CHANGELOG.md` | 21/07/2026 | Historial detallado de cambios |
 | `ERS_CONINS_v3.docx` | v3.0 | ERS IEEE 830-1998 — documento original (RF renumerados en v8.0) |
 | `SENA_identidad_visual_resumen_tecnico.md` | — | Paleta, tipografía y logosímbolo SENA 2024 |
 | `.claude/skills/conins-core/` | — | 5 skills del proyecto |
@@ -383,5 +420,5 @@ Ver `CONINS_Requisitos_Funcionales_v8_0.txt` para el texto completo. El archivo 
 
 ---
 
-*CONINS · SENA CDMC · Contexto General v9.5 · 15 de Julio 2026*
+*CONINS · SENA CDMC · Contexto General v9.6 · 21 de Julio 2026*
 *Autores: Jair Enrique González Buelvas · Laura Sofía Posada*

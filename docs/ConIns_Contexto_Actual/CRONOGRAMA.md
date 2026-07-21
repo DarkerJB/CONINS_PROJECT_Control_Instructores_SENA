@@ -231,7 +231,31 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 ## Semana en curso
 
-### Semana del 14/07/2026
+### Semana del 21/07/2026
+**Rework por feedback lider tecnico: RF v10.1 + RNF v1.0 + Logica de Negocio v5.6**
+
+| Prioridad | Tarea |
+|---|---|
+| ✅ 21/07 | **RF v10.1:** 62 RF en 12 modulos. Nuevo modulo Competencias y RAPs (RF-25 a RF-28). Sintaxis normativa estandar |
+| ✅ 21/07 | **RNF v1.0 (NUEVO):** 24 RNF en 8 categorias — separados de los RF |
+| ✅ 21/07 | **Logica de Negocio v5.6:** RN-15 redefinida (RAP directo, sin herencia), RN-25/26/27 nuevas, tabla asignacion_rap |
+| ✅ 21/07 | `CONINS_contexto_general.md` → v9.6 · `CRONOGRAMA.md` → v4.7 · CHANGELOG entrada 21/07 |
+| ✅ 21/07 | Decisiones adoptadas: RAP directo, CRUD competencias/RAPs, horario-RAP, terminologia GRUPO, etapas con fechas |
+| 🔴 FASE 1 | **P29/P29b:** schema — fecha_fin_productiva, capacidad ambientes, tabla asignacion_rap, rap_id en horarios |
+| 🔴 FASE 1 | **P30/P31:** estados RAP en rap_ficha_seguimiento + bitacora auditoria transversal (RF-59) |
+| 🔴 FASE 2 | **P34:** modulo CRUD Competencias y RAPs (RF-25 a RF-28, RN-25) |
+| 🔴 FASE 2 | **P35:** asignacion explicita de RAP (RF-42, RN-15 redefinida) |
+| 🔴 FASE 2 | **P36:** horario vinculado a RAP + validacion RN-27 |
+| 🟡 FASE 2 | **P33:** selector de rol activo al login para multi-rol (RF-11) |
+| 🔴 FASE 3 | **P32:** frontend terminologia GRUPO en todas las pantallas |
+| 🟡 FASE 3 | **P28:** fix CrearBloqueHorarioModal (ficha.id → ficha.programa_id) |
+| 🟡 FASE 4 | **P16/P17/P27:** pruebas automatizadas, seguridad, SMTP |
+| 🟡 Pendiente | Eliminar `CONINS_Logica_Negocio_v5_5_1.txt` del repo (superado por v5.6) |
+| 🟡 Pendiente | Commit y push del rework documental |
+
+---
+
+### Semana del 14/07/2026 (historico)
 **tipo_contrato cleanup (DB + backend) + RF v8.0 + documentacion v5.4/v9.5**
 
 | Prioridad | Tarea |
@@ -323,6 +347,7 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 | Fecha | Cambio |
 |---|---|
+| 21/07/2026 | v4.7 — Rework por feedback lider tecnico. RF v10.1 (62 RF, 12 modulos, nuevo modulo Competencias y RAPs). RNF v1.0 nuevo (24 RNF). Logica de Negocio v5.6 (RN-15 redefinida RAP directo, RN-25/26/27, tabla asignacion_rap). Contexto General v9.6. Decisiones: RAP directo, CRUD competencias/RAPs, horario-RAP, terminologia GRUPO. Pendientes P29-P36 abren Fase 1 y 2. |
 | 15/07/2026 | v4.6 — database.sql + seed_data.sql: tipo_contrato eliminado (DDL, 3 triggers, sp_crear_instructor, 2 views, seed INSERT). RF v8.0: 53 RF en 11 modulos, numeracion secuencial. Logica de Negocio v5.4. Contexto General v9.5. CHANGELOG entradas 14/07 y 15/07. |
 | 14/07/2026 | v4.5b — tipo_contrato eliminado del backend. recuperar/resetear-contrasena + password_reset_tokens. fichas findById ampliado. novedades RF-47 (GET/POST/PATCH). onAlertaCargaHoraria conectado. Frontend Laura: exportPDF fix + api.ts. Seed ADSO 228118: 22 competencias, 79 RAPs reales. |
 | 06/07/2026 | v4.5 — RF v7.0: 4 roles definitivos (lider absorbido), skills v5. Gap items de dev/laura: P22 (filtrado por rol), P23 (update() RN-03/RN-05), P28 (rap-seguimiento), P29 (tipos-actividad), P24 (alias /mis), P21 (ultimo_acceso), database.sql sp_crear_instructor. tsc limpio. |
@@ -338,4 +363,4 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 ---
 
-*CONINS · SENA CDMC · Cronograma v4.6 · 15 de Julio 2026*
+*CONINS · SENA CDMC · Cronograma v4.7 · 21 de Julio 2026*
