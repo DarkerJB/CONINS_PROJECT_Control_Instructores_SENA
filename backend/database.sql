@@ -273,6 +273,27 @@ CREATE TABLE IF NOT EXISTS asignacion_competencia (
 ) ENGINE=InnoDB;
 
 -- ============================================================
+-- 12b. ASIGNACION_RAP (modelo RAP directo — RF-42, RN-15 redefinida 21/07/2026)
+-- Asignacion EXPLICITA de cada RAP al instructor dentro de la competencia.
+-- Reemplaza la herencia automatica. RN-06: un RAP solo puede estar a cargo
+-- de un instructor por grupo (ficha) — se valida en el service via la cadena
+-- asignacion_rap -> asignacion_competencia -> asignacion -> ficha_id.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS asignacion_rap (
+    id                        INT AUTO_INCREMENT PRIMARY KEY,
+    asignacion_competencia_id INT NOT NULL,
+    rap_id                    INT NOT NULL,
+    instructor_anterior_id    INT NULL COMMENT 'Trazabilidad RN-16 al reasignar el RAP',
+    fecha_cambio              DATETIME NULL,
+    activo                    BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at                TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_asignacion_competencia_rap (asignacion_competencia_id, rap_id),
+    FOREIGN KEY (asignacion_competencia_id) REFERENCES asignacion_competencia(id) ON DELETE CASCADE,
+    FOREIGN KEY (rap_id)                    REFERENCES raps(id)                   ON DELETE RESTRICT,
+    FOREIGN KEY (instructor_anterior_id)    REFERENCES instructores(id)           ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ============================================================
 -- 13. RAP_FICHA_SEGUIMIENTO (agregado 01/07/2026)
 -- Ciclo de vida de cada RAP dentro de una ficha específica.
 -- Granularidad: RAP-001 puede estar evaluado mientras RAP-002
@@ -366,6 +387,7 @@ CREATE TABLE IF NOT EXISTS horarios (
     ficha_id      INT NOT NULL,
     instructor_id INT NOT NULL,
     competencia_id INT NOT NULL,
+    rap_id            INT NULL COMMENT 'RF-34 — RAP que se dicta en el bloque; valida RN-27 (RAP dentro del programa del grupo)',
     ambiente_id       INT NULL COMMENT 'NULL para fichas virtuales (RN-14)',
     dia_semana        TINYINT UNSIGNED NOT NULL COMMENT '1=Lunes ... 7=Domingo',
     hora_inicio       TIME NOT NULL,
@@ -380,6 +402,7 @@ CREATE TABLE IF NOT EXISTS horarios (
     FOREIGN KEY (ficha_id)         REFERENCES fichas(id)          ON DELETE CASCADE,
     FOREIGN KEY (instructor_id)    REFERENCES instructores(id)    ON DELETE CASCADE,
     FOREIGN KEY (competencia_id)   REFERENCES competencias(id)    ON DELETE RESTRICT,
+    FOREIGN KEY (rap_id)           REFERENCES raps(id)            ON DELETE SET NULL,
     FOREIGN KEY (ambiente_id)      REFERENCES ambientes(id)       ON DELETE SET NULL,
     FOREIGN KEY (jornada_id)       REFERENCES jornadas(id)        ON DELETE RESTRICT,
     FOREIGN KEY (tipo_actividad_id) REFERENCES tipos_actividad(id) ON DELETE RESTRICT,

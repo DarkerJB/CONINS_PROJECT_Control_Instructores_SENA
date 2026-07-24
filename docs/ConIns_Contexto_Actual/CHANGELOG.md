@@ -547,6 +547,29 @@ Accion: se adopto `conins-frontend` como frontend oficial. Se reemplazo
 `frontend/src` local por el de Laura (mismo patron que F1-F5 del 07/07).
 `tsc --noEmit` del frontend limpio (exit 0). Backend sin cambios.
 
+**AVANCE BACKEND — MODELO RAP DIRECTO (RF-42, RF-34 — desbloquea a Laura):**
+
+- **P29b (schema):** tabla nueva `asignacion_rap` (asignacion_competencia_id,
+  rap_id, trazabilidad, UNIQUE por AC+rap). Columna `rap_id` NULL en `horarios`
+  (FK raps ON DELETE SET NULL). Script de migracion para BD existente:
+  `backend/scripts/migracion_21-07_rap_directo.sql`.
+- **P35/RF-42 (asignacion explicita de RAP):** `asignacion-rap.model.ts` +
+  `asignacion-rap.service.ts`. Endpoints en asignaciones: GET `/:id/raps`,
+  GET `/:id/competencia/:competenciaId/raps`, PUT `/:id/competencia/
+  :competenciaId/raps` (body `{rap_ids}`). Validaciones: RAP pertenece a la
+  competencia; RN-06 (max 1 instructor por RAP por grupo, HTTP 409).
+- **P36/RF-34 (rap en horarios):** `horarios` acepta `rap_id` en POST/PATCH.
+  RN-27 validada en create y update (RAP dentro del programa del grupo, HTTP
+  400). `GET /api/horarios/:id` expone rap_id/rap_codigo/rap_descripcion.
+- Implementacion ADITIVA: coexiste con la herencia legacy sin romper el flujo
+  de asignaciones. Limitacion: dos instructores no pueden compartir la misma
+  competencia en un grupo hasta relajar `hasRapEnFicha` (nuevo pendiente P35b).
+
+tsc --noEmit limpio (exit 0). Nuevos: asignacion-rap.model.ts,
+asignacion-rap.service.ts, scripts/migracion_21-07_rap_directo.sql.
+Modificados: database.sql, asignacion.controller/routes, horario.model/service/
+schema.
+
 **Nota:** el intermedio `CONINS_Logica_Negocio_v5_5_1.txt` debe eliminarse
 del repo (superado por v5.6). El sandbox no pudo borrarlo por permisos.
 
