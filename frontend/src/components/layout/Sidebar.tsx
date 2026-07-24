@@ -12,6 +12,8 @@ import {
   Search,
   UserCog,
   User,
+  Layers,
+  GraduationCap,
 } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
 import { api } from "@/lib/api"
@@ -27,7 +29,9 @@ const MENU_ADMIN: MenuItem[] = [
   { name: "Inicio", href: "/", icon: LayoutDashboard },
   { name: "Instructores", href: "/instructores", icon: Users },
   { name: "Ambientes", href: "/ambientes", icon: Building2 },
-  { name: "Fichas", href: "/fichas", icon: BookOpen },
+  { name: "Programas", href: "/programas", icon: GraduationCap },
+  { name: "Grupos", href: "/fichas", icon: BookOpen },
+  { name: "Competencias", href: "/gestion-competencias", icon: Layers },
   { name: "Asignaciones", href: "/asignaciones", icon: ClipboardList },
   { name: "Horarios", href: "/horarios", icon: Calendar },
   { name: "Alertas", href: "/alertas", icon: Bell, showBadge: true },
@@ -40,7 +44,9 @@ const MENU_SUBDIRECTOR: MenuItem[] = [
   { name: "Inicio", href: "/", icon: LayoutDashboard },
   { name: "Instructores", href: "/instructores", icon: Users },
   { name: "Ambientes", href: "/ambientes", icon: Building2 },
-  { name: "Fichas", href: "/fichas", icon: BookOpen },
+  { name: "Programas", href: "/programas", icon: GraduationCap },
+  { name: "Grupos", href: "/fichas", icon: BookOpen },
+  { name: "Competencias", href: "/gestion-competencias", icon: Layers },
   { name: "Asignaciones", href: "/asignaciones", icon: ClipboardList },
   { name: "Horarios", href: "/horarios", icon: Calendar },
   { name: "Alertas", href: "/alertas", icon: Bell, showBadge: true },
@@ -52,7 +58,7 @@ const MENU_INSTRUCTOR: MenuItem[] = [
   { name: "Inicio", href: "/", icon: LayoutDashboard },
   { name: "Mis Horarios", href: "/horarios", icon: Calendar },
   { name: "Mis Asignaciones", href: "/asignaciones", icon: ClipboardList },
-  { name: "Mis Fichas", href: "/fichas", icon: BookOpen },
+  { name: "Mis Grupos", href: "/fichas", icon: BookOpen },
   { name: "Mis Competencias", href: "/competencias", icon: Users },
   { name: "Alertas", href: "/alertas", icon: Bell, showBadge: true },
   { name: "Mi Perfil", href: "/perfil", icon: User },
@@ -106,7 +112,7 @@ export default function Sidebar({ alertasViewed, isOpen, onClose, rol }: Sidebar
       w-64 bg-white border-r border-gray-200 flex flex-col h-screen fixed left-0 top-0 z-40
       transition-transform duration-300 ease-in-out
       -translate-x-full md:translate-x-0
-      ${isOpen ? "translate-x-0" : ""}
+      ${isOpen ? 'translate-x-0' : ''}
     `}>
       {/* Logo y titulo */}
       <div className="p-6 border-b border-gray-200">
@@ -132,14 +138,14 @@ export default function Sidebar({ alertasViewed, isOpen, onClose, rol }: Sidebar
               onClick={onClose}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                 isActive
-                  ? "bg-sena/10 text-sena"
+                  ? "bg-sena/10 text-sena shadow-sm"
                   : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
               }`}
             >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span className="flex-1">{item.name}</span>
-              {item.showBadge && !alertasViewed && alertasPendientes > 0 && (
-                <span className="ml-auto min-w-[20px] h-5 bg-sena text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+              <Icon className="w-5 h-5" />
+              <span>{item.name}</span>
+              {item.showBadge && alertasPendientes > 0 && !alertasViewed && (
+                <span className="ml-auto bg-sena text-white text-xs font-bold px-2 py-0.5 rounded-full">
                   {alertasPendientes > 99 ? "99+" : alertasPendientes}
                 </span>
               )}
@@ -147,19 +153,6 @@ export default function Sidebar({ alertasViewed, isOpen, onClose, rol }: Sidebar
           )
         })}
       </nav>
-
-      {/* Usuario info */}
-      <div className="p-4 border-t border-gray-200 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-sena/10 flex items-center justify-center">
-            <User className="w-4 h-4 text-sena" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">{user?.nombre || "Usuario"}</p>
-            <p className="text-xs text-gray-500 truncate">{rol}</p>
-          </div>
-        </div>
-      </div>
     </aside>
   )
 }

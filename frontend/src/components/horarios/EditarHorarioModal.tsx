@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { X, Loader2, Clock, User, BookOpen, Hash } from "lucide-react"
 import { api } from "@/lib/api"
+import { useToast } from "@/lib/ToastContext"
 
 type Horario = {
   id: number
@@ -9,6 +10,7 @@ type Horario = {
   competencia: string
   ambiente: string
   jornada: string
+  tipo_actividad?: string | null
   dias: string[]
   horas: string
   estado: string
@@ -18,11 +20,21 @@ type Horario = {
   hora_fin?: string
   jornada_id?: number
   ambiente_id?: number | null
+  tipo_actividad_id?: number | null
 }
 
 type Ambiente = {
   id: number
   nombre: string
+}
+
+type TipoActividad = {
+  id: number
+  nombre: string
+  suma_carga_horaria: boolean
+  requiere_ficha: boolean
+  requiere_ambiente: boolean
+  requiere_competencia: boolean
 }
 
 type EditarHorarioModalProps = {
@@ -49,8 +61,10 @@ const DIAS_SEMANA = [
 ]
 
 export default function EditarHorarioModal({ isOpen, onClose, horario, onSubmit }: EditarHorarioModalProps) {
+  const { showToast } = useToast()
   const [submitting, setSubmitting] = useState(false)
   const [ambientes, setAmbientes] = useState<Ambiente[]>([])
+  const [tiposActividad, setTiposActividad] = useState<TipoActividad[]>([])
   const [loading, setLoading] = useState(false)
   
   // El backend devuelve días como ["Lun", "Mar"], necesitamos mapear a IDs para el formulario
@@ -58,29 +72,29 @@ export default function EditarHorarioModal({ isOpen, onClose, horario, onSubmit 
   // Para simplificar, permitimos cambiar el día y la hora.
   
   const [formData, setFormData] = useState({
-    dia_semana: "",
+    dia_ids: [] as number[],
     hora_inicio: "",
     hora_fin: "",
     jornada_id: "",
     ambiente_id: "",
+    tipo_actividad_id: "",
   })
 
   useEffect(() => {
     if (isOpen && horario) {
       setLoading(true)
-      api.ambientes.getAll()
-        .then((res) => setAmbientes(res.data || []))
-        .finally(() => setLoading(false))
+      Promise.all([
+        api.ambientes.getAll().then((res) => setAmbientes(res.data || [])),
+        api.catalogo.getTiposActividad().then((res) => setTiposActividad(res.data || [])),
+      ]).finally(() => setLoading(false))
 
-      // Intentar parsear datos existentes
-      // El backend devuelve 'dias' como array de strings ["Lun", "Mar"]
-      // Y 'horas' como string "06:00 - 12:00"
-      
-      let diaId = ""
+      // Mapear días del string a IDs
+      const selectedDayIds: number[] = []
       if (horario.dias && horario.dias.length > 0) {
-        const diaNombre = horario.dias[0]
-        const diaObj = DIAS_SEMANA.find(d => d.nombre === diaNombre)
-        if (diaObj) diaId = String(diaObj.id)
+        horario.dias.forEach(diaNombre => {
+          const diaObj = DIAS_SEMANA.find(d => d.nombre === diaNombre)
+          if (diaObj) selectedDayIds.push(diaObj.id)
+        })
       }
 
       let horaInicio = ""
@@ -98,11 +112,12 @@ export default function EditarHorarioModal({ isOpen, onClose, horario, onSubmit 
       if (jornadaObj) jornadaId = String(jornadaObj.id)
 
       setFormData({
-        dia_semana: diaId,
+        dia_ids: selectedDayIds,
         hora_inicio: horaInicio,
         hora_fin: horaFin,
         jornada_id: jornadaId,
         ambiente_id: horario.ambiente_id ? String(horario.ambiente_id) : "",
+        tipo_actividad_id: horario.tipo_actividad_id ? String(horario.tipo_actividad_id) : "",
       })
     }
   }, [isOpen, horario])
@@ -111,19 +126,33 @@ export default function EditarHorarioModal({ isOpen, onClose, horario, onSubmit 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (formData.dia_ids.length === 0) {
+      showToast("Selecciona al menos un día", "error")
+      return
+    }
     setSubmitting(true)
     try {
       const payload = {
-        dia_semana: Number(formData.dia_semana),
+        dia_ids: formData.dia_ids,
         hora_inicio: formData.hora_inicio,
         hora_fin: formData.hora_fin,
         jornada_id: Number(formData.jornada_id),
         ambiente_id: formData.ambiente_id ? Number(formData.ambiente_id) : null,
+        tipo_actividad_id: formData.tipo_actividad_id ? Number(formData.tipo_actividad_id) : null,
       }
       await onSubmit(payload)
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const toggleDay = (diaId: number) => {
+    setFormData(prev => ({
+      ...prev,
+      dia_ids: prev.dia_ids.includes(diaId)
+        ? prev.dia_ids.filter(id => id !== diaId)
+        : [...prev.dia_ids, diaId].sort()
+    }))
   }
 
   const handleChange = (field: string, value: any) => {
@@ -140,7 +169,7 @@ export default function EditarHorarioModal({ isOpen, onClose, horario, onSubmit 
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-5 overflow-y-auto flex-1">
           {/* Info de solo lectura */}
           <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-2">
             <div className="flex items-center gap-2 text-sm text-gray-700">
@@ -149,7 +178,7 @@ export default function EditarHorarioModal({ isOpen, onClose, horario, onSubmit 
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-700">
               <Hash className="w-4 h-4 text-gray-400" />
-              <span>Ficha {horario.ficha_numero}</span>
+              <span>Grupo {horario.ficha_numero}</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-700">
               <BookOpen className="w-4 h-4 text-gray-400" />
@@ -165,15 +194,15 @@ export default function EditarHorarioModal({ isOpen, onClose, horario, onSubmit 
           ) : (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Día de la semana <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Días de la semana <span className="text-red-500">*</span></label>
                 <div className="flex flex-wrap gap-2">
                   {DIAS_SEMANA.map((d) => (
                     <button
                       key={d.id}
                       type="button"
-                      onClick={() => handleChange("dia_semana", String(d.id))}
+                      onClick={() => toggleDay(d.id)}
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
-                        Number(formData.dia_semana) === d.id
+                        formData.dia_ids.includes(d.id)
                           ? "bg-gray-800 text-white border-gray-800"
                           : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
                       }`}
@@ -182,6 +211,9 @@ export default function EditarHorarioModal({ isOpen, onClose, horario, onSubmit 
                     </button>
                   ))}
                 </div>
+                {formData.dia_ids.length === 0 && (
+                  <p className="text-xs text-red-500 mt-1">Selecciona al menos un día</p>
+                )}
               </div>
 
               <div>
@@ -234,9 +266,23 @@ export default function EditarHorarioModal({ isOpen, onClose, horario, onSubmit 
                   onChange={(e) => handleChange("ambiente_id", e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sena/50 bg-white"
                 >
-                  <option value="">Usar ambiente de la ficha</option>
+                  <option value="">Usar ambiente del grupo</option>
                   {ambientes.map((a) => (
                     <option key={a.id} value={a.id}>{a.nombre}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de actividad</label>
+                <select
+                  value={formData.tipo_actividad_id}
+                  onChange={(e) => handleChange("tipo_actividad_id", e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sena/50 bg-white"
+                >
+                  <option value="">Sin clasificar</option>
+                  {tiposActividad.map((t) => (
+                    <option key={t.id} value={t.id}>{t.nombre}</option>
                   ))}
                 </select>
               </div>

@@ -10,7 +10,7 @@ type TipoActividad = {
   requiere_competencia: boolean
 }
 
-type Ficha = { id: number; numero_ficha: string; programa: string }
+type Ficha = { id: number; numero_ficha: string; programa: string; programa_id: number }
 type Ambiente = { id: number; nombre: string; tipo: string }
 type Competencia = { id: number; nombre: string }
 
@@ -47,13 +47,11 @@ export default function CrearBloqueHorarioModal({ isOpen, onClose, onSubmit }: C
         api.catalogo.getTiposActividad(),
         api.fichas.getAll(),
         api.ambientes.getAll(),
-        api.catalogo.getCompetenciasByPrograma(1), // Mock programa_id, ideally fetch all or filter
       ])
-        .then(([tiposRes, fichasRes, ambRes, compRes]) => {
+        .then(([tiposRes, fichasRes, ambRes]) => {
           setTiposActividad(tiposRes.data || [])
           setFichas(fichasRes.data || [])
           setAmbientes(ambRes.data || [])
-          setCompetencias(compRes.data || [])
           
           if (tiposRes.data && tiposRes.data.length > 0) {
             setFormData(prev => ({ ...prev, tipo_actividad_id: tiposRes.data[0].id.toString() }))
@@ -100,6 +98,18 @@ export default function CrearBloqueHorarioModal({ isOpen, onClose, onSubmit }: C
 
   const handleChange = (field: string, value: any) => {
     setFormData({ ...formData, [field]: value })
+
+    // Cargar competencias al seleccionar ficha
+    if (field === "ficha_id" && value) {
+      const ficha = fichas.find(f => f.id.toString() === value)
+      if (ficha && ficha.programa_id) {
+        api.catalogo.getCompetenciasByPrograma(ficha.programa_id)
+          .then(res => setCompetencias(res.data || []))
+          .catch(() => setCompetencias([]))
+      } else {
+        setCompetencias([])
+      }
+    }
   }
 
   return (
@@ -172,14 +182,14 @@ export default function CrearBloqueHorarioModal({ isOpen, onClose, onSubmit }: C
 
             {mostrarFicha && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ficha <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Grupo <span className="text-red-500">*</span></label>
                 <select
                   value={formData.ficha_id}
                   onChange={(e) => handleChange("ficha_id", e.target.value)}
                   required={mostrarFicha}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sena/50 bg-white"
                 >
-                  <option value="">Seleccionar ficha</option>
+                  <option value="">Seleccionar grupo</option>
                   {fichas.map((f) => (
                     <option key={f.id} value={f.id}>{f.numero_ficha} - {f.programa}</option>
                   ))}

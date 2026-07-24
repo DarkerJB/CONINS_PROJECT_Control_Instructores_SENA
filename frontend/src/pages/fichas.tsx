@@ -3,9 +3,12 @@ import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
+import { formatJornada } from "@/lib/terminology"
 import CrearFichaModal from "@/components/fichas/CrearFichaModal"
 import DetailFichaModal from "@/components/fichas/DetailFichaModal"
 import EditFichaModal from "@/components/fichas/EditFichaModal"
+import RapSeguimientoModal from "@/components/fichas/RapSeguimientoModal"
+import NovedadFichaModal from "@/components/fichas/NovedadFichaModal"
 import {
   Search,
   Plus,
@@ -16,6 +19,8 @@ import {
   ChevronRight,
   Loader2,
   AlertTriangle,
+  ClipboardList,
+  FileWarning,
 } from "lucide-react"
 
 type Ficha = {
@@ -28,14 +33,9 @@ type Ficha = {
   instructores_count: number
   estado: string
   activo: boolean
+  instructor_nombre?: string
 }
 
-const MOCK_FICHAS: Ficha[] = [
-  { id: 1, numero_ficha: "2995403", programa: "ADSO", jornada: "Manana", etapa: "lectiva", modalidad: "Presencial", instructores_count: 4, estado: "Activa", activo: true },
-  { id: 2, numero_ficha: "2887341", programa: "Calzado", jornada: "Mixta", etapa: "productiva", modalidad: "Presencial", instructores_count: 2, estado: "Activa", activo: true },
-  { id: 3, numero_ficha: "3012456", programa: "Diseno", jornada: "Noche", etapa: "lectiva", modalidad: "Presencial", instructores_count: 3, estado: "Activa", activo: true },
-  { id: 4, numero_ficha: "2760123", programa: "HUI FORMACION", jornada: "Virtual", etapa: "lectiva", modalidad: "Virtual", instructores_count: 0, estado: "Activa", activo: true },
-]
 
 export default function FichasPage() {
   const { user, loading: authLoading } = useProtectedRoute()
@@ -45,6 +45,8 @@ export default function FichasPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isRapModalOpen, setIsRapModalOpen] = useState(false)
+  const [isNovedadModalOpen, setIsNovedadModalOpen] = useState(false)
   const [selectedFicha, setSelectedFicha] = useState<Ficha | null>(null)
 
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -55,11 +57,16 @@ export default function FichasPage() {
   }>({ isOpen: false, title: "", message: "", onConfirm: () => {} })
 
   const [search, setSearch] = useState("")
+  const [paginaActual, setPaginaActual] = useState(1)
+  const porPagina = 10
   const [filtroPrograma, setFiltroPrograma] = useState("todos")
   const [programas, setProgramas] = useState<{ id: number; nombre: string }[]>([])
   const [filtroJornada, setFiltroJornada] = useState("todas")
   const [filtroEtapa, setFiltroEtapa] = useState("todas")
   const [filtroModalidad, setFiltroModalidad] = useState("todas")
+
+  const rol = user?.roles?.[0]?.trim() || ""
+  const puedeEditar = !["Instructor", "Subdirector"].includes(rol)
 
   useEffect(() => {
     cargarFichas()
@@ -79,10 +86,10 @@ export default function FichasPage() {
     setLoading(true)
     try {
       const res = await api.fichas.getAll()
-      setFichas(res.data)
+      setFichas(res.data || [])
     } catch (err) {
-      console.warn("Backend no disponible, usando datos mock:", err)
-      setFichas(MOCK_FICHAS)
+      console.warn("Error cargando fichas:", err)
+      setFichas([])
     } finally {
       setLoading(false)
     }
@@ -100,6 +107,11 @@ export default function FichasPage() {
     return coincideBusqueda && coincidePrograma && coincideJornada && coincideEtapa && coincideModalidad
   })
 
+  const totalPaginas = Math.ceil(listaFiltrada.length / porPagina)
+  const listaPaginada = listaFiltrada.slice((paginaActual - 1) * porPagina, paginaActual * porPagina)
+
+  useEffect(() => { setPaginaActual(1) }, [search, filtroPrograma, filtroJornada, filtroEtapa, filtroModalidad])
+
   const openDetailModal = (ficha: Ficha) => {
     setSelectedFicha(ficha)
     setIsDetailModalOpen(true)
@@ -110,19 +122,29 @@ export default function FichasPage() {
     setIsEditModalOpen(true)
   }
 
+  const openRapModal = (ficha: Ficha) => {
+    setSelectedFicha(ficha)
+    setIsRapModalOpen(true)
+  }
+
+  const openNovedadModal = (ficha: Ficha) => {
+    setSelectedFicha(ficha)
+    setIsNovedadModalOpen(true)
+  }
+
   const handleFinalizarFicha = (ficha: Ficha) => {
     setConfirmDialog({
       isOpen: true,
-      title: "Finalizar ficha",
-      message: `¿Estas seguro de finalizar la ficha ${ficha.numero_ficha}? No se podran hacer nuevas asignaciones.`,
+      title: "Finalizar grupo",
+      message: `¿Estás seguro de finalizar el grupo ${ficha.numero_ficha}? No se podrán hacer nuevas asignaciones.`,
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false })
         try {
           await api.fichas.finalizar(ficha.id)
-          showToast(`Ficha ${ficha.numero_ficha} finalizada`, "success")
+          showToast(`Grupo ${ficha.numero_ficha} finalizado`, "success")
           cargarFichas()
         } catch (err: any) {
-          showToast(err.message || "Error al finalizar ficha", "error")
+          showToast(err.message || "Error al finalizar grupo", "error")
         }
       },
     })
@@ -132,11 +154,11 @@ export default function FichasPage() {
     if (!selectedFicha) return
     try {
       await api.fichas.update(selectedFicha.id, data)
-      showToast("Ficha actualizada exitosamente", "success")
+      showToast("Grupo actualizado exitosamente", "success")
       setIsEditModalOpen(false)
       cargarFichas()
     } catch (err: any) {
-      showToast(err.message || "Error al actualizar ficha", "error")
+      showToast(err.message || "Error al actualizar grupo", "error")
     }
   }
 
@@ -157,16 +179,18 @@ export default function FichasPage() {
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Fichas</h1>
-            <p className="text-gray-500 text-sm">Gestion de fichas de formacion</p>
+            <h1 className="text-2xl font-bold text-gray-900">Grupos</h1>
+            <p className="text-gray-500 text-sm">{puedeEditar ? "Gestión de grupos de formación" : "Mis grupos asignados"}</p>
           </div>
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-sena hover:bg-sena/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Registrar ficha
-          </button>
+          {puedeEditar && (
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-sena hover:bg-sena/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Registrar grupo
+            </button>
+          )}
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -181,7 +205,7 @@ export default function FichasPage() {
             />
           </div>
 
-          <div className="flex flex-wrap gap-3 w-full md:w-auto">
+          <div className="grid grid-cols-2 gap-3 w-full md:flex md:flex-wrap md:w-auto">
             <select
               value={filtroPrograma}
               onChange={(e) => setFiltroPrograma(e.target.value)}
@@ -199,10 +223,10 @@ export default function FichasPage() {
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sena/50 bg-white"
             >
               <option value="todas">Jornada: Todas</option>
-              <option value="Manana">Manana</option>
-              <option value="Tarde">Tarde</option>
-              <option value="Noche">Noche</option>
-              <option value="Mixta">Mixta</option>
+              <option value="manana">Mañana</option>
+              <option value="mixta">Mixta</option>
+              <option value="noche">Noche</option>
+              <option value="virtual">Virtual</option>
             </select>
 
             <select
@@ -232,79 +256,112 @@ export default function FichasPage() {
           {loading ? (
             <div className="p-12 flex flex-col items-center justify-center text-gray-500">
               <Loader2 className="w-8 h-8 animate-spin text-sena mb-2" />
-              <p>Cargando fichas...</p>
+              <p>Cargando grupos...</p>
             </div>
-          ) : listaFiltrada.length === 0 ? (
+          ) : listaPaginada.length === 0 ? (
             <div className="p-12 text-center text-gray-500">
-              No se encontraron fichas con los filtros seleccionados.
+              No se encontraron grupos con los filtros seleccionados.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
                 <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-4">No. Ficha</th>
-                    <th className="px-6 py-4">Programa</th>
-                    <th className="px-6 py-4">Jornada</th>
-                    <th className="px-6 py-4">Etapa</th>
-                    <th className="px-6 py-4">Modalidad</th>
-                    <th className="px-6 py-4 text-center">Instructores</th>
-                    <th className="px-6 py-4 text-center">Estado</th>
-                    <th className="px-6 py-4 text-center">Acciones</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">No. Grupo</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Programa</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Jornada</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Etapa</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Modalidad</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4 text-center">Instructores</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4 text-center">Estado</th>
+                    {puedeEditar && <th className="px-3 py-3 md:px-6 md:py-4 text-center">Acciones</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {listaFiltrada.map((ficha) => (
+                  {listaPaginada.map((ficha) => (
                     <tr key={ficha.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900">{ficha.numero_ficha}</td>
-                      <td className="px-6 py-4 text-gray-700">{ficha.programa}</td>
-                      <td className="px-6 py-4 text-gray-500">{ficha.jornada}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-3 md:px-6 md:py-4 font-medium text-gray-900">{ficha.numero_ficha}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-gray-700">{ficha.programa}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-gray-500">{formatJornada(ficha.jornada)}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           ficha.etapa === 'lectiva' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                         }`}>
                           {ficha.etapa === 'lectiva' ? 'Lectiva' : 'Productiva'}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-3 md:px-6 md:py-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           ficha.modalidad === 'Presencial' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                         }`}>
                           {ficha.modalidad}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center text-gray-700">{ficha.instructores_count}</td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-center text-gray-700">{ficha.instructores_count}</td>
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-center">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           ficha.estado === 'Activa' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}>
                           {ficha.estado}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => openDetailModal(ficha)}
-                            className="p-1.5 text-gray-400 hover:text-sena hover:bg-sena/10 rounded transition-colors"
-                            title="Ver detalle"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => openEditModal(ficha)}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                            title="Editar"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleFinalizarFicha(ficha)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Finalizar ficha"
-                          >
-                            <Power className="w-4 h-4" />
-                          </button>
-                        </div>
+                      <td className="px-3 py-3 md:px-6 md:py-4 text-center">
+                        {puedeEditar ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => openDetailModal(ficha)}
+                              className="p-1.5 text-gray-400 hover:text-sena hover:bg-sena/10 rounded transition-colors"
+                              title="Ver detalle"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => openRapModal(ficha)}
+                              className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                              title="Seguimiento RAPs"
+                            >
+                              <ClipboardList className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => openNovedadModal(ficha)}
+                              className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                              title="Novedades"
+                            >
+                              <FileWarning className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => openEditModal(ficha)}
+                              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                              title="Editar"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleFinalizarFicha(ficha)}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title="Finalizar grupo"
+                            >
+                              <Power className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => openDetailModal(ficha)}
+                              className="p-1.5 text-gray-400 hover:text-sena hover:bg-sena/10 rounded transition-colors"
+                              title="Ver detalle"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => openRapModal(ficha)}
+                              className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                              title="Seguimiento RAPs"
+                            >
+                              <ClipboardList className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -313,16 +370,32 @@ export default function FichasPage() {
             </div>
           )}
 
-          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
+          <div className="px-3 py-3 md:px-6 md:py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
             <span className="text-sm text-gray-500">
-              Mostrando {listaFiltrada.length} de {fichas.length}
+              Mostrando {(paginaActual - 1) * porPagina + 1}–{Math.min(paginaActual * porPagina, listaFiltrada.length)} de {listaFiltrada.length}
             </span>
             <div className="flex items-center gap-2">
-              <button className="p-1 rounded border border-gray-300 bg-white text-gray-400 cursor-not-allowed" disabled>
+              <button
+                onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
+                disabled={paginaActual === 1}
+                className={`p-1 rounded border border-gray-300 bg-white ${paginaActual === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`}
+              >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <button className="px-3 py-1 rounded bg-sena text-white text-sm font-medium">1</button>
-              <button className="p-1 rounded border border-gray-300 bg-white text-gray-400 cursor-not-allowed" disabled>
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(p => (
+                <button
+                  key={p}
+                  onClick={() => setPaginaActual(p)}
+                  className={`px-3 py-1 rounded text-sm font-medium ${p === paginaActual ? 'bg-sena text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
+                disabled={paginaActual === totalPaginas}
+                className={`p-1 rounded border border-gray-300 bg-white ${paginaActual === totalPaginas ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`}
+              >
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -336,11 +409,11 @@ export default function FichasPage() {
         onSubmit={async (data) => {
           try {
             await api.fichas.create(data)
-            showToast("Ficha registrada exitosamente", "success")
+            showToast("Grupo registrado exitosamente", "success")
             setIsCreateModalOpen(false)
             cargarFichas()
           } catch (err: any) {
-            showToast(err.message || "Error al crear ficha", "error")
+            showToast(err.message || "Error al crear grupo", "error")
           }
         }}
       />
@@ -356,6 +429,22 @@ export default function FichasPage() {
         onClose={() => setIsEditModalOpen(false)}
         ficha={selectedFicha}
         onSubmit={handleEditFicha}
+      />
+
+      <RapSeguimientoModal
+        isOpen={isRapModalOpen}
+        onClose={() => setIsRapModalOpen(false)}
+        fichaId={selectedFicha?.id ?? null}
+        fichaNumero={selectedFicha?.numero_ficha ?? ""}
+        puedeEditar={puedeEditar}
+        onToast={showToast}
+      />
+
+      <NovedadFichaModal
+        isOpen={isNovedadModalOpen}
+        onClose={() => setIsNovedadModalOpen(false)}
+        ficha={selectedFicha}
+        puedeEditar={puedeEditar}
       />
 
       {confirmDialog.isOpen && (

@@ -525,6 +525,28 @@ Pendiente del rework (requiere schema): P29b (asignacion_rap), P35
 (asignacion explicita de RAP), P36 (rap_id en horarios + RN-27), P30, P31,
 P33.
 
+**AJUSTE DE PERMISO (Laura confirmo):** `competencia.routes.ts` cambiado de
+ROLES_ADMIN a ROLES_COORDINACION en la escritura. El Subdirector queda en
+solo lectura para competencias/RAPs (frontend ya lo bloqueaba). Laura
+confirmo ademas que `referente_id` de programa envia id de instructor.
+
+**MIGRACION DE FRONTEND (adopcion de conins-frontend de Laura):**
+
+Comparativa entre `conins-frontend-main/conins-frontend` (rama de Laura,
+integrada con este backend y funcionando) y el `frontend/` local del
+proyecto (congelado desde la migracion del 07/07):
+- Backend de su bundle = identico al nuestro salvo `competencia.routes.ts`
+  (el fix de permisos de arriba). Ella solo consumio el backend, no lo toco.
+- Su frontend = el local MAS el rework: 5 archivos nuevos (gestion-
+  competencias.tsx, programas.tsx, components/competencias/{Crear,Editar,
+  VerRaps}Modal.tsx) + terminologia GRUPO y campos de referente en 33
+  archivos. Su `api.ts` calza exactamente con el backend actual. Deps y
+  configs (tsconfig, next.config, eslint, postcss) identicas.
+
+Accion: se adopto `conins-frontend` como frontend oficial. Se reemplazo
+`frontend/src` local por el de Laura (mismo patron que F1-F5 del 07/07).
+`tsc --noEmit` del frontend limpio (exit 0). Backend sin cambios.
+
 **Nota:** el intermedio `CONINS_Logica_Negocio_v5_5_1.txt` debe eliminarse
 del repo (superado por v5.6). El sandbox no pudo borrarlo por permisos.
 

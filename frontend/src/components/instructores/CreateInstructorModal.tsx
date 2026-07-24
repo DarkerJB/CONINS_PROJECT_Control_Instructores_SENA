@@ -4,7 +4,7 @@ import { X, Loader2 } from "lucide-react"
 type CreateInstructorModalProps = {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: { nombre: string; email: string; tipo_contrato: string; tipo_area: string }) => Promise<void>
+  onSubmit: (data: { nombre: string; email: string; tipo_area: string }) => Promise<void>
 }
 
 export default function CreateInstructorModal({ isOpen, onClose, onSubmit }: CreateInstructorModalProps) {
@@ -12,7 +12,6 @@ export default function CreateInstructorModal({ isOpen, onClose, onSubmit }: Cre
   const [formData, setFormData] = useState({
     nombre: "",
     email: "",
-    tipo_contrato: "contratista",
     tipo_area: "tecnica",
   })
 
@@ -23,7 +22,7 @@ export default function CreateInstructorModal({ isOpen, onClose, onSubmit }: Cre
     setSubmitting(true)
     try {
       await onSubmit(formData)
-      setFormData({ nombre: "", email: "", tipo_contrato: "contratista", tipo_area: "tecnica" })
+      setFormData({ nombre: "", email: "", tipo_area: "tecnica" })
     } finally {
       setSubmitting(false)
     }

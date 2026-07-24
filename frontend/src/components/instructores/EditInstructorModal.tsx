@@ -5,7 +5,6 @@ type Instructor = {
   id: number
   nombre: string
   email: string
-  tipo_contrato: string
   tipo_area: string
   activo: boolean
   roles: string
@@ -25,7 +24,6 @@ export default function EditInstructorModal({ isOpen, onClose, instructor, onSub
   const [formData, setFormData] = useState({
     nombre: "",
     email: "",
-    tipo_contrato: "contratista",
     tipo_area: "tecnica",
   })
 
@@ -34,7 +32,6 @@ export default function EditInstructorModal({ isOpen, onClose, instructor, onSub
       setFormData({
         nombre: instructor.nombre,
         email: instructor.email,
-        tipo_contrato: instructor.tipo_contrato,
         tipo_area: instructor.tipo_area,
       })
     }

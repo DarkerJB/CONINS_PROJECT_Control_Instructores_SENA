@@ -3,6 +3,7 @@ import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
+import { formatJornada } from "@/lib/terminology"
 import { exportarHorariosPDF } from "@/lib/exportPDF"
 import CrearHorarioModal from "@/components/horarios/CrearHorarioModal"
 import CrearBloqueHorarioModal from "@/components/horarios/CrearBloqueHorarioModal"
@@ -60,6 +61,8 @@ export default function HorariosPage() {
   }>({ isOpen: false, title: "", message: "", onConfirm: () => {}, showMotivo: false })
 
   const [search, setSearch] = useState("")
+  const [paginaActual, setPaginaActual] = useState(1)
+  const porPagina = 10
   const [filtroFicha, setFiltroFicha] = useState("todas")
   const [filtroInstructor, setFiltroInstructor] = useState("todos")
   const [filtroJornada, setFiltroJornada] = useState("todas")
@@ -99,6 +102,11 @@ export default function HorariosPage() {
     
     return coincideBusqueda && coincideFicha && coincideInstructor && coincideJornada && coincideEstado
   })
+
+  const totalPaginas = Math.ceil(listaFiltrada.length / porPagina)
+  const listaPaginada = listaFiltrada.slice((paginaActual - 1) * porPagina, paginaActual * porPagina)
+
+  useEffect(() => { setPaginaActual(1) }, [search, filtroFicha, filtroInstructor, filtroJornada, filtroEstado])
 
   const handleCreate = async (data: any) => {
     try {
@@ -285,7 +293,7 @@ export default function HorariosPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por ficha o instructor..."
+              placeholder="Buscar por grupo o instructor..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sena/50 focus:border-sena"
@@ -298,7 +306,7 @@ export default function HorariosPage() {
               onChange={(e) => setFiltroFicha(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sena/50 bg-white"
             >
-              <option value="todas">Ficha: Todas</option>
+              <option value="todas">Grupo: Todos</option>
               {[...new Set(horarios.map((h) => h.ficha_numero))].sort().map((f) => (
                 <option key={f} value={f}>{f}</option>
               ))}
@@ -321,10 +329,10 @@ export default function HorariosPage() {
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sena/50 bg-white"
             >
               <option value="todas">Jornada: Todas</option>
-              <option value="Mañana">Mañana</option>
-              <option value="Mixta">Mixta</option>
-              <option value="Noche">Noche</option>
-              <option value="Virtual">Virtual</option>
+              <option value="manana">Mañana</option>
+              <option value="mixta">Mixta</option>
+              <option value="noche">Noche</option>
+              <option value="virtual">Virtual</option>
             </select>
 
             <select
@@ -349,7 +357,7 @@ export default function HorariosPage() {
               <Loader2 className="w-8 h-8 animate-spin text-sena mb-2" />
               <p>Cargando horarios...</p>
             </div>
-          ) : listaFiltrada.length === 0 ? (
+          ) : listaPaginada.length === 0 ? (
             <div className="p-12 text-center text-gray-500">
               No se encontraron horarios con los filtros seleccionados.
             </div>
@@ -358,7 +366,7 @@ export default function HorariosPage() {
               <table className="w-full text-sm text-left">
                 <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
                   <tr>
-                    <th className="px-3 py-3 md:px-6 md:py-4">Ficha</th>
+                    <th className="px-3 py-3 md:px-6 md:py-4">Grupo</th>
                     <th className="px-3 py-3 md:px-6 md:py-4">Instructor</th>
                     <th className="px-3 py-3 md:px-6 md:py-4">Competencia</th>
                     <th className="px-3 py-3 md:px-6 md:py-4">Ambiente</th>
@@ -371,7 +379,7 @@ export default function HorariosPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {listaFiltrada.map((h) => (
+                  {listaPaginada.map((h) => (
                     <tr key={h.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-3 py-3 md:px-6 md:py-4 font-medium text-gray-900">{h.ficha_numero}</td>
                       <td className="px-3 py-3 md:px-6 md:py-4 text-gray-700">{h.instructor_nombre}</td>
@@ -379,9 +387,9 @@ export default function HorariosPage() {
                       <td className="px-3 py-3 md:px-6 md:py-4 text-gray-500">{h.ambiente}</td>
                       <td className="px-3 py-3 md:px-6 md:py-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          h.jornada === 'Mañana' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                          formatJornada(h.jornada) === 'Mañana' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                         }`}>
-                          {h.jornada}
+                          {formatJornada(h.jornada)}
                         </span>
                       </td>
                       <td className="px-3 py-3 md:px-6 md:py-4 text-gray-500">
@@ -466,14 +474,30 @@ export default function HorariosPage() {
 
           <div className="px-3 py-3 md:px-6 md:py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
             <span className="text-sm text-gray-500">
-              Mostrando {listaFiltrada.length} de {horarios.length}
+              Mostrando {(paginaActual - 1) * porPagina + 1}–{Math.min(paginaActual * porPagina, listaFiltrada.length)} de {listaFiltrada.length}
             </span>
             <div className="flex items-center gap-2">
-              <button className="p-1 rounded border border-gray-300 bg-white text-gray-400 cursor-not-allowed" disabled>
+              <button
+                onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
+                disabled={paginaActual === 1}
+                className={`p-1 rounded border border-gray-300 bg-white ${paginaActual === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`}
+              >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <button className="px-3 py-1 rounded bg-sena text-white text-sm font-medium">1</button>
-              <button className="p-1 rounded border border-gray-300 bg-white text-gray-400 cursor-not-allowed" disabled>
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(p => (
+                <button
+                  key={p}
+                  onClick={() => setPaginaActual(p)}
+                  className={`px-3 py-1 rounded text-sm font-medium ${p === paginaActual ? 'bg-sena text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
+                disabled={paginaActual === totalPaginas}
+                className={`p-1 rounded border border-gray-300 bg-white ${paginaActual === totalPaginas ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`}
+              >
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>

@@ -25,6 +25,15 @@ type Ambiente = {
   nombre: string
 }
 
+type TipoActividad = {
+  id: number
+  nombre: string
+  suma_carga_horaria: boolean
+  requiere_ficha: boolean
+  requiere_ambiente: boolean
+  requiere_competencia: boolean
+}
+
 const JORNADAS = [
   { id: 1, nombre: "Mañana" },
   { id: 2, nombre: "Mixta" },
@@ -46,6 +55,7 @@ export default function CrearHorarioModal({ isOpen, onClose, onSubmit }: CrearHo
   const [submitting, setSubmitting] = useState(false)
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([])
   const [ambientes, setAmbientes] = useState<Ambiente[]>([])
+  const [tiposActividad, setTiposActividad] = useState<TipoActividad[]>([])
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     asignacion_id: "",
@@ -54,6 +64,7 @@ export default function CrearHorarioModal({ isOpen, onClose, onSubmit }: CrearHo
     hora_fin: "",
     jornada_id: "",
     ambiente_id: "",
+    tipo_actividad_id: "",
   })
 
   useEffect(() => {
@@ -62,6 +73,7 @@ export default function CrearHorarioModal({ isOpen, onClose, onSubmit }: CrearHo
       Promise.all([
         api.assignments.getAll().then((res) => setAsignaciones(res.data || [])).catch(() => setAsignaciones([])),
         api.ambientes.getAll().then((res) => setAmbientes(res.data || [])).catch(() => setAmbientes([])),
+        api.catalogo.getTiposActividad().then((res) => setTiposActividad(res.data || [])).catch(() => setTiposActividad([])),
       ]).finally(() => setLoading(false))
     }
   }, [isOpen])
@@ -78,7 +90,7 @@ export default function CrearHorarioModal({ isOpen, onClose, onSubmit }: CrearHo
       const finalAmbienteId = formData.ambiente_id ? Number(formData.ambiente_id) : selected.ambiente_id
 
       if (!finalAmbienteId) {
-        showToast("Esta ficha no tiene un ambiente asignado. Por favor selecciona uno manualmente.", "error")
+        showToast("Este grupo no tiene un ambiente asignado. Por favor selecciona uno manualmente.", "error")
         setSubmitting(false)
         return
       }
@@ -99,6 +111,7 @@ export default function CrearHorarioModal({ isOpen, onClose, onSubmit }: CrearHo
         hora_fin: formData.hora_fin,
         jornada_id: Number(formData.jornada_id),
         ambiente_id: finalAmbienteId,
+        tipo_actividad_id: formData.tipo_actividad_id ? Number(formData.tipo_actividad_id) : null,
       }
       await onSubmit(payload)
       setFormData({
@@ -108,6 +121,7 @@ export default function CrearHorarioModal({ isOpen, onClose, onSubmit }: CrearHo
         hora_fin: "",
         jornada_id: "",
         ambiente_id: "",
+        tipo_actividad_id: "",
       })
     } catch (err: any) {
       showToast(err.message || "Error al registrar horario", "error")
@@ -139,7 +153,7 @@ export default function CrearHorarioModal({ isOpen, onClose, onSubmit }: CrearHo
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-5 overflow-y-auto flex-1">
           {loading ? (
             <div className="flex items-center justify-center py-8 text-gray-500">
               <Loader2 className="w-5 h-5 animate-spin mr-2" />
@@ -158,7 +172,7 @@ export default function CrearHorarioModal({ isOpen, onClose, onSubmit }: CrearHo
                   <option value="">Seleccionar asignación</option>
                   {asignaciones.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.instructor_nombre} — Ficha {a.ficha_numero} — {a.competencia}
+                      {a.instructor_nombre} — Grupo {a.ficha_numero} — {a.competencia}
                     </option>
                   ))}
                 </select>
@@ -173,7 +187,7 @@ export default function CrearHorarioModal({ isOpen, onClose, onSubmit }: CrearHo
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-700">
                     <Hash className="w-4 h-4 text-gray-400" />
-                    <span>Ficha {selectedAsignacion.ficha_numero}</span>
+                    <span>Grupo {selectedAsignacion.ficha_numero}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-700">
                     <BookOpen className="w-4 h-4 text-gray-400" />
@@ -252,11 +266,26 @@ export default function CrearHorarioModal({ isOpen, onClose, onSubmit }: CrearHo
                   onChange={(e) => handleChange("ambiente_id", e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sena/50 bg-white"
                 >
-                  <option value="">Sin asignar (usa el de la ficha)</option>
+                  <option value="">Sin asignar (usa el del grupo)</option>
                   {ambientes.map((a) => (
                     <option key={a.id} value={a.id}>{a.nombre}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de actividad</label>
+                <select
+                  value={formData.tipo_actividad_id}
+                  onChange={(e) => handleChange("tipo_actividad_id", e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sena/50 bg-white"
+                >
+                  <option value="">Sin clasificar</option>
+                  {tiposActividad.map((t) => (
+                    <option key={t.id} value={t.id}>{t.nombre}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Clasifica el tipo de actividad para el cálculo de carga horaria.</p>
               </div>
             </>
           )}

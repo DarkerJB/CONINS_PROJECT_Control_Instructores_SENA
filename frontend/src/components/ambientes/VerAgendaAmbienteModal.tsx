@@ -82,7 +82,7 @@ export default function VerAgendaAmbienteModal({ isOpen, onClose, ambiente }: Ve
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-900">{h.instructor_nombre}</p>
-                        <p className="text-xs text-gray-500">Ficha {h.ficha_numero}</p>
+                        <p className="text-xs text-gray-500">Grupo {h.ficha_numero}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 text-sm font-medium text-gray-700">
@@ -114,10 +114,11 @@ export default function VerAgendaAmbienteModal({ isOpen, onClose, ambiente }: Ve
             </div>
           )}
         </div>
-        <div className="p-4 border-t border-gray-100 shrink-0 flex justify-end">
+
+        <div className="p-4 border-t border-gray-100 flex justify-end shrink-0">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
             Cerrar
           </button>
