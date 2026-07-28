@@ -59,7 +59,7 @@ export const FichaModel = {
     const [rows] = await pool.query<FichaDetail[]>(`
       SELECT f.id, f.numero_ficha, f.programa_id, p.nombre AS programa, j.nombre AS jornada,
              f.etapa, p.modalidad,
-             COUNT(DISTINCT a.id) AS instructores_count,
+             (SELECT COUNT(*) FROM asignacion a WHERE a.ficha_id = f.id AND a.activo = TRUE) AS instructores_count,
              ab.nombre AS ambiente,
              lu.nombre AS lider_nombre,
              f.fecha_inicio_lectiva, f.fecha_fin_lectiva,
@@ -70,8 +70,6 @@ export const FichaModel = {
       JOIN jornadas j ON f.jornada_id = j.id
       LEFT JOIN ambientes ab ON f.ambiente_id = ab.id
       LEFT JOIN usuarios lu ON f.lider_id = lu.id
-      LEFT JOIN asignacion a ON a.ficha_id = f.id AND a.activo = TRUE
-      GROUP BY f.id
       ORDER BY f.numero_ficha
     `);
     return rows;
@@ -81,7 +79,7 @@ export const FichaModel = {
     const [rows] = await pool.query<FichaDetail[]>(`
       SELECT f.id, f.numero_ficha, f.programa_id, p.nombre AS programa, j.nombre AS jornada,
              f.etapa, p.modalidad,
-             COUNT(DISTINCT a_all.id) AS instructores_count,
+             (SELECT COUNT(*) FROM asignacion a_all WHERE a_all.ficha_id = f.id AND a_all.activo = TRUE) AS instructores_count,
              ab.nombre AS ambiente,
              lu.nombre AS lider_nombre,
              f.fecha_inicio_lectiva, f.fecha_fin_lectiva,
@@ -93,7 +91,6 @@ export const FichaModel = {
       LEFT JOIN ambientes ab ON f.ambiente_id = ab.id
       LEFT JOIN usuarios lu ON f.lider_id = lu.id
       JOIN asignacion a ON a.ficha_id = f.id AND a.activo = TRUE AND a.instructor_id = ?
-      LEFT JOIN asignacion a_all ON a_all.ficha_id = f.id AND a_all.activo = TRUE
       GROUP BY f.id
       ORDER BY f.numero_ficha
     `, [instructorId]);
@@ -104,7 +101,7 @@ export const FichaModel = {
     const [rows] = await pool.query<FichaDetail[]>(`
       SELECT f.id, f.numero_ficha, f.programa_id, p.nombre AS programa, j.nombre AS jornada,
              f.etapa, p.modalidad,
-             COUNT(DISTINCT a.id) AS instructores_count,
+             (SELECT COUNT(*) FROM asignacion a WHERE a.ficha_id = f.id AND a.activo = TRUE) AS instructores_count,
              ab.nombre AS ambiente,
              f.sede_id, s.nombre AS sede_nombre,
              f.lider_id, f.lider_id AS referente_id,
@@ -118,11 +115,28 @@ export const FichaModel = {
       LEFT JOIN ambientes ab ON f.ambiente_id = ab.id
       LEFT JOIN sedes s ON f.sede_id = s.id
       LEFT JOIN usuarios lu ON f.lider_id = lu.id
-      LEFT JOIN asignacion a ON a.ficha_id = f.id AND a.activo = TRUE
       WHERE f.id = ?
-      GROUP BY f.id
     `, [id]);
     return rows[0] ?? null;
+  },
+
+  // Instructores asignados (activos) de una ficha, con sus competencias.
+  async findInstructoresByFicha(fichaId: number): Promise<RowDataPacket[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT a.id AS asignacion_id, a.instructor_id, u.nombre AS instructor_nombre,
+              a.es_lider_ficha AS es_lider, a.es_provisional,
+              GROUP_CONCAT(DISTINCT c.nombre ORDER BY c.nombre SEPARATOR ', ') AS competencias
+       FROM asignacion a
+       JOIN instructores i ON a.instructor_id = i.id
+       JOIN usuarios u ON i.usuario_id = u.id
+       LEFT JOIN asignacion_competencia ac ON ac.asignacion_id = a.id AND ac.activo = TRUE
+       LEFT JOIN competencias c ON ac.competencia_id = c.id
+       WHERE a.ficha_id = ? AND a.activo = TRUE
+       GROUP BY a.id
+       ORDER BY u.nombre`,
+      [fichaId],
+    );
+    return rows;
   },
 
   async findByNumero(numeroFicha: string): Promise<FichaRecord | null> {
