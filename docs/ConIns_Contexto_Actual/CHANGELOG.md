@@ -433,6 +433,51 @@ Durante prueba de navegacion entre modulos del frontend se detectaron y resolvie
 
 ---
 
+### 2026-07-28 — Jair Enrique Gonzalez Buelvas
+
+**Pendientes de backend del reporte de frontend de Laura (28/07)**
+
+Laura reporto el frontend avanzado (wizard de asignaciones de 3 pasos,
+selectores de RAP en asignaciones/horarios, sidebar reestructurado con
+Asignaciones como eje, accesos directos en tablas, gestion de competencias
+del instructor, filtro de instructores historicos). Confirmo integracion OK
+salvo 3 pendientes de backend, ahora resueltos:
+
+- **3.2 instructores_count = 0 (GET /fichas):** `ficha.model` findAll/findById/
+  findAllByInstructorId — el COUNT via LEFT JOIN + GROUP BY devolvia 0. Se
+  reescribio como subconsulta correlacionada
+  `(SELECT COUNT(*) FROM asignacion a WHERE a.ficha_id = f.id AND a.activo = TRUE)`
+  y se elimino el GROUP BY (tambien elimina riesgo ONLY_FULL_GROUP_BY).
+- **3.3 instructores en GET /fichas/:id:** nuevo `FichaModel.findInstructoresByFicha`
+  (instructor_nombre, es_lider, es_provisional, competencias via GROUP_CONCAT).
+  `ficha.service.getById` ahora devuelve `{ ...ficha, instructores: [...] }`.
+  Laura puede quitar el workaround de segunda llamada a /asignaciones.
+- **3.1 jornada en asignacion (Opcion A):** columna `jornada_id INT NULL` en
+  `asignacion` (FK jornadas, ON DELETE SET NULL) — "jornada preferente" de la
+  asignacion; NULL usa la del grupo. Aceptada en schema/model/service de crear
+  asignacion. NO destructiva (no muta la jornada del grupo, opcion B descartada).
+  OJO: choca conceptualmente con RN-20 (grupo = una sola jornada) — se dejo
+  informativa y se marca para confirmar con el lider si debe ser autoritativa.
+
+- **3.4 tildes en datos:** es tema de datos (no codigo). Se corrige con UPDATE
+  directo o al recargar el seed. Pendiente menor.
+
+Script de actualizacion Laragon `actualizacion_laragon_24-07.sql` ampliado con
+`asignacion.jornada_id`. tsc --noEmit limpio (exit 0). Schema sigue en 31 tablas
+(jornada_id es columna, no tabla).
+
+**MIGRACION FRONTEND (28/07):** comparado el `conins-frontend` de Laura contra el
+`frontend/` del proyecto: mismos archivos, 13 difieren (wizard asignaciones,
+sidebar reestructurado con Asignaciones como eje, selectores de RAP, accesos
+directos, gestion de competencias del instructor). Verificado que TODAS las rutas
+de su `api.ts` existen en el backend (RAP endpoints, jornada_id incluidos) — sin
+llamadas rotas. Se adopto su frontend: `frontend/src` reemplazado por el suyo
+(configs y deps identicas). tsc frontend limpio (exit 0). Nota: el backend que
+venia en su ZIP estaba viejo (sin sedes/historico/jornada) — se conserva el
+backend del proyecto. Reporte `Reporte_Final_Integracion_para_Laura_28-07.md`.
+
+---
+
 ### 2026-07-24 — Jair Enrique Gonzalez Buelvas
 
 **Feedback 2 del lider tecnico: sedes + historico de instructores (schema 29 → 31 tablas)**

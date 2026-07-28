@@ -276,6 +276,7 @@ CREATE TABLE IF NOT EXISTS asignacion (
     id                  INT AUTO_INCREMENT PRIMARY KEY,
     instructor_id       INT NOT NULL,
     ficha_id            INT NOT NULL,
+    jornada_id          INT NULL COMMENT 'Jornada preferente de la asignacion (28/07/2026). NULL = usa la del grupo.',
     es_lider_ficha      BOOLEAN NOT NULL DEFAULT FALSE,
     es_provisional      BOOLEAN NOT NULL DEFAULT FALSE,
     autorizado_por_id   INT NULL,
@@ -286,6 +287,7 @@ CREATE TABLE IF NOT EXISTS asignacion (
     UNIQUE KEY uq_instructor_ficha (instructor_id, ficha_id),
     FOREIGN KEY (instructor_id)     REFERENCES instructores(id) ON DELETE RESTRICT,
     FOREIGN KEY (ficha_id)          REFERENCES fichas(id)       ON DELETE CASCADE,
+    FOREIGN KEY (jornada_id)        REFERENCES jornadas(id)     ON DELETE SET NULL,
     FOREIGN KEY (autorizado_por_id) REFERENCES usuarios(id)     ON DELETE SET NULL
 ) ENGINE=InnoDB;
 

@@ -106,6 +106,21 @@ SET @sql := IF(@x = 0,
   'SELECT ''fk_fichas_sede ya existe''');
 PREPARE s FROM @sql; EXECUTE s; DEALLOCATE PREPARE s;
 
+-- asignacion.jornada_id (feedback Laura 28/07 — jornada preferente de la asignacion)
+SET @x := (SELECT COUNT(*) FROM information_schema.COLUMNS
+           WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'asignacion' AND COLUMN_NAME = 'jornada_id');
+SET @sql := IF(@x = 0,
+  'ALTER TABLE asignacion ADD COLUMN jornada_id INT NULL AFTER ficha_id',
+  'SELECT ''asignacion.jornada_id ya existe''');
+PREPARE s FROM @sql; EXECUTE s; DEALLOCATE PREPARE s;
+
+SET @x := (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+           WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'asignacion' AND CONSTRAINT_NAME = 'fk_asignacion_jornada');
+SET @sql := IF(@x = 0,
+  'ALTER TABLE asignacion ADD CONSTRAINT fk_asignacion_jornada FOREIGN KEY (jornada_id) REFERENCES jornadas(id) ON DELETE SET NULL',
+  'SELECT ''fk_asignacion_jornada ya existe''');
+PREPARE s FROM @sql; EXECUTE s; DEALLOCATE PREPARE s;
+
 -- ------------------------------------------------------------
 -- 5. (Opcional) asignar todo lo existente a la sede principal
 -- Descomenta si quieres que ambientes/grupos actuales queden en la sede 1.
