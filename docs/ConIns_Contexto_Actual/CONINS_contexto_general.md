@@ -243,42 +243,42 @@ Paso 3 en adelante: login normal con correo + contraseña
 | RN-12 | Líder solo asigna dentro de sus programas — no registra provisionales | Hard | ✅ Implementado |
 | RN-13 | Instructor solo asignable a competencias en `instructor_competencias_habilitadas` | Hard | ✅ Implementado |
 | RN-14 | Fichas virtuales — sin asignación ni validación de ambiente físico | Hard | ✅ Implementado |
-| RN-15 | **Asignación explícita de RAP** — se revierte la herencia. El administrador asigna cada RAP al instructor dentro de la competencia (redefinida 21/07/2026) | Hard | ⏳ Pendiente (hoy herencia — P35) |
+| RN-15 | **Asignación explícita de RAP** — se revierte la herencia. El administrador asigna cada RAP al instructor dentro de la competencia (redefinida 21/07/2026) | Hard | ✅ Implementado aditivo (P35, tabla asignacion_rap + RF-42; coexiste con herencia legacy — ver P35b) |
 | RN-16 | Trazabilidad del cambio de instructor en competencia/RAP activo | Hard | ✅ Implementado |
 
-**Reglas nuevas del rework 21/07/2026 (definidas en Lógica de Negocio v5.6, pendientes de implementar):**
+**Reglas nuevas del rework 21/07/2026 (definidas en Lógica de Negocio v5.6):**
 
 | RN | Regla | Tipo | Estado Backend |
 |---|---|---|---|
-| RN-17 | Terminología GRUPO configurable en frontend — no hardcodear "ficha" | Soft | ⏳ Pendiente (P32) |
+| RN-17 | Terminología GRUPO configurable en frontend — no hardcodear "ficha" | Soft | ✅ Implementado (P32, frontend Laura) |
 | RN-18 | Herencia de rol instructor — un directivo opera bajo un solo rol a la vez, sin sumar permisos | Hard | ⏳ Parcial (P33) |
-| RN-19 | Fechas de las dos etapas del grupo (lectiva + productiva) | Hard | ⏳ Parcial (falta `fecha_fin_productiva` — P29) |
+| RN-19 | Fechas de las dos etapas del grupo (lectiva + productiva) | Hard | ✅ Implementado (`fecha_fin_productiva` ya existía) |
 | RN-20 | Ambiente y jornada únicos del grupo — ambiente editable solo en etapa lectiva | Hard | ⏳ Pendiente |
 | RN-21 | Estados del RAP en seguimiento (pendiente / aprobado / no aprobado) | Hard | ⏳ Verificar (P30) |
 | RN-22 | Estados automáticos por fechas (novedades y bloqueos vencidos) | Auto | ✅ Parcial (triggers RN-08/RN-09) |
 | RN-23 | Integridad total de horarios — toda ocupación pasa por horarios | Hard | ✅ Implementado |
 | RN-24 | Flujos multi-camino equivalentes — mismas validaciones desde cualquier módulo | Hard | ✅ Implementado |
-| RN-25 | Gestión (CRUD) de competencias y RAPs sobre carga base de Sofía Plus | Hard | ⏳ Pendiente (P34) |
-| RN-26 | Estado de asignación del RAP (asignado / disponible) — no deshabilitar RAP con asignación activa | Hard | ⏳ Pendiente |
-| RN-27 | RAP del horario debe pertenecer al programa del grupo | Hard | ⏳ Pendiente (P36) |
+| RN-25 | Gestión (CRUD) de competencias y RAPs sobre carga base de Sofía Plus | Hard | ✅ Implementado (P34) |
+| RN-26 | Estado de asignación del RAP (asignado / disponible) — no deshabilitar RAP con asignación activa | Hard | ✅ Parcial (asignacion_rap; falta bloquear deshabilitar con asignación activa) |
+| RN-27 | RAP del horario debe pertenecer al programa del grupo | Hard | ✅ Implementado (P36, create y update) |
 
 > **Nota (30/06/2026):** RF-37 (más amplio que cualquier RN individual — "verificar que cambios en horarios/jornadas/instructores/ambientes no generen conflictos") se cubre completamente en `create()` y en `update()` desde el 06/07/2026 (P23 resuelto: `update()` revalida RN-03, RN-04, RN-05, RN-09).
 
 ---
 
-## 11. Modelo de datos — schema v5 (28 tablas — verificado 15/07/2026)
+## 11. Modelo de datos — schema v5 (31 tablas — verificado 24/07/2026)
 
-> **Historial de conteo:** 25 tablas (30/06/2026, corrección de error) → 27 tablas (06/07/2026, +tipos_actividad +rap_ficha_seguimiento) → 28 tablas (15/07/2026, +password_reset_tokens). La columna `tipo_contrato` fue eliminada de `instructores` el 14/07/2026. Lista completa de las 28: `jornadas, roles, areas, usuarios, usuario_roles, instructores, programas, competencias, raps, ambientes, fichas, asignacion, asignacion_competencia, lider_programa, instructor_competencias_habilitadas, horarios, alertas, tipos_novedad_instructor, instructor_novedades, ambiente_bloqueos, tipos_novedad_ambiente, tipos_novedad_ficha, ficha_novedades, notificaciones, auditoria, tipos_actividad, rap_ficha_seguimiento, password_reset_tokens`.
+> **Historial de conteo:** 25 (30/06) → 27 (06/07) → 28 (15/07, +password_reset_tokens) → 29 (21/07, +asignacion_rap) → 31 (24/07, +sedes +instructor_historico). Columnas nuevas: `horarios.rap_id` (21/07), `ambientes.sede_id` y `fichas.sede_id` (24/07). Lista completa de las 31: `sedes, jornadas, roles, areas, usuarios, usuario_roles, instructores, instructor_historico, programas, competencias, raps, ambientes, fichas, asignacion, asignacion_competencia, asignacion_rap, lider_programa, instructor_competencias_habilitadas, horarios, alertas, tipos_novedad_instructor, instructor_novedades, ambiente_bloqueos, tipos_novedad_ambiente, tipos_novedad_ficha, ficha_novedades, notificaciones, auditoria, tipos_actividad, rap_ficha_seguimiento, password_reset_tokens`.
 
 ```
 instructor
   └── asignacion  (instructor_id, ficha_id, es_lider_ficha, es_provisional)
         └── asignacion_competencia  (asignacion_id, competencia_id, ambiente_excepcion_id)
-              └── asignacion_rap  (asignacion_competencia_id, rap_id)  ← NUEVA — asignación explícita (P29b, pendiente)
+              └── asignacion_rap  (asignacion_competencia_id, rap_id)  ← NUEVA — asignación explícita (P29b, implementado 21/07)
                     └── raps
 ```
 
-> **Cambio de modelo (21/07/2026):** la herencia automática de RAPs se reemplaza por asignación explícita vía `asignacion_rap`. Lleva el schema de 28 → 29 tablas una vez implementado. `horarios` sumará `rap_id` (RN-27). `fichas` sumará `fecha_fin_productiva`. Ver P29, P29b, P36 y la Lógica de Negocio v5.6 sección 8.
+> **Cambio de modelo (21/07/2026, implementado):** la herencia automática de RAPs se reemplaza por asignación explícita vía `asignacion_rap` (tabla nueva — schema 28 → 29 tablas). `horarios` ya tiene `rap_id` (RN-27) y `fichas` ya tenía `fecha_fin_productiva`. Implementación aditiva: coexiste con la herencia legacy (ver P35b). Ver P29b, P35, P36 y la Lógica de Negocio v5.6 sección 8.
 
 **Catálogos base (seed — sin CRUD en UI):**
 ```sql

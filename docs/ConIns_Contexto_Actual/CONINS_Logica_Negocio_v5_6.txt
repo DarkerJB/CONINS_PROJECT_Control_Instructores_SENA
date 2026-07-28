@@ -346,23 +346,27 @@ Novedades y bloqueos:
 
 Asignaciones:
    asignacion, asignacion_competencia
-   asignacion_rap  ← NUEVA (pendiente de implementar, P29b)
+   asignacion_rap  ← NUEVA (implementada 21/07/2026, P29b) — 29 tablas
 
 Horarios, alertas, notificaciones y seguimiento:
    horarios (con estado, motivo_rechazo, motivo_suspension,
-   tipo_actividad_id, rap_id ← pendiente), alertas, notificaciones,
+   tipo_actividad_id, rap_id — agregado 21/07/2026), alertas, notificaciones,
    rap_ficha_seguimiento, auditoria
 
-CAMBIOS DE SCHEMA PENDIENTES POR EL REWORK 21/07/2026 (ver sección 11):
-   - asignacion_rap: tabla nueva (instructor_id → rap dentro de la
-     competencia). Lleva el schema de 28 → 29 tablas.
-   - horarios: agregar rap_id FK + validación RN-27.
-   - fichas: agregar fecha_fin_productiva (hoy existen fecha_inicio,
-     fecha_fin, fecha_inicio_productiva).
-   - ambientes: verificar/agregar columna capacidad (máximo de personas).
+ESTADO DE LOS CAMBIOS DE SCHEMA DEL REWORK 21/07/2026:
+   - asignacion_rap: IMPLEMENTADA. Tabla nueva (asignacion_competencia_id,
+     rap_id). Schema en 29 tablas. Validaciones RF-42 y RN-06 en el service.
+   - horarios.rap_id: IMPLEMENTADO. Columna FK + validación RN-27 en
+     create/update.
+   - fichas.fecha_fin_productiva: YA EXISTÍA (verificado 21/07/2026).
+   - ambientes.capacidad: YA EXISTÍA (verificado 21/07/2026).
+   - Implementación ADITIVA: coexiste con la herencia legacy. Para repartir
+     RAPs de una competencia entre dos instructores hace falta relajar la
+     guarda hasRapEnFicha (pendiente P35b).
+   PENDIENTES:
    - rap_ficha_seguimiento: verificar que estado soporte los tres valores
-     (pendiente, aprobado, no_aprobado) y registro en bitácora.
-   - auditoria: confirmar bitácora transversal (RF-59, RNF-24 inalterable).
+     (pendiente, aprobado, no_aprobado) y registro en bitácora (P30).
+   - auditoria: confirmar bitácora transversal (RF-59, RNF-24 inalterable) (P31).
 
 ========================================================================================
 

@@ -433,6 +433,39 @@ Durante prueba de navegacion entre modulos del frontend se detectaron y resolvie
 
 ---
 
+### 2026-07-24 — Jair Enrique Gonzalez Buelvas
+
+**Feedback 2 del lider tecnico: sedes + historico de instructores (schema 29 → 31 tablas)**
+
+Analisis de viabilidad del segundo feedback. La mayoria confirma logica ya
+implementada; se implementaron los dos cambios de datos aprobados por Jair:
+
+- **SEDES (nuevo):** tabla `sedes` (nombre, direccion, es_principal, activo) +
+  seed "CDMC Itagui (Principal)". Columna `sede_id` NULL FK en `ambientes` y
+  `fichas`. Backend: modulo `sede.controller`/`sede.routes` (GET/POST/PATCH/
+  estado) en `/api/sedes`. ambientes y fichas aceptan y exponen `sede_id`;
+  ficha `findById` expone `sede_nombre`.
+- **INSTRUCTOR_HISTORICO (nuevo):** tabla `instructor_historico` (snapshot
+  nombre/documento/tipo_area + fecha_ingreso/salida + motivo + registrado_por;
+  FK instructor_id ON DELETE SET NULL). Endpoints: `GET /api/instructores/
+  historico`, `POST /api/instructores/:id/baja` (registra el historico y hace
+  soft-delete del instructor, conservando sus asignaciones). Model
+  `instructor-historico.model.ts` con transaccion.
+
+Script de migracion para BD existente:
+`backend/scripts/migracion_24-07_sedes_historico.sql`.
+
+tsc --noEmit limpio (exit 0). Schema 29 → 31 tablas.
+
+Analisis del resto del feedback (viabilidad, sin implementar aun): PostgreSQL
+(P20, diferido), carga via Excel (importador xlsx, medio), notificacion por
+correo al asignar (RF-47 + SMTP P27), cursos complementarios (ya existe
+tipo_formacion='complementaria', falta exponer en form), reestructura del
+sidebar (Asignaciones como eje — frontend, para Laura), seguridad P17.
+Se genero `Reporte_Necesidades_Frontend_para_Laura.md`.
+
+---
+
 ### 2026-07-21 — Jair Enrique Gonzalez Buelvas
 
 **Rework por feedback del lider tecnico: RF v10.1 + RNF v1.0 + Logica de Negocio v5.6**

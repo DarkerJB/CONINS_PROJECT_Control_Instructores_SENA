@@ -246,17 +246,17 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 | ✅ 21/07 | **RF-44:** referente de grupo mapeado a fichas.lider_id (sin columna nueva) |
 | ✅ 21/07 | **P29 verificado:** fecha_fin_productiva y capacidad ya existian en schema — sin cambio |
 | ✅ 21/07 | **P32 (Laura):** terminologia GRUPO aplicada en +20 archivos frontend |
-| ✅ 21/07 | tsc --noEmit limpio (exit 0) |
-| 🔴 FASE 1 | **P29b:** schema — tabla asignacion_rap (modelo RAP directo) |
+| ✅ 21/07 | **Migracion frontend:** conins-frontend de Laura adoptado como oficial (reemplaza frontend/src) |
+| ✅ 21/07 | **P29b (schema):** tabla asignacion_rap + rap_id en horarios + script de migracion |
+| ✅ 21/07 | **P35/RF-42:** asignacion explicita de RAP (asignacion-rap model/service, endpoints, RN-06) |
+| ✅ 21/07 | **P36/RF-34:** rap_id en horarios (POST/PATCH) + validacion RN-27 + detalle expone RAP |
+| ✅ 21/07 | tsc --noEmit limpio (backend y frontend, exit 0) |
 | 🔴 FASE 1 | **P30/P31:** estados RAP en rap_ficha_seguimiento + bitacora auditoria transversal (RF-59) |
-| 🔴 FASE 2 | **P35:** asignacion explicita de RAP (RF-42, RN-15 redefinida) |
-| 🔴 FASE 2 | **P36:** horario vinculado a RAP (rap_id) + validacion RN-27 |
 | 🟡 FASE 2 | **P33:** selector de rol activo al login para multi-rol (RF-11) |
+| 🟡 FASE 2 | **P35b:** relajar guarda hasRapEnFicha para repartir RAPs entre 2 instructores en misma competencia |
 | 🟡 FASE 3 | **P28:** fix CrearBloqueHorarioModal (ficha.id → ficha.programa_id) |
-| 🟡 FASE 3 | Frontend: selectores de RAP en asignaciones (RF-42) y horarios (RF-34) — esperan P35/P36 |
+| 🟡 FASE 3 | Frontend: conectar selectores de RAP en asignaciones (RF-42) y horarios (RF-34) — endpoints ya listos |
 | 🟡 FASE 4 | **P16/P17/P27:** pruebas automatizadas, seguridad, SMTP |
-| 🟡 Pendiente | Eliminar `CONINS_Logica_Negocio_v5_5_1.txt` del repo (superado por v5.6) |
-| 🟡 Pendiente | Commit y push del rework (docs + backend) |
 
 ---
 
@@ -352,7 +352,7 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 | Fecha | Cambio |
 |---|---|
-| 21/07/2026 | v4.7 — Rework por feedback lider tecnico. RF v10.1 (62 RF, 12 modulos, nuevo modulo Competencias y RAPs). RNF v1.0 nuevo (24 RNF). Logica de Negocio v5.6 (RN-15 redefinida RAP directo, RN-25/26/27, tabla asignacion_rap). Contexto General v9.6. Decisiones: RAP directo, CRUD competencias/RAPs, horario-RAP, terminologia GRUPO. Pendientes P29-P36 abren Fase 1 y 2. |
+| 21/07/2026 | v4.7 — Rework por feedback lider tecnico. RF v10.1 (62 RF, 12 modulos). RNF v1.0 (24 RNF). Logica de Negocio v5.6 (RN-15 redefinida, RN-25/26/27, tabla asignacion_rap). Contexto General v9.6. IMPLEMENTADO mismo dia: P34 (CRUD competencias/RAPs), RF-24/RF-44 (referentes), migracion frontend Laura, P29b+P35+P36 (modelo RAP directo: asignacion_rap, RF-42 con RN-06, RF-34 con RN-27). Pendientes: P30/P31, P33, P35b. |
 | 15/07/2026 | v4.6 — database.sql + seed_data.sql: tipo_contrato eliminado (DDL, 3 triggers, sp_crear_instructor, 2 views, seed INSERT). RF v8.0: 53 RF en 11 modulos, numeracion secuencial. Logica de Negocio v5.4. Contexto General v9.5. CHANGELOG entradas 14/07 y 15/07. |
 | 14/07/2026 | v4.5b — tipo_contrato eliminado del backend. recuperar/resetear-contrasena + password_reset_tokens. fichas findById ampliado. novedades RF-47 (GET/POST/PATCH). onAlertaCargaHoraria conectado. Frontend Laura: exportPDF fix + api.ts. Seed ADSO 228118: 22 competencias, 79 RAPs reales. |
 | 06/07/2026 | v4.5 — RF v7.0: 4 roles definitivos (lider absorbido), skills v5. Gap items de dev/laura: P22 (filtrado por rol), P23 (update() RN-03/RN-05), P28 (rap-seguimiento), P29 (tipos-actividad), P24 (alias /mis), P21 (ultimo_acceso), database.sql sp_crear_instructor. tsc limpio. |

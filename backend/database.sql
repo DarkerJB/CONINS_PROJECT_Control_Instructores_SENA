@@ -46,6 +46,21 @@ CREATE TABLE IF NOT EXISTS roles (
 -- para que TRUNCATE no falle en importacion sobre BD vacia (ver linea ~106).
 
 -- ============================================================
+-- 2b. SEDES (24/07/2026 — el CDMC tiene sedes que dependen de el)
+-- Ambientes y grupos pertenecen a una sede.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS sedes (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    nombre       VARCHAR(100) NOT NULL,
+    direccion    VARCHAR(200) NULL,
+    es_principal BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'TRUE = sede central CDMC',
+    activo       BOOLEAN NOT NULL DEFAULT TRUE
+) ENGINE=InnoDB;
+
+INSERT IGNORE INTO sedes (id, nombre, direccion, es_principal) VALUES
+(1, 'CDMC Itagüí (Principal)', NULL, TRUE);
+
+-- ============================================================
 -- 3. ÁREAS
 -- Un área puede tener subtipo (ej. Técnico Operario Medular).
 -- ============================================================
@@ -121,6 +136,28 @@ CREATE TABLE IF NOT EXISTS instructores (
 ) ENGINE=InnoDB;
 
 -- ============================================================
+-- 5b. INSTRUCTOR_HISTORICO (24/07/2026)
+-- Archivo persistente de instructores que salieron del CDMC. Guarda un
+-- snapshot (nombre/documento/tipo_area) para que el historico sobreviva aunque
+-- el registro vivo cambie. El instructor se mantiene soft-deleted en
+-- `instructores` (activo=FALSE) para no romper sus asignaciones/horarios.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS instructor_historico (
+    id                INT AUTO_INCREMENT PRIMARY KEY,
+    instructor_id     INT NULL COMMENT 'FK viva; SET NULL si el registro se elimina',
+    nombre            VARCHAR(100) NOT NULL COMMENT 'Snapshot al momento de la baja',
+    documento         VARCHAR(20)  NULL,
+    tipo_area         ENUM('transversal','tecnica') NULL,
+    fecha_ingreso     DATE NULL,
+    fecha_salida      DATE NOT NULL,
+    motivo            TEXT NULL,
+    registrado_por_id INT NULL COMMENT 'Usuario que registro la baja',
+    created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (instructor_id)     REFERENCES instructores(id) ON DELETE SET NULL,
+    FOREIGN KEY (registrado_por_id) REFERENCES usuarios(id)     ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ============================================================
 -- 6. PROGRAMAS DE FORMACIÓN
 -- tipo_linea:    medular | transversal  ← clasificación administrativa CDMC
 -- tipo_area:     tecnica | transversal  ← clasificación pedagógica
@@ -179,8 +216,10 @@ CREATE TABLE IF NOT EXISTS ambientes (
     tipo      ENUM('aula','taller','laboratorio') NOT NULL DEFAULT 'aula',
     capacidad SMALLINT UNSIGNED NULL,
     area_id   INT NULL COMMENT 'NULL = ambiente compartido entre áreas',
+    sede_id   INT NULL COMMENT 'Sede a la que pertenece el ambiente (24/07/2026)',
     activo    BOOLEAN NOT NULL DEFAULT TRUE,
-    FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE SET NULL
+    FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE SET NULL,
+    FOREIGN KEY (sede_id) REFERENCES sedes(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 INSERT IGNORE INTO ambientes (id, nombre, tipo) VALUES
@@ -210,6 +249,7 @@ CREATE TABLE IF NOT EXISTS fichas (
     programa_id          INT NOT NULL,
     jornada_id           INT NOT NULL,
     ambiente_id          INT NULL,
+    sede_id              INT NULL COMMENT 'Sede del grupo (24/07/2026)',
     lider_id             INT NULL COMMENT 'Usuario lider de programa asignado a esta ficha',
     etapa                ENUM('lectiva','productiva') NOT NULL DEFAULT 'lectiva',
     fecha_inicio_lectiva    DATE NULL,
@@ -222,6 +262,7 @@ CREATE TABLE IF NOT EXISTS fichas (
     FOREIGN KEY (programa_id) REFERENCES programas(id)  ON DELETE RESTRICT,
     FOREIGN KEY (jornada_id)  REFERENCES jornadas(id)   ON DELETE RESTRICT,
     FOREIGN KEY (ambiente_id) REFERENCES ambientes(id)  ON DELETE SET NULL,
+    FOREIGN KEY (sede_id)     REFERENCES sedes(id)       ON DELETE SET NULL,
     FOREIGN KEY (lider_id) REFERENCES usuarios(id)      ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
