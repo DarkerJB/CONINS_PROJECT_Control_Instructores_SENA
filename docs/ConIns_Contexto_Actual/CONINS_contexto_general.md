@@ -1,7 +1,7 @@
 # CONINS — Contexto General
 ### Sistema de Control de Instructores · SENA CDMC
-**Versión:** 9.6 · **Fecha:** 21 de Julio 2026
-**Basado en:** RF v10.1 · RNF v1.0 · ERS v3.0 · Lógica de Negocio v5.6 · CRONOGRAMA v4.7 · CHANGELOG al 21/07/2026
+**Versión:** 9.7 · **Fecha:** 28 de Julio 2026
+**Basado en:** RF v10.1 · RNF v1.0 · ERS v3.0 · Lógica de Negocio v5.6 · CRONOGRAMA v4.8 · CHANGELOG al 28/07/2026
 
 ---
 
@@ -15,11 +15,21 @@
 | F4 — Pruebas y ajustes | 10/08 – 28/08/2026 | ⬜ Pendiente |
 | F5 — Documentación y despliegue | 31/08 – 18/09/2026 | ⬜ Pendiente |
 
+**Hitos cerrados al 28/07/2026 (integración con frontend de Laura):**
+- **Pendientes de backend del reporte de Laura resueltos:** `instructores_count` corregido (subconsulta), `GET /fichas/:id` devuelve array `instructores`, y `jornada_id` en `asignacion` (Opción A, informativa — pendiente confirmar RN-20 con líder)
+- **Migración de frontend:** adoptado el `conins-frontend` de Laura (wizard de asignaciones de 3 pasos, sidebar reestructurado con Asignaciones como eje, selectores de RAP, accesos directos, gestión de competencias del instructor). `api.ts` verificado contra el backend — sin llamadas rotas. tsc frontend limpio
+
+**Hitos cerrados al 24/07/2026 (feedback 2 del líder técnico):**
+- **Sedes:** tabla `sedes` + `sede_id` en ambientes y grupos + módulo `/api/sedes` (el CDMC tiene sedes externas)
+- **Histórico de instructores:** tabla `instructor_historico` + `POST /api/instructores/:id/baja` (registra baja y hace soft-delete, conservando asignaciones) + `GET /api/instructores/historico`
+- **Auditoría de normalización** de las 29 tablas: 22 correctas; candidatas a consolidar identificadas (tipos_novedad_*, líder único, estados de ficha)
+- Schema 29 → 31 tablas
+
 **Hitos cerrados al 21/07/2026 (rework por feedback del líder técnico):**
 - **Reestructuración documental a RF v10.1** (62 RF, 12 módulos) + **RNF v1.0** separados en documento propio (24 RNF en 8 categorías). Ver `CONINS_Requisitos_Funcionales_v10_1.txt` y `CONINS_Requisitos_No_Funcionales_v1_0.txt`
 - **Lógica de Negocio v5.6**: RN-15 redefinida (RAP directo, sin herencia), RN-25/26/27 nuevas, tabla `asignacion_rap`, `rap_id` en horarios. Ver `CONINS_Logica_Negocio_v5_6.txt`
 - **Decisiones de negocio adoptadas** (feedback líder técnico): modelo RAP directo al instructor (máx. 1 instructor por RAP en cada grupo), CRUD de competencias y RAPs sobre carga base de Sofía Plus, horario vinculado a RAP, terminología GRUPO (antes ficha), etapas del grupo con fechas propias
-- **Backend pendiente de implementar** el rework: tabla `asignacion_rap` (P29b), `rap_id` en horarios (P36), módulo CRUD competencias/RAPs (P34), asignación explícita de RAP (P35), `fecha_fin_productiva` (P29)
+- **Backend del rework implementado** (21-24/07): `asignacion_rap` (P29b), `rap_id` en horarios (P36), módulo CRUD competencias/RAPs (P34), asignación explícita de RAP (P35), referentes RF-24/RF-44. `fecha_fin_productiva` ya existía (P29)
 
 **Hitos cerrados al 15/07/2026:**
 - **Reestructuración completa de RF v8.0** (53 RF, 11 módulos, numeración secuencial sin huecos). Ver `CONINS_Requisitos_Funcionales_v8_0.txt`
@@ -135,7 +145,8 @@
 | **Programa transversal** | Programas de apoyo: ADSO, bilingüismo, diseño | Coordinado por `coordinador_transversal` |
 | **Competencia** | Equivalente a asignatura. Agrupa RAPs. Carga base Sofía Plus + CRUD admin | Unidad de asignación (RF-25, RN-25) |
 | **RAP** | Resultado de Aprendizaje. Se asigna EXPLÍCITAMENTE al instructor (no heredado desde 21/07/2026) | Asignación directa vía `asignacion_rap` — máx. 1 instructor por RAP por grupo (RN-06, RN-15) |
-| **Ambiente** | Aula o taller físico | Aulas 200–208 · Talleres T1–T4 |
+| **Ambiente** | Aula o taller físico | Aulas 200–208 · Talleres T1–T4 · tabla `ambientes` con `sede_id` |
+| **Sede** | Sede del CDMC (el centro tiene sedes externas que dependen de él) | Tabla `sedes` (24/07/2026); ambientes y grupos referencian `sede_id` |
 | **Líder de ficha** | Responsable administrativo del grupo | Campo `es_lider_ficha BOOLEAN` en `asignacion` — NO es rol |
 | **Novedad administrativa** | Ausencia temporal del instructor (licencia, incapacidad, comisión) | Tabla `instructor_novedades` — excluye del sistema mientras vigente |
 | **Bloqueo de ambiente** | Espacio no disponible temporalmente | Tabla `ambiente_bloqueos` — excluye mientras vigente |
@@ -268,7 +279,7 @@ Paso 3 en adelante: login normal con correo + contraseña
 
 ## 11. Modelo de datos — schema v5 (31 tablas — verificado 24/07/2026)
 
-> **Historial de conteo:** 25 (30/06) → 27 (06/07) → 28 (15/07, +password_reset_tokens) → 29 (21/07, +asignacion_rap) → 31 (24/07, +sedes +instructor_historico). Columnas nuevas: `horarios.rap_id` (21/07), `ambientes.sede_id` y `fichas.sede_id` (24/07). Lista completa de las 31: `sedes, jornadas, roles, areas, usuarios, usuario_roles, instructores, instructor_historico, programas, competencias, raps, ambientes, fichas, asignacion, asignacion_competencia, asignacion_rap, lider_programa, instructor_competencias_habilitadas, horarios, alertas, tipos_novedad_instructor, instructor_novedades, ambiente_bloqueos, tipos_novedad_ambiente, tipos_novedad_ficha, ficha_novedades, notificaciones, auditoria, tipos_actividad, rap_ficha_seguimiento, password_reset_tokens`.
+> **Historial de conteo:** 25 (30/06) → 27 (06/07) → 28 (15/07, +password_reset_tokens) → 29 (21/07, +asignacion_rap) → 31 (24/07, +sedes +instructor_historico). Columnas nuevas: `horarios.rap_id` (21/07), `ambientes.sede_id` y `fichas.sede_id` (24/07), `asignacion.jornada_id` (28/07 — jornada preferente, informativa). Lista completa de las 31: `sedes, jornadas, roles, areas, usuarios, usuario_roles, instructores, instructor_historico, programas, competencias, raps, ambientes, fichas, asignacion, asignacion_competencia, asignacion_rap, lider_programa, instructor_competencias_habilitadas, horarios, alertas, tipos_novedad_instructor, instructor_novedades, ambiente_bloqueos, tipos_novedad_ambiente, tipos_novedad_ficha, ficha_novedades, notificaciones, auditoria, tipos_actividad, rap_ficha_seguimiento, password_reset_tokens`.
 
 ```
 instructor
@@ -357,7 +368,7 @@ Ver `CONINS_Requisitos_Funcionales_v10_1.txt` para el texto completo y el mapa d
 
 ---
 
-## 14. Pendientes activos (al 21/07/2026)
+## 14. Pendientes activos (al 28/07/2026)
 
 | # | Pendiente | Responsable | Prioridad |
 |---|---|---|---|
@@ -373,11 +384,16 @@ Ver `CONINS_Requisitos_Funcionales_v10_1.txt` para el texto completo y el mapa d
 | **P30** | **Verificar 3 estados en `rap_ficha_seguimiento` (pendiente/aprobado/no_aprobado) + registro en bitácora** | Jair | 🔴 Alta |
 | **P31** | **Confirmar/implementar bitácora de auditoría transversal (RF-59, RNF-24 inalterable)** | Jair | 🔴 Alta |
 | **P33** | **Selector de rol activo al login para usuarios multi-rol (RF-11, RN-18)** | Jair + Laura | 🟡 Media |
-| **P35b** | **Relajar guarda competencia-nivel (`hasRapEnFicha`) para permitir dos instructores en la misma competencia repartiendo RAPs distintos** | Jair | 🟡 Media |
+| **P35b** | **Relajar guarda `hasRapEnFicha` para permitir dos instructores en la misma competencia repartiendo RAPs distintos** | Jair | 🟡 Media |
+| **P37** | **Decisión de negocio: jornada por asignación (`asignacion.jornada_id`) vs RN-20 (grupo = una jornada) — confirmar con líder si es autoritativa o informativa** | Líder + Jair | 🟡 Media |
+| **P38** | **Consolidaciones de la auditoría de normalización: unificar `tipos_novedad_*`, fuente única de "líder de grupo", simplificar estados de `fichas`** | Jair | 🟡 Media |
+| **P39** | **Importador de datos vía Excel (xlsx → BD)** | Jair | 🟡 Media |
+| **P40** | **Notificación por correo al asignar (extiende RF-47 + P27 SMTP)** | Jair | 🟡 Media |
+| **P41** | **Frontend: UI de sedes (selector en ambientes/grupos) y de baja de instructores** | Laura | 🟢 Baja |
 
-**Resueltos al 21/07/2026:** P1-P3, P5-P7 (04-19/05/2026) · P14, P15 (09/06/2026) · P21-P25 (06-07/07/2026) · L1-L6, SEED-ADSO (14/07/2026) · database.sql/seed_data.sql tipo_contrato cleanup (15/07/2026) · **P29** (fecha_fin_productiva y capacidad ya existían — verificado 21/07) · **P32** (terminología GRUPO frontend, Laura — 21/07) · **P34** (backend CRUD competencias/RAPs — 21/07) · **RF-24** (referente de programa vía lider_programa — 21/07) · **RF-44** (referente de grupo vía lider_id — 21/07) · **migración frontend Laura** (conins-frontend oficial — 21/07) · **P29b** (tabla `asignacion_rap` — 21/07) · **P35/RF-42** (asignación explícita de RAP + RN-06 — 21/07) · **P36/RF-34** (`rap_id` en horarios + RN-27 — 21/07)
+**Resueltos al 28/07/2026:** P1-P3, P5-P7 · P14, P15 · P21-P25 · L1-L6, SEED-ADSO · tipo_contrato cleanup · **P29** (fechas/capacidad ya existían) · **P32** (terminología GRUPO) · **P34** (CRUD competencias/RAPs) · **RF-24 / RF-44** (referentes) · **P29b** (`asignacion_rap`) · **P35/RF-42** (asignación explícita RAP + RN-06) · **P36/RF-34** (`rap_id` en horarios + RN-27) · **Sedes** (tabla + módulo, 24/07) · **Histórico de instructores** (tabla + baja, 24/07) · **instructores_count** (fix subconsulta, 28/07) · **instructores en `GET /fichas/:id`** (28/07) · **jornada_id en asignación** (28/07) · **migración frontend Laura** (21/07 y 28/07)
 
-> **Pendiente del rework:** P30, P31, P33 y P35b. El modelo RAP directo (asignacion_rap) se implementó de forma ADITIVA: coexiste con la herencia legacy. Para repartir RAPs de una misma competencia entre dos instructores en un grupo hace falta relajar la guarda `hasRapEnFicha` (P35b). El frontend de los selectores de RAP (RF-42/RF-34) ya tiene endpoints — Laura los conecta. Ver CHANGELOG entrada 21/07/2026.
+> **Foco actual:** el backend del rework RAP directo + sedes + histórico está implementado y el frontend de Laura integrado. Lo que resta son P30/P31 (seguimiento + bitácora), P33 (rol activo), P35b (guarda de reparto de RAPs), la decisión P37 (jornada vs RN-20) y las mejoras de la auditoría (P38). Ver CHANGELOG entradas 21-28/07/2026.
 
 **Cuenta de prueba (QA, entorno local):** `instructor.prueba@sena.edu.co` — rol Instructor, para validar filtrado por rol y sidebar limitado.
 
@@ -387,13 +403,13 @@ Ver `CONINS_Requisitos_Funcionales_v10_1.txt` para el texto completo y el mapa d
 
 | Archivo | Versión | Descripción |
 |---|---|---|
-| `CONINS_contexto_general.md` | v9.6 | Este documento — contexto completo actualizado |
+| `CONINS_contexto_general.md` | v9.7 | Este documento — contexto completo actualizado |
 | `CONINS_Requisitos_Funcionales_v10_1.txt` | v10.1 | 62 RF en 12 módulos — fuente de verdad vigente |
 | `CONINS_Requisitos_No_Funcionales_v1_0.txt` | v1.0 | 24 RNF en 8 categorías — fuente de verdad vigente |
 | `CONINS_Requisitos_Funcionales_v8_0.txt` | v8.0 | 53 RF — conservado como historial |
 | `CONINS_Logica_Negocio_v5_6.txt` | v5.6 | Reglas de negocio (RN-01 a RN-27), schema, modelo RAP directo |
-| `CRONOGRAMA.md` | v4.7 | Fases, fechas y estados |
-| `CHANGELOG.md` | 21/07/2026 | Historial detallado de cambios |
+| `CRONOGRAMA.md` | v4.8 | Fases, fechas y estados |
+| `CHANGELOG.md` | 28/07/2026 | Historial detallado de cambios |
 | `ERS_CONINS_v3.docx` | v3.0 | ERS IEEE 830-1998 — documento original (RF renumerados en v8.0) |
 | `SENA_identidad_visual_resumen_tecnico.md` | — | Paleta, tipografía y logosímbolo SENA 2024 |
 | `.claude/skills/conins-core/` | — | 5 skills del proyecto |
@@ -415,5 +431,5 @@ Ver `CONINS_Requisitos_Funcionales_v10_1.txt` para el texto completo y el mapa d
 
 ---
 
-*CONINS · SENA CDMC · Contexto General v9.6 · 21 de Julio 2026*
+*CONINS · SENA CDMC · Contexto General v9.7 · 28 de Julio 2026*
 *Autores: Jair Enrique González Buelvas · Laura Sofía Posada*

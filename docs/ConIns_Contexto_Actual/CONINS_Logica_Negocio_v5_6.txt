@@ -317,12 +317,12 @@ CONINS_Requisitos_No_Funcionales_v1_0.txt.
 
 ========================================================================================
 
-8. MODELO DE DATOS — schema v5.3 (28 tablas al 15/07/2026)
+8. MODELO DE DATOS — schema v5.3 (31 tablas al 28/07/2026)
 
 Jerarquía central (modelo RAP directo v10.x):
 
    instructor
-     └── asignacion  (instructor_id, ficha_id, es_lider_ficha, es_provisional)
+     └── asignacion  (instructor_id, ficha_id, jornada_id, es_lider_ficha, es_provisional)
            └── asignacion_competencia  (asignacion_id, competencia_id)
                  └── asignacion_rap  (asignacion_competencia_id, rap_id)  ← NUEVA, asignación explícita
                        └── raps
@@ -332,21 +332,26 @@ Jerarquía central (modelo RAP directo v10.x):
    de un instructor por RAP en el grupo se garantiza con UNIQUE lógico
    sobre (ficha_id, rap_id) a través de la cadena.
 
+Sedes (24/07/2026):
+   sedes  ← NUEVA. ambientes.sede_id y fichas.sede_id referencian la sede.
+
 Catálogos base (precarga + gestión administrativa desde RF v10.x):
    roles, programas, competencias, raps, ambientes, jornadas, fichas
    tipos_actividad, tipos_novedad_instructor, tipos_novedad_ambiente,
    tipos_novedad_ficha
 
 Usuarios y roles:
-   usuarios, usuario_roles, instructores, lider_programa,
+   usuarios, usuario_roles, instructores, instructor_historico, lider_programa,
    instructor_competencias_habilitadas, password_reset_tokens
+   (instructor_historico ← NUEVA 24/07: archivo de instructores que salieron
+    del CDMC; el instructor se mantiene soft-deleted para no romper su historial)
 
 Novedades y bloqueos:
    instructor_novedades, ficha_novedades, ambiente_bloqueos
 
 Asignaciones:
-   asignacion, asignacion_competencia
-   asignacion_rap  ← NUEVA (implementada 21/07/2026, P29b) — 29 tablas
+   asignacion (con jornada_id ← agregado 28/07: jornada preferente, informativa),
+   asignacion_competencia, asignacion_rap  ← 31 tablas al 28/07/2026
 
 Horarios, alertas, notificaciones y seguimiento:
    horarios (con estado, motivo_rechazo, motivo_suspension,
@@ -483,8 +488,14 @@ PRINCIPIO GENERAL:
                          (RAP directo, sin herencia), RN-25/26/27
                          nuevas, tabla asignacion_rap, rap_id en
                          horarios, RF v10.1 (62 RF, 12 módulos)
+   v5.6 rev 24/07/2026   Feedback 2 del líder: tabla sedes (+sede_id en
+                         ambientes/fichas), tabla instructor_historico
+                         (baja + soft-delete). Schema 29 → 31 tablas.
+   v5.6 rev 28/07/2026   Integración frontend Laura: fix instructores_count,
+                         instructores en GET /fichas/:id, asignacion.jornada_id
+                         (informativa — decisión P37 pendiente vs RN-20).
 
 ========================================================================================
 
-CONINS · SENA CDMC · Lógica de Negocio v5.6 · 21 de Julio 2026
+CONINS · SENA CDMC · Lógica de Negocio v5.6 (rev 28/07/2026) · 21 de Julio 2026
 Autores: Jair Enrique González Buelvas · Laura Sofía Posada

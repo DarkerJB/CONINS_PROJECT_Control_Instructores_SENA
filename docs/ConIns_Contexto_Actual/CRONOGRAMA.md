@@ -231,7 +231,33 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 ## Semana en curso
 
-### Semana del 21/07/2026
+### Semana del 24/07 al 28/07/2026
+**Feedback 2 del lider (sedes + historico) + integracion con frontend de Laura**
+
+| Prioridad | Tarea |
+|---|---|
+| ✅ 24/07 | **Sedes:** tabla `sedes` + `sede_id` en ambientes/fichas + modulo `/api/sedes` (el CDMC tiene sedes externas) |
+| ✅ 24/07 | **Historico de instructores:** tabla `instructor_historico` + POST `/instructores/:id/baja` (baja + soft-delete) + GET `/instructores/historico` |
+| ✅ 24/07 | **Auditoria de normalizacion** de las 29 tablas — 22 correctas; candidatas a consolidar (tipos_novedad_*, lider unico, estados ficha) |
+| ✅ 24/07 | **Solicitud de datos al instructor tecnico** (competencias/RAPs, instructores, programas, fichas, ambientes, sedes) |
+| ✅ 28/07 | **Fix instructores_count = 0** (subconsulta en ficha.model, sin GROUP BY fragil) |
+| ✅ 28/07 | **Instructores en GET /fichas/:id** (array instructor_nombre/es_lider/competencias) |
+| ✅ 28/07 | **jornada_id en asignacion** (Opcion A, informativa) — decision P37 pendiente vs RN-20 |
+| ✅ 28/07 | **Migracion frontend Laura:** wizard asignaciones 3 pasos, sidebar reestructurado (Asignaciones eje), selectores RAP, accesos directos. api.ts verificado, sin llamadas rotas |
+| ✅ 28/07 | `.gitignore`: ignorar temporales de Office (`~$*`). Commits con `git add -A` para reflejar borrados. ERS subido |
+| ✅ 28/07 | Docs → contexto v9.7 · Logica v5.6 rev 28/07 (31 tablas) · CRONOGRAMA v4.8 · CHANGELOG 24/07 y 28/07 |
+| ✅ 28/07 | tsc --noEmit limpio (backend y frontend, exit 0). Schema 29 → 31 tablas |
+| 🔴 FASE 1 | **P30/P31:** estados RAP en rap_ficha_seguimiento + bitacora auditoria transversal (RF-59) |
+| 🟡 FASE 2 | **P33:** selector de rol activo al login para multi-rol (RF-11) |
+| 🟡 FASE 2 | **P35b:** relajar guarda hasRapEnFicha para repartir RAPs entre 2 instructores |
+| 🟡 Decision | **P37:** jornada por asignacion vs RN-20 (grupo = una jornada) — confirmar con lider |
+| 🟡 FASE 2 | **P38:** consolidaciones de la auditoria (tipos_novedad_*, lider unico, estados ficha) |
+| 🟡 FASE 2 | **P39/P40:** importador Excel · notificacion por correo al asignar (P27 SMTP) |
+| 🟡 FASE 4 | **P16/P17:** pruebas automatizadas, seguridad |
+
+---
+
+### Semana del 21/07/2026 (historico)
 **Rework por feedback lider tecnico: RF v10.1 + RNF v1.0 + Logica de Negocio v5.6**
 
 | Prioridad | Tarea |
@@ -251,12 +277,6 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 | ✅ 21/07 | **P35/RF-42:** asignacion explicita de RAP (asignacion-rap model/service, endpoints, RN-06) |
 | ✅ 21/07 | **P36/RF-34:** rap_id en horarios (POST/PATCH) + validacion RN-27 + detalle expone RAP |
 | ✅ 21/07 | tsc --noEmit limpio (backend y frontend, exit 0) |
-| 🔴 FASE 1 | **P30/P31:** estados RAP en rap_ficha_seguimiento + bitacora auditoria transversal (RF-59) |
-| 🟡 FASE 2 | **P33:** selector de rol activo al login para multi-rol (RF-11) |
-| 🟡 FASE 2 | **P35b:** relajar guarda hasRapEnFicha para repartir RAPs entre 2 instructores en misma competencia |
-| 🟡 FASE 3 | **P28:** fix CrearBloqueHorarioModal (ficha.id → ficha.programa_id) |
-| 🟡 FASE 3 | Frontend: conectar selectores de RAP en asignaciones (RF-42) y horarios (RF-34) — endpoints ya listos |
-| 🟡 FASE 4 | **P16/P17/P27:** pruebas automatizadas, seguridad, SMTP |
 
 ---
 
@@ -352,6 +372,7 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 | Fecha | Cambio |
 |---|---|
+| 28/07/2026 | v4.8 — Feedback 2 del lider + integracion frontend Laura. Sedes (tabla + modulo, 24/07). Historico de instructores (tabla + baja, 24/07). Auditoria de normalizacion 29 tablas. Fixes 28/07: instructores_count (subconsulta), instructores en GET /fichas/:id, jornada_id en asignacion. Migracion frontend Laura (wizard, sidebar, selectores RAP). Docs: contexto v9.7, Logica v5.6 rev 28/07 (31 tablas). Nuevos pendientes P37 (jornada vs RN-20), P38 (consolidaciones auditoria), P39/P40 (Excel, correo). |
 | 21/07/2026 | v4.7 — Rework por feedback lider tecnico. RF v10.1 (62 RF, 12 modulos). RNF v1.0 (24 RNF). Logica de Negocio v5.6 (RN-15 redefinida, RN-25/26/27, tabla asignacion_rap). Contexto General v9.6. IMPLEMENTADO mismo dia: P34 (CRUD competencias/RAPs), RF-24/RF-44 (referentes), migracion frontend Laura, P29b+P35+P36 (modelo RAP directo: asignacion_rap, RF-42 con RN-06, RF-34 con RN-27). Pendientes: P30/P31, P33, P35b. |
 | 15/07/2026 | v4.6 — database.sql + seed_data.sql: tipo_contrato eliminado (DDL, 3 triggers, sp_crear_instructor, 2 views, seed INSERT). RF v8.0: 53 RF en 11 modulos, numeracion secuencial. Logica de Negocio v5.4. Contexto General v9.5. CHANGELOG entradas 14/07 y 15/07. |
 | 14/07/2026 | v4.5b — tipo_contrato eliminado del backend. recuperar/resetear-contrasena + password_reset_tokens. fichas findById ampliado. novedades RF-47 (GET/POST/PATCH). onAlertaCargaHoraria conectado. Frontend Laura: exportPDF fix + api.ts. Seed ADSO 228118: 22 competencias, 79 RAPs reales. |
@@ -368,4 +389,4 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 ---
 
-*CONINS · SENA CDMC · Cronograma v4.7 · 21 de Julio 2026*
+*CONINS · SENA CDMC · Cronograma v4.8 · 28 de Julio 2026*
