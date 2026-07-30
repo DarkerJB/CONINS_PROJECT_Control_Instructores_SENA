@@ -433,6 +433,33 @@ Durante prueba de navegacion entre modulos del frontend se detectaron y resolvie
 
 ---
 
+### 2026-07-29 — Jair Enrique Gonzalez Buelvas
+
+**Pendientes de backend del reporte de frontend de Laura (29/07)**
+
+Cuatro pendientes reportados por Laura, resueltos:
+
+- **Error 500 al crear horario (BUG DE CODIGO):** `HorarioModel.isInstructorDePlanta`
+  aun consultaba `WHERE tipo_contrato = 'de_planta'`, pero esa columna se elimino
+  el 14/07 → "Unknown column 'tipo_contrato'" → 500 al crear cualquier horario.
+  Era el ultimo resto de tipo_contrato en el codigo. Fix: la funcion retorna
+  `true` (RN-03 aplica a todos). Verificado: 0 referencias a tipo_contrato en .ts.
+- **Duplicados de asignacion activo/inactivo:** el UNIQUE(instructor_id, ficha_id)
+  no distingue estado; una asignacion inactiva bloqueaba recrearla. Fix:
+  `AsignacionModel.findRawByInstructorFicha` + `reactivar`; el service reactiva la
+  inactiva (con sus competencias) en vez de fallar, y da conflicto solo si hay una
+  activa.
+- **jornada_id en GET /asignaciones:** agregado `COALESCE(a.jornada_id, f.jornada_id)
+  AS jornada_id` a findAll/findAllByInstructorId/findById (jornada efectiva) +
+  interface. La join de jornada usa la efectiva.
+- **total_horas como string:** `/consultas/carga-horaria` ahora mapea `total_horas`
+  a Number antes de responder.
+
+tsc --noEmit limpio (exit 0). Reporte de comunicacion a Laura en
+`Reportes_Cambios_Y_Otros/` (fuera del repo).
+
+---
+
 ### 2026-07-28 — Jair Enrique Gonzalez Buelvas
 
 **Pendientes de backend del reporte de frontend de Laura (28/07)**

@@ -317,12 +317,10 @@ export const HorarioModel = {
     return (rows as any[]).length > 0;
   },
 
-  async isInstructorDePlanta(instructorId: number): Promise<boolean> {
-    const [rows] = await pool.query(
-      `SELECT 1 FROM instructores WHERE id = ? AND tipo_contrato = 'de_planta' LIMIT 1`,
-      [instructorId],
-    );
-    return (rows as any[]).length > 0;
+  // tipo_contrato se eliminó el 14/07/2026 — RN-03 (jornada restringida) aplica
+  // a TODOS los instructores. Se conserva la firma para no romper llamadas.
+  async isInstructorDePlanta(_instructorId: number): Promise<boolean> {
+    return true;
   },
 
   async isJornadaNocturnaOFinDeSemana(jornadaId: number, diaSemana: number): Promise<boolean> {
