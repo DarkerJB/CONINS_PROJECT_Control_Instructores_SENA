@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react"
+import { useRouter } from "next/router"
 import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
 import { formatJornada } from "@/lib/terminology"
-import { exportarHorariosPDF } from "@/lib/exportPDF"
+import { exportarHorariosPDF, exportarHorarioIndividualPDF } from "@/lib/exportPDF"
 import CrearHorarioModal from "@/components/horarios/CrearHorarioModal"
 import CrearBloqueHorarioModal from "@/components/horarios/CrearBloqueHorarioModal"
 import EditarHorarioModal from "@/components/horarios/EditarHorarioModal"
 import GrillaHorarios from "@/components/horarios/GrillaHorarios"
 import ConfirmDialog from "@/components/ui/ConfirmDialog"
+import { TableSkeleton, PageSkeleton } from "@/components/ui/Skeleton"
+import EmptyState from "@/components/ui/EmptyState"
 import {
   Search,
   Plus,
@@ -19,13 +22,12 @@ import {
   ChevronRight,
   Loader2,
   AlertTriangle,
-  CheckCircle,
-  XCircle,
   Clock,
   Ban,
   FileDown,
   LayoutGrid,
   List,
+  Calendar,
 } from "lucide-react"
 
 type Horario = {
@@ -51,6 +53,7 @@ type Horario = {
 
 
 export default function HorariosPage() {
+  const router = useRouter()
   const { user, loading: authLoading } = useProtectedRoute()
   const { showToast } = useToast()
   const [horarios, setHorarios] = useState<Horario[]>([])
@@ -173,43 +176,6 @@ export default function HorariosPage() {
     }
   }
 
-  const handleAprobar = async (horario: Horario) => {
-    setConfirmDialog({
-      isOpen: true,
-      title: "Aprobar horario",
-      message: `¿Estas seguro de aprobar el horario de ${horario.instructor_nombre}? Quedará activo oficialmente.`,
-      onConfirm: async () => {
-        setConfirmDialog({ ...confirmDialog, isOpen: false })
-        try {
-          await api.horarios.aprobar(horario.id)
-          showToast("Horario aprobado exitosamente", "success")
-          cargarHorarios()
-        } catch (err: any) {
-          showToast(err.message || "Error al aprobar horario", "error")
-        }
-      },
-    })
-  }
-
-  const handleRechazar = (horario: Horario) => {
-    setConfirmDialog({
-      isOpen: true,
-      title: "Rechazar horario",
-      message: `¿Estas seguro de rechazar el horario de ${horario.instructor_nombre}?`,
-      showMotivo: true,
-      onConfirm: async (motivo?: string) => {
-        setConfirmDialog({ ...confirmDialog, isOpen: false })
-        try {
-          await api.horarios.rechazar(horario.id, motivo || "Sin motivo especificado")
-          showToast("Horario rechazado", "success")
-          cargarHorarios()
-        } catch (err: any) {
-          showToast(err.message || "Error al rechazar horario", "error")
-        }
-      },
-    })
-  }
-
   const handleDesactivar = (horario: Horario) => {
     setConfirmDialog({
       isOpen: true,
@@ -248,16 +214,7 @@ export default function HorariosPage() {
     })
   }
 
-  if (authLoading || !user) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-gray-500">
-          <Loader2 className="w-8 h-8 animate-spin text-sena" />
-          <p>Cargando...</p>
-        </div>
-      </div>
-    )
-  }
+  if (authLoading || !user) return <PageSkeleton />
 
   return (
     <DashboardLayout>
@@ -274,7 +231,7 @@ export default function HorariosPage() {
               className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
             >
               {vistaGrilla ? <List className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
-              {vistaGrilla ? "Ver tabla" : "Ver grilla"}
+              {vistaGrilla ? "Ver tabla" : "Ver horario"}
             </button>
             <button
               onClick={() => exportarHorariosPDF(listaFiltrada)}
@@ -285,11 +242,11 @@ export default function HorariosPage() {
             </button>
             {puedeEditar && (
               <button
-                onClick={() => setIsCreateModalOpen(true)}
+                onClick={() => router.push("/asignaciones")}
                 className="bg-sena hover:bg-sena/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
               >
                 <Plus className="w-4 h-4" />
-                Registrar horario
+                Crear desde asignación
               </button>
             )}
           </div>
@@ -360,14 +317,9 @@ export default function HorariosPage() {
         ) : (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           {loading ? (
-            <div className="p-12 flex flex-col items-center justify-center text-gray-500">
-              <Loader2 className="w-8 h-8 animate-spin text-sena mb-2" />
-              <p>Cargando horarios...</p>
-            </div>
+            <TableSkeleton rows={5} columns={10} />
           ) : listaPaginada.length === 0 ? (
-            <div className="p-12 text-center text-gray-500">
-              No se encontraron horarios con los filtros seleccionados.
-            </div>
+            <EmptyState icon={Calendar} title="Sin horarios" description="No se encontraron horarios con los filtros seleccionados." />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
@@ -382,7 +334,7 @@ export default function HorariosPage() {
                     <th className="px-3 py-3 md:px-6 md:py-4">Días</th>
                     <th className="px-3 py-3 md:px-6 md:py-4">Horas</th>
                     <th className="px-3 py-3 md:px-6 md:py-4 text-center">Estado</th>
-                    {puedeEditar && <th className="px-3 py-3 md:px-6 md:py-4 text-center">Acciones</th>}
+                    <th className="px-3 py-3 md:px-6 md:py-4 text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -425,51 +377,43 @@ export default function HorariosPage() {
                       <td className="px-3 py-3 md:px-6 md:py-4 text-center">
                         {puedeEditar ? (
                           <div className="flex items-center justify-center gap-2">
-                            {h.estado === 'Pendiente' ? (
-                              <>
-                                <button
-                                  onClick={() => handleAprobar(h)}
-                                  className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
-                                  title="Aprobar"
-                                >
-                                  <CheckCircle className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleRechazar(h)}
-                                  className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                                  title="Rechazar"
-                                >
-                                  <XCircle className="w-4 h-4" />
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  onClick={() => openEditModal(h)}
-                                  className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                  title="Editar"
-                                >
-                                  <Pencil className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleSuspender(h)}
-                                  className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded transition-colors"
-                                  title="Suspender"
-                                >
-                                  <Ban className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDesactivar(h)}
-                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                  title={h.activo ? "Deshabilitar" : "Habilitar"}
-                                >
-                                  <Power className="w-4 h-4" />
-                                </button>
-                              </>
-                            )}
+                            <button
+                              onClick={() => exportarHorarioIndividualPDF(h)}
+                              className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                              title="Descargar PDF"
+                            >
+                              <FileDown className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => openEditModal(h)}
+                              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                              title="Editar"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleSuspender(h)}
+                              className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                              title="Suspender"
+                            >
+                              <Ban className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDesactivar(h)}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title={h.activo ? "Deshabilitar" : "Habilitar"}
+                            >
+                              <Power className="w-4 h-4" />
+                            </button>
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-400">-</span>
+                          <button
+                            onClick={() => exportarHorarioIndividualPDF(h)}
+                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                            title="Descargar PDF"
+                          >
+                            <FileDown className="w-4 h-4" />
+                          </button>
                         )}
                       </td>
                     </tr>

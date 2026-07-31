@@ -23,7 +23,12 @@ import {
   AlertTriangle,
   ClipboardList,
   FileWarning,
+  BookOpen,
+  FileDown,
 } from "lucide-react"
+import { exportarGruposPDF, exportarFichaIndividualPDF } from "@/lib/exportPDF"
+import { TableSkeleton, PageSkeleton } from "@/components/ui/Skeleton"
+import EmptyState from "@/components/ui/EmptyState"
 
 type Ficha = {
   id: number
@@ -133,6 +138,35 @@ export default function FichasPage() {
 
   useEffect(() => { setPaginaActual(1) }, [search, filtroPrograma, filtroJornada, filtroEtapa, filtroModalidad])
 
+  const handleDescargarPDFIndividual = async (ficha: Ficha) => {
+    try {
+      const [asigRes, horRes] = await Promise.all([
+        api.assignments.getAll(),
+        api.horarios.getAll(),
+      ])
+      const instructores = (asigRes.data || [])
+        .filter((a: any) => a.ficha_id === ficha.id && a.activo)
+        .map((a: any) => ({
+          instructor_nombre: a.instructor_nombre,
+          competencia: a.competencia,
+          es_lider: a.es_lider,
+        }))
+      const horarios = (horRes.data || [])
+        .filter((h: any) => h.ficha_numero === ficha.numero_ficha)
+        .map((h: any) => ({
+          ficha_numero: h.instructor_nombre,
+          competencia: h.competencia,
+          dias: h.dias || [],
+          horas: h.horas,
+          ambiente: h.ambiente,
+          estado: h.estado,
+        }))
+      exportarFichaIndividualPDF(ficha, instructores, horarios)
+    } catch {
+      showToast("Error al generar el PDF", "error")
+    }
+  }
+
   const openDetailModal = (ficha: Ficha) => {
     setSelectedFicha(ficha)
     setIsDetailModalOpen(true)
@@ -183,16 +217,7 @@ export default function FichasPage() {
     }
   }
 
-  if (authLoading || !user) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-gray-500">
-          <Loader2 className="w-8 h-8 animate-spin text-sena" />
-          <p>Cargando...</p>
-        </div>
-      </div>
-    )
-  }
+  if (authLoading || !user) return <PageSkeleton />
 
   return (
     <DashboardLayout>
@@ -203,15 +228,25 @@ export default function FichasPage() {
             <h1 className="text-2xl font-bold text-gray-900">Grupos</h1>
             <p className="text-gray-500 text-sm">{puedeEditar ? "Gestión de grupos de formación" : "Mis grupos asignados"}</p>
           </div>
-          {puedeEditar && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-sena hover:bg-sena/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+              onClick={() => exportarGruposPDF(listaFiltrada)}
+              disabled={listaFiltrada.length === 0}
+              className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-40"
             >
-              <Plus className="w-4 h-4" />
-              Registrar grupo
+              <FileDown className="w-4 h-4" />
+              PDF
             </button>
-          )}
+            {puedeEditar && (
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-sena hover:bg-sena/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Registrar grupo
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -275,14 +310,13 @@ export default function FichasPage() {
 
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           {loading ? (
-            <div className="p-12 flex flex-col items-center justify-center text-gray-500">
-              <Loader2 className="w-8 h-8 animate-spin text-sena mb-2" />
-              <p>Cargando grupos...</p>
-            </div>
+            <TableSkeleton rows={6} columns={7} />
           ) : listaPaginada.length === 0 ? (
-            <div className="p-12 text-center text-gray-500">
-              No se encontraron grupos con los filtros seleccionados.
-            </div>
+            <EmptyState
+              icon={BookOpen}
+              title="Sin grupos"
+              description="No se encontraron grupos con los filtros seleccionados."
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
@@ -378,6 +412,13 @@ export default function FichasPage() {
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
+                              onClick={() => handleDescargarPDFIndividual(ficha)}
+                              className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                              title="Descargar PDF"
+                            >
+                              <FileDown className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => openRapModal(ficha)}
                               className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
                               title="Seguimiento RAPs"
@@ -414,6 +455,13 @@ export default function FichasPage() {
                               title="Ver detalle"
                             >
                               <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDescargarPDFIndividual(ficha)}
+                              className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                              title="Descargar PDF"
+                            >
+                              <FileDown className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => openRapModal(ficha)}

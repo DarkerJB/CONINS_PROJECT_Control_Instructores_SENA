@@ -167,10 +167,12 @@ export const HorarioModel = {
     jornada_id: number;
     semana: string;
   }): Promise<number> {
+    // estado 'aprobado' por defecto: Leidy eliminó el flujo de aprobacion manual
+    // de horarios (feedback 31/07/2026). Se crean ya aprobados.
     const [result] = await pool.query(
       `INSERT INTO horarios (ficha_id, instructor_id, competencia_id, rap_id, ambiente_id,
-        dia_semana, hora_inicio, hora_fin, tipo_actividad_id, jornada_id, semana)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        dia_semana, hora_inicio, hora_fin, tipo_actividad_id, jornada_id, semana, estado)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aprobado')`,
       [
         data.ficha_id,
         data.instructor_id,

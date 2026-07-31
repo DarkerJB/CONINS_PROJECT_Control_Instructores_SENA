@@ -216,8 +216,26 @@ export const AsignacionModel = {
   },
 
   async desactivar(id: number): Promise<void> {
+    // Obtener instructor+ficha para la cascada de horarios (horarios no tiene
+    // asignacion_id; la asignacion es unica por instructor+ficha).
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT instructor_id, ficha_id FROM asignacion WHERE id = ?',
+      [id],
+    );
+    const asg = rows[0] as any;
+
     await pool.query('UPDATE asignacion SET activo = FALSE WHERE id = ?', [id]);
     await pool.query('UPDATE asignacion_competencia SET activo = FALSE WHERE asignacion_id = ?', [id]);
+
+    // L-31.2 (Laura 31/07): al desactivar la asignacion se desactivan en cascada
+    // sus horarios (mismo instructor en la misma ficha).
+    if (asg) {
+      await pool.query(
+        `UPDATE horarios SET activo = FALSE, motivo_suspension = 'Asignacion desactivada'
+         WHERE instructor_id = ? AND ficha_id = ? AND activo = TRUE`,
+        [asg.instructor_id, asg.ficha_id],
+      );
+    }
   },
 
   async tieneNovedadActiva(instructorId: number): Promise<boolean> {

@@ -433,6 +433,32 @@ Durante prueba de navegacion entre modulos del frontend se detectaron y resolvie
 
 ---
 
+### 2026-07-31 — Jair Enrique Gonzalez Buelvas
+
+**Pendientes de backend del reporte de Laura (31/07, reunion con Leidy) + migracion frontend**
+
+Reunion con Leidy (usuario final). Dos cambios de backend:
+
+- **Auto-aprobar horarios (Alta):** Leidy elimino la aprobacion manual de horarios.
+  El horario ahora se crea con `estado = 'aprobado'` en `HorarioModel.create` y en
+  el insert multidia de `horario.service`. (Los endpoints aprobar/rechazar se
+  conservan pero quedan sin uso desde el frontend.)
+- **Cascada al desactivar asignacion (CRITICO):** `AsignacionModel.desactivar`
+  ahora desactiva tambien los horarios de esa asignacion. Como `horarios` no tiene
+  `asignacion_id`, casan por `instructor_id + ficha_id` (unicos por asignacion) y se
+  marca `motivo_suspension = 'Asignacion desactivada'`. Resuelve el bug reportado
+  (se borraban asignaciones y los horarios seguian visibles).
+
+**Migracion frontend (repo GitHub de Laura, 31/07):** comparado
+`github.com/Laura0513/conins-frontend` contra el proyecto: 3 archivos UI nuevos
+(Skeleton, EmptyState, FormField) + 21 diffs (exportPDF reescrito con PDF por fila,
+GrillaHorarios con navegacion semanal, validaciones inline en modales, sin botones
+de aprobar/rechazar). `api.ts` IDENTICO (cero cambio de contrato) y deps iguales.
+Se adopto: `frontend/src` reemplazado por su version. tsc backend y frontend
+limpios (exit 0). Reporte de comunicacion a Laura en `Reportes_Cambios_Y_Otros/`.
+
+---
+
 ### 2026-07-29 — Jair Enrique Gonzalez Buelvas
 
 **Pendientes de backend del reporte de frontend de Laura (29/07)**
