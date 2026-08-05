@@ -45,6 +45,11 @@ app.use(securityHeaders);
 // Global rate limiter
 app.use(rateLimiterGlobal);
 
+// Importacion de Excel: body grande (base64) SOLO en esta ruta. Va antes del
+// parser global de 10kb para que este lo omita (req._body ya seteado) y el
+// resto de la API conserve el limite estricto.
+app.use('/api/importar', express.json({ limit: '15mb' }));
+
 app.use(express.json({ limit: '10kb' }));
 
 // Audit logger — tracks all API calls
