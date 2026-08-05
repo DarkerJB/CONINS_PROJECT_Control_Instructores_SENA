@@ -433,6 +433,39 @@ Durante prueba de navegacion entre modulos del frontend se detectaron y resolvie
 
 ---
 
+### 2026-08-05 — Jair Enrique Gonzalez Buelvas
+
+**P39 — Importador de datos via Excel (backend)**
+
+Habilitador para cargar planificacion masiva (ej. todo ADSO de agosto) sin
+crear registro por registro. Aprobado por Laura tras el analisis de capacidad.
+
+- **Endpoint** `POST /api/importar` (solo ROLES_ADMIN). Body JSON
+  `{ archivo_base64 }` con un `.xlsx` en base64 (sin multer; solo dep `xlsx`).
+- **Un archivo, una hoja por entidad:** `Grupos`, `Asignaciones`, `Horarios`.
+  Procesadas en orden de dependencia. Columnas legibles (email, numero_grupo,
+  codigo_programa/competencia/rap, jornada por nombre) resueltas a IDs por
+  `resolver.*`.
+- **Reusa los services existentes** (FichaService/AsignacionService/
+  HorarioService.create) → aplican las mismas validaciones de negocio (RN-06,
+  RN-13, RN-27, cruce horario, etc.).
+- **Carga parcial + reporte por fila:** las filas validas se crean; los errores
+  se acumulan con `{ hoja, fila, mensaje }`. HTTP 200 con `resumen` por hoja.
+- Archivos nuevos: `services/importar.service.ts`, `controllers/
+  importar.controller.ts`, `routes/importar.routes.ts`. Registrado en server.ts.
+  Dep `xlsx@^0.18.5` agregada a package.json (requiere `npm install`).
+- Plantilla de ejemplo generada: `backend/scripts/Plantilla_Importacion_CONINS.xlsx`.
+
+Verificado: tsc limpio (exit 0), backend bootea con el modulo, `POST /api/importar`
+responde 401 sin token (ruta cableada), y el parseo base64 -> xlsx -> filas
+probado con archivo generado. Contrato para la UI en
+`Reportes_Cambios_Y_Otros/Importador_Excel_contrato_para_Laura.md`.
+
+Pendiente futuro: importar Instructores (su create usa rol_id fijo — revisar) y
+paginacion en listados cuando suba el volumen.
+
+---
+
 ### 2026-07-31 — Jair Enrique Gonzalez Buelvas
 
 **Pendientes de backend del reporte de Laura (31/07, reunion con Leidy) + migracion frontend**
