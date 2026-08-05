@@ -5,6 +5,7 @@ import { ValidationError } from '../utils/errors.js';
 import { FichaService } from './ficha.service.js';
 import { AsignacionService } from './asignacion.service.js';
 import { HorarioService } from './horario.service.js';
+import { InstructorService } from './instructor.service.js';
 
 // ============================================================
 // P39 — Importador de datos via Excel (24/07 feedback lider, 31/07 Laura)
@@ -86,6 +87,25 @@ const resolver = {
 };
 
 // --- procesadores por hoja ---
+async function procesarInstructor(row: any): Promise<void> {
+  const nombre = String(row['nombre'] ?? '').trim();
+  const email = String(row['email'] ?? '').trim();
+  const tipoArea = norm(row['tipo_area']);
+  if (!nombre || !email) throw new ValidationError('nombre y email son obligatorios');
+  if (tipoArea !== 'tecnica' && tipoArea !== 'transversal') {
+    throw new ValidationError(`tipo_area invalido: "${row['tipo_area']}" (usa tecnica o transversal)`);
+  }
+
+  const inst = await InstructorService.create(nombre, email, tipoArea);
+
+  // Competencias habilitadas (opcional) — evita bloqueos RN-13 al asignar
+  const cods = String(row['codigos_competencia'] ?? '').split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+  for (const cod of cods) {
+    const compId = await resolver.competencia(cod);
+    await InstructorService.addCompetencia(inst.id, compId);
+  }
+}
+
 async function procesarGrupo(row: any): Promise<void> {
   await FichaService.create({
     numero_ficha: String(row['numero_grupo'] ?? row['numero_ficha'] ?? '').trim(),
@@ -134,6 +154,7 @@ async function procesarHorario(row: any): Promise<void> {
 }
 
 const HOJAS: { nombre: string; fn: (row: any) => Promise<void> }[] = [
+  { nombre: 'Instructores', fn: procesarInstructor },
   { nombre: 'Grupos', fn: procesarGrupo },
   { nombre: 'Asignaciones', fn: procesarAsignacion },
   { nombre: 'Horarios', fn: procesarHorario },
@@ -182,7 +203,7 @@ export const ImportarService = {
     }
 
     if (resumen.length === 0) {
-      throw new ValidationError('El archivo no contiene ninguna hoja valida (Grupos, Asignaciones u Horarios)');
+      throw new ValidationError('El archivo no contiene ninguna hoja valida (Instructores, Grupos, Asignaciones u Horarios)');
     }
 
     return { resumen };

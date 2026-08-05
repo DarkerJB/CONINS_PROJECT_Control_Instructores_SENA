@@ -110,7 +110,7 @@ export const InstructorService = {
 
       await conn.query(
         'INSERT INTO usuario_roles (usuario_id, rol_id) VALUES (?, ?)',
-        [usuarioId, 5],
+        [usuarioId, 4], // ID 4 = Instructor (era 5 antes del cambio de roles 01/07/2026)
       );
 
       const [instResult] = await conn.query(

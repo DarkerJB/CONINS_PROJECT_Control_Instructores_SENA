@@ -464,6 +464,30 @@ probado con archivo generado. Contrato para la UI en
 Pendiente futuro: importar Instructores (su create usa rol_id fijo — revisar) y
 paginacion en listados cuando suba el volumen.
 
+**Ajuste body-parser + migracion frontend (05/08):** subido el limite de body a
+15mb SOLO en `/api/importar` (Excel base64) — montado antes del parser global de
+10kb, el resto de la API mantiene el tope estricto. Fix del PayloadTooLargeError
+que reporto Laura.
+
+Migrado el frontend de Laura (repo GitHub): 2 archivos nuevos
+(`components/ui/MultiSelect.tsx`, `pages/importar.tsx` — la pantalla de carga de
+Excel) + 6 diffs (filtros multi-seleccion en fichas/horarios/instructores/
+ambientes, sidebar "Asignaciones" -> "Gestion" + item "Importar datos"). Su
+`api.ts` agrega `api.importar.cargar(archivo_base64)` que calza exacto con el
+endpoint (`POST /importar`, `{archivo_base64}`), y su UI maneja la carga parcial
+(errores por fila, "las filas validas ya se crearon"). Laura confirmo que el
+importador carga bien con la plantilla real. tsc backend y frontend limpios.
+
+**Fix rol_id + hoja Instructores en el importador (05/08):**
+- **Bug corregido:** `instructor.service.create` insertaba `usuario_roles` con
+  `rol_id = 5` (los roles son 1-4; Instructor = 4 desde el 01/07). Crear
+  instructores por esa via fallaba por FK. Corregido a 4 (auth.service ya usaba 4).
+- **Hoja `Instructores` agregada al importador** (ahora que su creacion funciona):
+  columnas nombre, email, tipo_area (tecnica/transversal), codigos_competencia
+  (opcional — habilita competencias para evitar bloqueos RN-13 al asignar). Se
+  procesa primero en el orden de hojas. Plantilla regenerada con 4 hojas.
+  tsc limpio (exit 0).
+
 ---
 
 ### 2026-07-31 — Jair Enrique Gonzalez Buelvas
