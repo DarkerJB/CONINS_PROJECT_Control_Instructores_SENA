@@ -488,6 +488,14 @@ importador carga bien con la plantilla real. tsc backend y frontend limpios.
   procesa primero en el orden de hojas. Plantilla regenerada con 4 hojas.
   tsc limpio (exit 0).
 
+**Fix reactivar horario (05/08, Laura):** reactivar un horario inactivo daba
+"Horario no encontrado". Causa: `horario.service.toggleActivo` validaba existencia
+con `HorarioModel.findById`, que solo trae horarios activos (por su
+`JOIN horarios h2 ON h2.id = h.id AND h2.activo = TRUE`). El registro nunca se
+borra (soft delete), pero el buscador lo filtraba. Fix: nuevo
+`HorarioModel.existsById` (SELECT sin filtro de activo) usado en `toggleActivo`;
+ahora un horario inactivo se encuentra y se puede reactivar. tsc limpio (exit 0).
+
 ---
 
 ### 2026-07-31 — Jair Enrique Gonzalez Buelvas

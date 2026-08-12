@@ -211,8 +211,10 @@ export const HorarioService = {
   },
 
   async toggleActivo(id: number, motivo?: string) {
-    const horario = await HorarioModel.findById(id);
-    if (!horario) throw new NotFoundError('Horario no encontrado');
+    // existsById (no findById): findById filtra activos por su JOIN, y aqui
+    // necesitamos poder REACTIVAR un horario inactivo (Laura 05/08).
+    const existe = await HorarioModel.existsById(id);
+    if (!existe) throw new NotFoundError('Horario no encontrado');
 
     const nuevoEstado = await HorarioModel.toggleActivo(id, motivo);
     return { activo: nuevoEstado };

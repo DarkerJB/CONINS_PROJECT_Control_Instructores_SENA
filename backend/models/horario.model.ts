@@ -230,6 +230,13 @@ export const HorarioModel = {
     return (rows as any[]).length > 0;
   },
 
+  // Existencia por ID SIN filtrar por activo (findById solo trae activos por su
+  // JOIN h2.activo = TRUE, por eso no sirve para reactivar un horario inactivo).
+  async existsById(id: number): Promise<boolean> {
+    const [rows] = await pool.query('SELECT 1 FROM horarios WHERE id = ? LIMIT 1', [id]);
+    return (rows as any[]).length > 0;
+  },
+
   async toggleActivo(id: number, motivo?: string): Promise<boolean> {
     const [rows] = await pool.query('SELECT activo FROM horarios WHERE id = ?', [id]);
     const current = (rows as any[])[0]?.activo ?? true;

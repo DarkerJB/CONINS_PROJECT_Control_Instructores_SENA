@@ -385,7 +385,7 @@ Ver `CONINS_Requisitos_Funcionales_v10_1.txt` para el texto completo y el mapa d
 | **P31** | **Confirmar/implementar bitácora de auditoría transversal (RF-59, RNF-24 inalterable)** | Jair | 🔴 Alta |
 | **P33** | **Selector de rol activo al login para usuarios multi-rol (RF-11, RN-18)** | Jair + Laura | 🟡 Media |
 | **P35b** | **Relajar guarda `hasRapEnFicha` para permitir dos instructores en la misma competencia repartiendo RAPs distintos** | Jair | 🟡 Media |
-| **P37** | **Decisión de negocio: jornada por asignación (`asignacion.jornada_id`) vs RN-20 (grupo = una jornada) — confirmar con líder si es autoritativa o informativa** | Líder + Jair | 🟡 Media |
+| **P37** | **Decisión de negocio para Leidy (usuario final): jornada por asignación (`asignacion.jornada_id`) vs RN-20 (grupo = una jornada).** Pregunta a hacer en la próxima reunión: _"Leidy, ¿un grupo siempre tiene una sola jornada para todos sus instructores, o puede haber instructores en jornadas distintas dentro del mismo grupo?"_ Si es una sola (opción 1, la más probable): RN-20 estricta, se quita `asignacion.jornada_id` y el selector muestra solo la del grupo. Mientras tanto funciona en modo informativo (`COALESCE(a.jornada_id, f.jornada_id)`), sin romper nada. | Leidy → decide; Jair/Laura ajustan | 🟡 Media |
 | **P38** | **Consolidaciones de la auditoría de normalización: unificar `tipos_novedad_*`, fuente única de "líder de grupo", simplificar estados de `fichas`** | Jair | 🟡 Media |
 | **P39** | **Importador de datos vía Excel (xlsx → BD)** | Jair | 🟡 Media |
 | **P40** | **Notificación por correo al asignar (extiende RF-47 + P27 SMTP)** | Jair | 🟡 Media |
