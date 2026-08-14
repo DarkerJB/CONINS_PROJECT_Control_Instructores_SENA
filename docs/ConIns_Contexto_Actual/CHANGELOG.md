@@ -496,6 +496,20 @@ borra (soft delete), pero el buscador lo filtraba. Fix: nuevo
 `HorarioModel.existsById` (SELECT sin filtro de activo) usado en `toggleActivo`;
 ahora un horario inactivo se encuentra y se puede reactivar. tsc limpio (exit 0).
 
+**P17 — Revision de seguridad + hardening (05/08):**
+- **Documento `REVISION_SEGURIDAD.md`:** postura actual (SQL parametrizado, bcrypt,
+  JWT en header, helmet, rate-limit, body limits, errores genericos), huecos reales
+  priorizados, y — clave — que NO aplica al stack y por que: CSRF (token en header,
+  no cookie), xss-clean (deprecado + capa equivocada), mongo-sanitize (no es Mongo).
+- **Validacion zod cerrada** en las rutas que la creamos sin ella: ambientes
+  (crear/editar/bloquear), sedes (crear/editar), competencias y RAPs (crear/editar).
+  Nuevos schemas: ambiente/sede/competencia.schema.ts + validate() en sus routes.
+- **HPP descartado** conscientemente: en Express 5 `req.query` es getter inmutable,
+  un guard casero seria no-op; riesgo muy bajo aqui. Documentado como baja prioridad.
+- Pendiente: validar notificaciones/alertas/programa y endpoints restantes de
+  horarios/asignaciones; secreto JWT fuerte para produccion; NODE_ENV=production.
+  tsc limpio (exit 0).
+
 **Migracion frontend (05/08, 2da del dia):** dashboard con graficas SVG puras
 (sin dependencias): en Consultas — barras "Horario por Grupo" (grupos con clase
 por dia) y "Ocupacion Ambientes" (barras + donut Disponible/Medio/Critico); en
