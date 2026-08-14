@@ -496,6 +496,14 @@ borra (soft delete), pero el buscador lo filtraba. Fix: nuevo
 `HorarioModel.existsById` (SELECT sin filtro de activo) usado en `toggleActivo`;
 ahora un horario inactivo se encuentra y se puede reactivar. tsc limpio (exit 0).
 
+**Migracion frontend (05/08, 2da del dia):** dashboard con graficas SVG puras
+(sin dependencias): en Consultas — barras "Horario por Grupo" (grupos con clase
+por dia) y "Ocupacion Ambientes" (barras + donut Disponible/Medio/Critico); en
+index — tarjetas resumen de 3 a 4 cards. Horarios: filtro que oculta inactivos
+por defecto con boton "Mostrar inactivos (X)" y opacidad reducida. 4 archivos
+(consultas.tsx, index.tsx, horarios.tsx, importar.tsx). `api.ts` IDENTICO (usa
+endpoints existentes) — cero cambio de contrato. tsc frontend limpio (exit 0).
+
 ---
 
 ### 2026-07-31 — Jair Enrique Gonzalez Buelvas
