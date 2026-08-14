@@ -30,16 +30,14 @@ passwords, auth) están cubiertas.
 
 ## 2. Huecos reales (priorizados)
 
-### 🔴 Alta — Validación de entrada incompleta (EN PROGRESO)
-Varias rutas de escritura leían `req.body` sin un esquema `zod` (`validate()`).
-Los controllers tienen chequeos manuales (`if (!nombre) throw`), así que no
-estaban totalmente expuestas, pero se están cerrando con esquemas `zod`.
-- ✅ **Cerrado 05/08:** ambientes (crear/editar/bloquear), sedes (crear/editar),
-  competencias y RAPs (crear/editar).
-- ⏳ **Pendiente:** notificaciones, alertas, programa (referente), y los endpoints
-  de escritura de horarios/asignaciones que aún no validan (aprobar/rechazar/
-  suspender, provisional, raps).
-**Acción:** completar los schemas restantes.
+### ✅ CERRADO (05/08) — Validación de entrada
+Todos los endpoints de escritura que reciben un body ahora validan con `zod`
+(`validate()`): ambientes, sedes, competencias/RAPs, horarios (editar, estado,
+rechazar, suspender, multidia), asignaciones (editar, provisional, raps),
+programa (referente), instructor (editar, competencia, baja), ficha (novedad).
+Los endpoints restantes sin schema son **toggles/acciones sin body** (aprobar,
+desactivar, finalizar, marcar-leida, toggle estado) — no reciben datos, no
+requieren validación. Cobertura de validación de entrada: **completa**.
 
 ### 🔴 Alta (despliegue) — Secreto JWT débil
 El `.env` de desarrollo usa `JWT_SECRET=conins-dev-secret-...-change-me`. Para

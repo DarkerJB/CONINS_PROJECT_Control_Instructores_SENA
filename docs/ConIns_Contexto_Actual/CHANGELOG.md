@@ -506,9 +506,13 @@ ahora un horario inactivo se encuentra y se puede reactivar. tsc limpio (exit 0)
   Nuevos schemas: ambiente/sede/competencia.schema.ts + validate() en sus routes.
 - **HPP descartado** conscientemente: en Express 5 `req.query` es getter inmutable,
   un guard casero seria no-op; riesgo muy bajo aqui. Documentado como baja prioridad.
-- Pendiente: validar notificaciones/alertas/programa y endpoints restantes de
-  horarios/asignaciones; secreto JWT fuerte para produccion; NODE_ENV=production.
-  tsc limpio (exit 0).
+- **Validacion de entrada COMPLETADA (05/08):** cubiertos con zod todos los
+  endpoints de escritura que reciben body — horarios (editar/estado/rechazar/
+  suspender/multidia), asignaciones (editar/provisional/raps), programa
+  (referente), instructor (editar/competencia/baja), ficha (novedad). Nuevo
+  `programa.schema.ts` + schemas agregados. Los que quedan sin schema son
+  toggles/acciones sin body. tsc limpio + boot OK.
+- Pendiente de P17: secreto JWT fuerte para produccion; NODE_ENV=production.
 
 **Migracion frontend (05/08, 2da del dia):** dashboard con graficas SVG puras
 (sin dependencias): en Consultas — barras "Horario por Grupo" (grupos con clase
