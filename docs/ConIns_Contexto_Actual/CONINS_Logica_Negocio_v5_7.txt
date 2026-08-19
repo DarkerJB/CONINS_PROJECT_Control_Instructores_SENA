@@ -1,7 +1,7 @@
-LÓGICA DE NEGOCIO — CONINS v5.6
+LÓGICA DE NEGOCIO — CONINS v5.7
 Centro del Diseño y Manufactura del Cuero — CDMC SENA
-Versión: 5.6 · Fecha: 21 de Julio 2026
-Basado en: RF v10.1 · sesiones 23/04, 28/04, 04/05, 11/06, 06/07, 15/07 y 21/07/2026
+Versión: 5.7 · Fecha: 19 de Agosto 2026
+Basado en: RF v10.2 · sesiones 23/04 a 21/07, 24/07, 28/07, 29/07, 31/07 y 05/08/2026
 
 NOTA DE VIGENCIA (21/07/2026): documento actualizado a v5.6 para alinearlo
 con Requisitos Funcionales v10.1. La versión previa (v5.5) quedó basada en
@@ -18,7 +18,20 @@ principales respecto a v5.5:
     fecha_fin_productiva en fichas, capacidad en ambientes (pendientes de
     implementar, ver sección 11).
   - Sección 9: resumen actualizado a RF v10.1 (62 RF en 12 módulos).
-Los RNF viven en CONINS_Requisitos_No_Funcionales_v1_0.txt.
+Los RNF viven en CONINS_Requisitos_No_Funcionales_v1_1.txt.
+
+NOTA DE VIGENCIA (19/08/2026): actualizado a v5.7 tras el reporte de
+inconsistencias del 18/08/2026. Cambios respecto a v5.6:
+  - RN-28, RN-29, RN-30 NUEVAS: aprobación automática de horarios
+    (decisión de Leidy 31/07), cascada de desactivación de asignación,
+    carga parcial en importación masiva.
+  - Sección 5: se agregan las entidades SEDE e INSTRUCTOR HISTÓRICO.
+  - Sección 1: se reconoce la gestión de sedes y de bajas de instructor.
+  - Sección 8: conteo de tablas unificado en 31.
+  - Sección 11: pendientes depurados (los del rework 21/07 quedaron
+    resueltos); Sección 12: historial extendido a 05/08.
+  - RF de referencia: v10.2 (referencias cruzadas corregidas; RF-37
+    reescrito como aprobación automática).
 
 ========================================================================================
 
@@ -45,6 +58,10 @@ NOVEDAD v10.x: las COMPETENCIAS y RAPs conservan la carga base de Sofía
 Plus como precarga, pero ahora tienen gestión administrativa (crear, editar,
 deshabilitar) desde la interfaz (RF-25 a RF-28, RN-25). Los AMBIENTES tienen
 gestión completa desde RF v8.0 (registro, edición, capacidad, bloqueos).
+
+NOVEDAD 24/07/2026: CONINS ahora gestiona SEDES (registro y referencia
+desde ambientes y grupos) y la BAJA de instructores con archivo histórico
+(instructor_historico); la baja conserva el historial vía soft-delete.
 
 ========================================================================================
 
@@ -146,6 +163,17 @@ COMPETENCIA / RAP (Resultado de Aprendizaje):
      programa del grupo (RN-27).
    - Cada RAP en seguimiento tiene fechas de inicio y fin, y un estado:
      pendiente por evaluar, aprobado o no aprobado (RN-21).
+
+SEDE (24/07/2026):
+   - Representa una sede física del CDMC. Los ambientes y los grupos
+     referencian su sede (ambientes.sede_id, fichas.sede_id).
+   - Permite separar la ocupación y los recursos por ubicación.
+
+INSTRUCTOR HISTÓRICO (24/07/2026):
+   - Archivo de instructores que salieron del CDMC. Al registrar la baja
+     de un instructor, sus datos se conservan en instructor_historico y el
+     instructor queda soft-deleted (RN-10) para no romper su historial de
+     asignaciones y horarios.
 
 Cadena de asignación (modelo v10.x):
 
@@ -299,6 +327,26 @@ RN-27 · RAP dentro del programa del grupo (NUEVA 21/07/2026)
    competencia del programa del grupo. Se valida al registrar y al editar
    el horario (RF-34, RF-35). Un RAP ajeno al programa se rechaza.
 
+RN-28 · Aprobación automática de horarios (NUEVA 31/07/2026, decisión de Leidy)
+   Los bloques de horario se aprueban automáticamente al registrarse
+   (estado 'aprobado'). No hay flujo de aprobación manual previa. Los
+   estados (aprobado, rechazado, suspendido) se conservan para
+   trazabilidad y un administrador puede ajustarlos manualmente (endpoints
+   aprobar/rechazar/suspender vigentes). Sustituye el flujo original de
+   RF-37, reescrito en RF v10.2.
+
+RN-29 · Cascada de desactivación de asignación (NUEVA 31/07/2026)
+   Al desactivar una asignación, el sistema desactiva también los horarios
+   asociados (correspondencia por instructor y grupo) y registra el motivo
+   automático 'Asignacion desactivada'. Es deshabilitación lógica (RN-10);
+   el historial se conserva. Se refleja en RF-45 (afecta RF-36).
+
+RN-30 · Carga parcial en importación masiva (NUEVA 05/08/2026)
+   En la importación por archivo, cada fila se procesa de forma
+   independiente: las filas válidas se crean y las inválidas se reportan
+   con su número de fila y motivo, sin abortar el lote. El resultado
+   informa, por hoja, cuántos registros se crearon y qué filas fallaron.
+
 ========================================================================================
 
 7. STACK TECNOLÓGICO
@@ -313,7 +361,7 @@ RN-27 · RAP dentro del programa del grupo (NUEVA 21/07/2026)
 
 Las reglas de arquitectura (capas, validaciones en servidor, mensajes de
 error, cálculo de horas en backend) se formalizaron como RNF en
-CONINS_Requisitos_No_Funcionales_v1_0.txt.
+CONINS_Requisitos_No_Funcionales_v1_1.txt.
 
 ========================================================================================
 
@@ -360,7 +408,8 @@ Horarios, alertas, notificaciones y seguimiento:
 
 ESTADO DE LOS CAMBIOS DE SCHEMA DEL REWORK 21/07/2026:
    - asignacion_rap: IMPLEMENTADA. Tabla nueva (asignacion_competencia_id,
-     rap_id). Schema en 29 tablas. Validaciones RF-42 y RN-06 en el service.
+     rap_id). Con las tablas sedes e instructor_historico (24/07) el schema
+     llega a 31 tablas al 28/07/2026. Validaciones RF-42 y RN-06 en el service.
    - horarios.rap_id: IMPLEMENTADO. Columna FK + validación RN-27 en
      create/update.
    - fichas.fecha_fin_productiva: YA EXISTÍA (verificado 21/07/2026).
@@ -375,7 +424,7 @@ ESTADO DE LOS CAMBIOS DE SCHEMA DEL REWORK 21/07/2026:
 
 ========================================================================================
 
-9. RESUMEN DE RF v10.1 — 62 RF EN 12 MÓDULOS
+9. RESUMEN DE RF v10.2 — 62 RF EN 12 MÓDULOS
 
    Módulo                                  Rango            Total
    AUTH                                    RF-01 a RF-11    11
@@ -392,7 +441,7 @@ ESTADO DE LOS CAMBIOS DE SCHEMA DEL REWORK 21/07/2026:
    Seguimiento de RAPs                     RF-61 a RF-62     2
    Total                                                    62
 
-Ver CONINS_Requisitos_Funcionales_v10_1.txt para el texto completo y el
+Ver CONINS_Requisitos_Funcionales_v10_2.txt para el texto completo y el
 mapa de decisiones del feedback del líder técnico.
 
 ========================================================================================
@@ -437,36 +486,30 @@ PRINCIPIO GENERAL:
 
 ========================================================================================
 
-11. PENDIENTES ACTIVOS (al 21/07/2026)
+11. PENDIENTES ACTIVOS (al 19/08/2026)
 
-   #    Pendiente                                          Prioridad
-   P4   Lista oficial de instructores con correo           Media
-   P8   Apellido co-líder Rivera (Técnico Medular)         Baja
-   P9   Apellido Catalina (líder Talento Humano)           Baja
-   P10  Revisar Resolución 1415/2012 y Acuerdo 0003/2017   Baja
-   P16  Infraestructura de pruebas automatizadas           Media
-   P17  Seguridad: xss-clean, CSRF, validación de rutas    Media
-   P26  Expansión línea medular (Calzado/Cuero)            Baja
-   P27  Configurar SMTP para correo                        Media
-   P28  CrearBloqueHorarioModal usa ficha.id en lugar de   Media
-        ficha.programa_id
-   P29  Schema: agregar fecha_fin_productiva a fichas;     Alta
-        verificar capacidad en ambientes
-   P29b Schema: tabla asignacion_rap (modelo RAP directo)  Alta
-        + rap_id en horarios (RN-27)
-   P30  Verificar estados del RAP en                       Alta
-        rap_ficha_seguimiento y registro en bitácora
-   P31  Confirmar/implementar bitácora de auditoría        Alta
-        transversal (RF-59, RNF-24)
-   P32  Frontend: aplicar terminología GRUPO en todas      Alta
-        las pantallas (terminology)
-   P33  Selector de rol activo al iniciar sesión para      Media
-        usuarios con múltiples roles (RF-11)
-   P34  Módulo CRUD Competencias y RAPs (RF-25 a RF-28,    Alta
-        RN-25) — hoy solo seed
-   P35  Asignación explícita de RAP (RF-42, RN-15          Alta
-        redefinida) — hoy herencia automática
-   P36  Horario vinculado a RAP (RF-34, RN-27)             Alta
+   Depurado: los pendientes del rework 21/07 (P29, P29b, P32, P34, P35,
+   P36) quedaron RESUELTOS. P17 se cerró salvo el secreto JWT de
+   producción. P28 resuelto. P39 (importador masivo) resuelto. Abiertos:
+
+   #     Pendiente                                          Prioridad
+   P4    Lista oficial de instructores con correo           Media
+   P10   Revisar Resolución 1415/2012 y Acuerdo 0003/2017   Baja
+   P16   Infraestructura de pruebas automatizadas           Media
+   P27   Configurar SMTP para correo                        Media
+   P30   rap_ficha_seguimiento: el estado se modela en dos  Alta
+         columnas (estado_evaluacion + estado_aprobacion);
+         falta el registro en bitácora
+   P31   Bitácora de auditoría transversal: hoy con trigger Alta
+         en 8 de 31 tablas (RF-59, RNF-24 inalterable)
+   P33   Selector de rol activo al iniciar sesión (RF-11)   Media
+   P35b  Relajar la guarda hasRapEnFicha para repartir      Media
+         RAPs de una competencia entre instructores (RF-42)
+   P37   Jornada por asignación vs RN-20 — decisión Leidy   Media
+   P41   RN-20 no implementada: el cambio de ambiente no    Media
+         valida etapa lectiva en ficha.service
+   JWT   Secreto JWT de producción (fuerte, fuera del repo, Alta
+         rotable) — al desplegar
 
 ========================================================================================
 
@@ -494,8 +537,19 @@ PRINCIPIO GENERAL:
    v5.6 rev 28/07/2026   Integración frontend Laura: fix instructores_count,
                          instructores en GET /fichas/:id, asignacion.jornada_id
                          (informativa — decisión P37 pendiente vs RN-20).
+   v5.6 rev 29/07/2026   Fixes: resto de tipo_contrato en horario (error
+                         500), reactivación de asignación inactiva.
+   v5.6 rev 31/07/2026   Decisiones de Leidy: auto-aprobación de horarios
+                         (RN-28), cascada de desactivación (RN-29),
+                         registro de horario multidía.
+   v5.7     05-19/08/2026 Importador masivo (RN-30), validación de entrada
+                         completa (RNF-25), revisión de seguridad. RF v10.2
+                         (referencias cruzadas corregidas; RF-37 reescrito
+                         como aprobación automática). RN-28/29/30 nuevas.
+                         Guard RN-26 implementado. Alineación con reporte
+                         de inconsistencias del 18/08/2026.
 
 ========================================================================================
 
-CONINS · SENA CDMC · Lógica de Negocio v5.6 (rev 28/07/2026) · 21 de Julio 2026
+CONINS · SENA CDMC · Lógica de Negocio v5.7 · 19 de Agosto 2026
 Autores: Jair Enrique González Buelvas · Laura Sofía Posada

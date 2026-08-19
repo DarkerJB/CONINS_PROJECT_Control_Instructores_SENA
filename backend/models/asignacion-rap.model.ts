@@ -68,6 +68,22 @@ export const AsignacionRapModel = {
     return rows.length > 0;
   },
 
+  // RN-26: ¿el RAP tiene alguna asignacion activa a un instructor?
+  // Se usa para impedir deshabilitar un RAP que esta en uso.
+  async isRapAsignadoActivo(rapId: number): Promise<boolean> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT 1
+       FROM asignacion_rap ar
+       JOIN asignacion_competencia ac ON ar.asignacion_competencia_id = ac.id
+       JOIN asignacion a ON ac.asignacion_id = a.id
+       WHERE ar.rap_id = ?
+         AND ar.activo = TRUE AND ac.activo = TRUE AND a.activo = TRUE
+       LIMIT 1`,
+      [rapId],
+    );
+    return rows.length > 0;
+  },
+
   // Devuelve el ficha_id de un asignacion_competencia.
   async getFichaIdByAc(acId: number): Promise<number | null> {
     const [rows] = await pool.query<RowDataPacket[]>(

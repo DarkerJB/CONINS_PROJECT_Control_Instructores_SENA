@@ -1,6 +1,6 @@
-REQUISITOS NO FUNCIONALES — CONINS v1.0
+REQUISITOS NO FUNCIONALES — CONINS v1.1
 Centro del Diseño y Manufactura del Cuero — CDMC SENA
-Creado: 21 de Julio 2026
+Creado: 21 de Julio 2026 · Actualizado: 19 de Agosto 2026 (v1.1)
 
 ========================================================================================
 
@@ -10,8 +10,14 @@ En el feedback del 21/07/2026 se observó que varios requisitos
 funcionales contenían detalles técnicos y requisitos no funcionales
 mezclados (mecanismos de sesión, tokens, códigos de respuesta, nombres
 de tecnologías). Este documento consolida todos los RNF del sistema:
-los 16 que ya existían en el ERS v3 y los extraídos de los RF durante
-el rework a v9.0.
+los 15 que sobreviven del ERS v3 y los extraídos de los RF durante el
+rework a v9.0. (El RNF-15 del ERS —onboarding en dos pasos— se reclasificó
+como regla de negocio RN-01, por eso sobreviven 15 y no 16.)
+
+AMPLIACIÓN v1.1 (19/08/2026): se formalizan como RNF-25 a RNF-30 las
+protecciones de seguridad reales documentadas en REVISION_SEGURIDAD.md
+(validación de entrada, límites de payload, rate limiting, cabeceras,
+no divulgación de errores y secreto JWT de producción).
 
 Convención: cada RNF indica, cuando aplica, de qué RF fue extraído.
 
@@ -176,18 +182,55 @@ RNF-23  Catálogos editables sin cambios estructurales
 CATEGORÍA 8 — TRAZABILIDAD
 
 RNF-24  Auditoría inalterable
-        La bitácora de auditoría (RF-53) es de solo lectura: ninguna
+        La bitácora de auditoría (RF-59) es de solo lectura: ninguna
         operación del sistema ni ningún rol puede editar o eliminar sus
         registros. Cada entrada queda asociada al usuario autenticado y
         al momento exacto de la operación.
 
 ========================================================================================
 
+CATEGORÍA 1 (continuación) — SEGURIDAD (formalizada 05/08/2026)
+
+RNF-25  Validación de entrada
+        Todo endpoint de escritura que recibe un body valida su contenido
+        con un esquema zod antes de llegar al service; un payload inválido
+        retorna HTTP 422 con el detalle del campo. Los endpoints sin body
+        (toggles y acciones) quedan exentos de forma explícita.
+        (Formalizado 05/08/2026 — cierra P17 de validación)
+
+RNF-26  Límites de payload
+        El tamaño del body se limita a 10 kB de forma global y a 15 MB
+        únicamente en /api/importar, montado antes del parser global para
+        no relajar el límite del resto de la API.
+
+RNF-27  Limitación de tasa
+        El sistema aplica rate limiting: 100 peticiones por 15 minutos de
+        forma global y 10 por 15 minutos en autenticación. Activo cuando
+        NODE_ENV=production.
+
+RNF-28  Cabeceras de seguridad
+        helmet está activo (X-Frame-Options, X-Content-Type-Options y
+        otras). CORS se restringe al origen del frontend y se registra
+        como primer middleware.
+
+RNF-29  No divulgación de errores
+        El manejador de errores devuelve al cliente un mensaje genérico;
+        el stack del error se registra solo en el log del servidor.
+
+RNF-30  Secreto JWT de producción
+        El secreto JWT de producción debe ser aleatorio de 32 bytes o más,
+        mantenerse fuera del repositorio y ser rotable. El valor de
+        desarrollo (cadena con "change-me") no debe usarse en despliegue.
+        (Deuda técnica abierta al 19/08/2026 — bloquea despliegue seguro)
+
+========================================================================================
+
 RESUMEN
-Total de requisitos no funcionales: 24
+Total de requisitos no funcionales: 30
 
    Categoría                      RNF              Total
-   Seguridad                      RNF-01 a RNF-07    7
+   Seguridad                      RNF-01 a RNF-07,   13
+                                  RNF-25 a RNF-30
    Rendimiento                    RNF-08 a RNF-09    2
    Integridad de la lógica        RNF-10 a RNF-12    3
    Disponibilidad                 RNF-13             1
@@ -212,5 +255,5 @@ TRAZABILIDAD RF → RNF (extracciones del rework v9.0):
 
 ========================================================================================
 
-CONINS · SENA CDMC · Requisitos No Funcionales v1.0 · 21 de Julio 2026
+CONINS · SENA CDMC · Requisitos No Funcionales v1.1 · 19 de Agosto 2026
 Autores: Jair Enrique González Buelvas · Laura Sofía Posada

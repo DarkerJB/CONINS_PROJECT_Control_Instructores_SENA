@@ -1,8 +1,27 @@
-REQUISITOS FUNCIONALES — CONINS v10.1
+REQUISITOS FUNCIONALES — CONINS v10.2
 Centro del Diseño y Manufactura del Cuero — CDMC SENA
-Actualizado: 21 de Julio 2026 (62 RF — v10.1)
+Actualizado: 19 de Agosto 2026 (62 RF — v10.2)
 
 ========================================================================================
+
+CAMBIOS RESPECTO A v10.1 (correccion de referencias cruzadas, 19/08/2026):
+
+  Se corrigieron las referencias cruzadas del campo Rel: que habian
+  quedado apuntando a la numeracion de v9.0 al reescribir los Desc: en
+  v10.x. No se renumero ningun RF; solo se corrigio el destino de cada
+  referencia. 20 correcciones en 19 requisitos (Bloque A del reporte de
+  inconsistencias 18/08/2026, mas RF-47 Historial RF-52 -> RF-56 que el
+  reporte omitio). La regla "Alcance" ahora apunta a RF-58 (antes RF-53),
+  los prerequisitos de asignacion a RF-41, los horarios a RF-34, el panel
+  de carga a RF-54, la ocupacion a RF-34 y el seguimiento de RAP a RF-61.
+  El ERS debe consumir v10.2, nunca v10.1. Se anadio en RF-45 la
+  referencia a la cascada de horarios (RF-36), confirmada en codigo
+  (RN-29 pendiente de formalizar en LN).
+  RF-37 reescrito (decision de Leidy 31/07/2026, Opcion A): pasa de
+  "Aprobar o rechazar horario" a "Aprobacion automatica de horario"; se
+  conservan los estados para trazabilidad y el ajuste manual por
+  administrador (endpoints aprobar/rechazar/suspender siguen expuestos).
+  Nueva RN-28 en LN v5_7.
 
 CAMBIOS RESPECTO A v10.0:
 
@@ -50,7 +69,7 @@ Desc:  El sistema debe permitir a los usuarios registrados iniciar sesión
        con su correo y contraseña, dirigiéndolos a la vista que
        corresponde a su rol.
 Reglas: RN-02
-Rel:   Requiere RF-01. Alcance por rol: RF-53.
+Rel:   Requiere RF-01. Alcance por rol: RF-58.
 
 RF-03 | Edición de perfil propio
 Desc:  El sistema debe permitir a todo usuario consultar y actualizar su
@@ -105,7 +124,7 @@ Desc:  El sistema debe permitir a los directivos con perfil docente
        ingresar bajo el rol de instructor, operando con el alcance de ese
        rol sin mezclar permisos.
 Reglas: RN-18
-Rel:   Requiere RF-02 y RF-07. Alcance: RF-53.
+Rel:   Requiere RF-02 y RF-07. Alcance: RF-58.
 
 ========================================================================================
 
@@ -116,20 +135,20 @@ Desc:  El sistema debe permitir a los administradores registrar
        instructores indicando el área o áreas (técnica, transversal o
        ambas) en que pueden impartir formación.
 Reglas: RN-13
-Rel:   Requiere RF-07. Prerequisito de RF-38.
+Rel:   Requiere RF-07. Prerequisito de RF-41.
 
 RF-13 | Competencias habilitadas
 Desc:  El sistema debe permitir a los administradores definir y mantener
        las competencias que cada instructor está habilitado para impartir.
 Reglas: RN-13
-Rel:   Requiere RF-12. Prerequisito de RF-38.
+Rel:   Requiere RF-12. Prerequisito de RF-41.
 
 RF-14 | Novedad del instructor
 Desc:  El sistema debe permitir a los administradores registrar novedades
        administrativas de un instructor (licencia, incapacidad u otra) con
        fecha de inicio, fecha de regreso y observación.
 Reglas: RN-08, RN-22
-Rel:   Requiere RF-12. Notifica: RF-47. Afecta RF-31 y RF-38.
+Rel:   Requiere RF-12. Notifica: RF-47. Afecta RF-34 y RF-41.
 
 RF-15 | Consulta de instructores
 Desc:  El sistema debe permitir a los administradores consultar y filtrar
@@ -153,7 +172,7 @@ Desc:  El sistema debe permitir a los administradores registrar grupos
        indicando número, programa, jornada, ambiente, instructor líder y
        etapa.
 Reglas: RN-19, RN-20, RN-14
-Rel:   Requiere RF-23 y RF-28. Prerequisito de RF-31 y RF-38.
+Rel:   Requiere RF-23 y RF-29. Prerequisito de RF-34 y RF-41.
 
 RF-18 | Etapas del grupo con fechas
 Desc:  El sistema debe permitir a los administradores registrar las fechas
@@ -165,7 +184,7 @@ RF-19 | Edición de grupos
 Desc:  El sistema debe permitir a los administradores editar la
        información de un grupo y avanzar su etapa de lectiva a productiva.
 Reglas: RN-19, RN-20, RN-22
-Rel:   Requiere RF-17. Cambio de ambiente valida RF-45 y RN-09.
+Rel:   Requiere RF-17. Cambio de ambiente valida RF-33 y RN-09.
 
 RF-20 | Finalizar o deshabilitar grupos
 Desc:  El sistema debe permitir a los administradores finalizar o
@@ -177,14 +196,14 @@ RF-21 | Consulta de grupos
 Desc:  El sistema debe permitir a los usuarios consultar los grupos con
        sus etapas, RAP y competencia vigentes, según el alcance de su rol.
 Reglas: RN-19
-Rel:   Requiere RF-17. Fechas de RAP: RF-57. Alcance: RF-53.
+Rel:   Requiere RF-17. Fechas de RAP: RF-61. Alcance: RF-58.
 
 RF-22 | Novedad del grupo
 Desc:  El sistema debe permitir a los administradores registrar novedades
        de un grupo (comité, paro, salida) con fecha de inicio, fecha de
        regreso y observación.
 Reglas: RN-22
-Rel:   Requiere RF-17. Afecta RF-31. Libera ambiente (sección 10 lógica).
+Rel:   Requiere RF-17. Afecta RF-34. Libera ambiente (sección 10 lógica).
 
 ========================================================================================
 
@@ -211,7 +230,7 @@ Desc:  El sistema debe permitir a los administradores crear, editar y
        deshabilitar competencias sobre la carga base precargada de
        Sofía Plus.
 Reglas: RN-10, RN-25
-Rel:   Base para RF-27 y RF-38.
+Rel:   Base para RF-27 y RF-41.
 
 RF-26 | Consulta de competencias
 Desc:  El sistema debe permitir a los administradores consultar y filtrar
@@ -224,7 +243,7 @@ Desc:  El sistema debe permitir a los administradores crear, editar y
        deshabilitar los resultados de aprendizaje asociados a cada
        competencia.
 Reglas: RN-10, RN-25, RN-26
-Rel:   Requiere RF-25. Base para RF-39.
+Rel:   Requiere RF-25. Base para RF-42.
 
 RF-28 | Consulta de RAPs
 Desc:  El sistema debe permitir a los administradores consultar los RAPs
@@ -252,7 +271,7 @@ RF-31 | Consulta de ambientes
 Desc:  El sistema debe permitir a los administradores consultar los
        ambientes con su tipo, área, estado y ocupación por jornada.
 Reglas: —
-Rel:   Requiere RF-29. Ocupación deriva de RF-32.
+Rel:   Requiere RF-29. Ocupación deriva de RF-34.
 
 RF-32 | Bloqueo temporal de ambiente
 Desc:  El sistema debe permitir a los administradores bloquear
@@ -274,7 +293,7 @@ RF-34 | Registro de horario
 Desc:  El sistema debe permitir a los administradores registrar un bloque
        de horario asignando grupo, instructor, ambiente, RAP y jornada.
 Reglas: RN-03, RN-04, RN-05, RN-08, RN-09, RN-26, RN-27
-Rel:   Requiere RF-17, RF-38, RF-39. Aprobación: RF-37.
+Rel:   Requiere RF-17, RF-41, RF-42. Aprobación: RF-37.
 
 RF-35 | Edición de horario
 Desc:  El sistema debe permitir a los administradores editar un bloque de
@@ -288,17 +307,19 @@ Desc:  El sistema debe permitir a los administradores deshabilitar un
 Reglas: RN-10
 Rel:   Requiere RF-34.
 
-RF-37 | Aprobar o rechazar horario
-Desc:  El sistema debe permitir a los administradores aprobar o rechazar
-       los bloques de horario pendientes, exigiendo motivo en el rechazo.
-Reglas: RN-07
-Rel:   Requiere RF-34. Alimenta RF-51.
+RF-37 | Aprobación automática de horario
+Desc:  El sistema debe aprobar automáticamente los bloques de horario al
+       registrarlos, conservando los estados de aprobación (aprobado,
+       rechazado, suspendido) para trazabilidad y permitiendo el ajuste
+       manual del estado por parte de un administrador.
+Reglas: RN-07, RN-28
+Rel:   Requiere RF-34. Alimenta RF-54.
 
 RF-38 | Malla de horarios
 Desc:  El sistema debe mostrar la malla de horarios de un grupo o
        instructor en formato de grilla semanal.
 Reglas: —
-Rel:   Requiere RF-34. Base de RF-54.
+Rel:   Requiere RF-34. Base de RF-57.
 
 RF-39 | Suspensión de horario
 Desc:  El sistema debe permitir a los administradores suspender un bloque
@@ -311,7 +332,7 @@ Desc:  El sistema debe permitir a los administradores categorizar cada
        bloque con un tipo de actividad que define si suma a la carga
        horaria.
 Reglas: RN-07
-Rel:   Requiere RF-34. Alimenta RF-51.
+Rel:   Requiere RF-34. Alimenta RF-54.
 
 ========================================================================================
 
@@ -328,7 +349,7 @@ Desc:  El sistema debe permitir a los administradores asignar a cada
        instructor los RAPs que dictará dentro de la competencia, con un
        máximo de un instructor por RAP en el grupo.
 Reglas: RN-06, RN-15, RN-26
-Rel:   Requiere RF-41 y RF-27. Seguimiento: RF-57.
+Rel:   Requiere RF-41 y RF-27. Seguimiento: RF-61.
 
 RF-43 | Asignación provisional
 Desc:  El sistema debe permitir a los administradores registrar
@@ -348,13 +369,13 @@ Desc:  El sistema debe permitir a los administradores desactivar una
        asignación en cascada, registrando el motivo y conservando el
        historial.
 Reglas: RN-10, RN-16
-Rel:   Requiere RF-41. Afecta RF-34.
+Rel:   Requiere RF-41. Afecta RF-34. Desactiva horarios asociados: RF-36.
 
 RF-46 | Consulta de asignaciones
 Desc:  El sistema debe permitir a los usuarios consultar las asignaciones
        activas, provisionales e históricas según el alcance de su rol.
 Reglas: —
-Rel:   Requiere RF-41. Alcance: RF-53.
+Rel:   Requiere RF-41. Alcance: RF-58.
 
 ========================================================================================
 
@@ -364,7 +385,7 @@ RF-47 | Notificación al instructor
 Desc:  El sistema debe notificar al instructor los cambios en sus
        asignaciones o cuenta, mediante notificación interna y correo.
 Reglas: —
-Rel:   Desde RF-41, RF-42, RF-14. Historial: RF-52.
+Rel:   Desde RF-41, RF-42, RF-14. Historial: RF-56.
 
 RF-48 | Notificación a la coordinación
 Desc:  El sistema debe notificar a la coordinación los cambios de
@@ -383,7 +404,7 @@ Desc:  El sistema debe alertar cuando la carga horaria semanal de un
        instructor quede por debajo de 20 o por encima de 40 horas, sin
        bloquear el registro.
 Reglas: RN-07
-Rel:   Desde RF-34, RF-37. Visible en RF-51.
+Rel:   Desde RF-34, RF-37. Visible en RF-54.
 
 RF-51 | Alerta de jornada restringida
 Desc:  El sistema debe alertar al registrar un horario en jornada nocturna
@@ -411,7 +432,7 @@ RF-54 | Panel de carga horaria
 Desc:  El sistema debe mostrar la carga horaria semanal de cada instructor
        comparada con el rango permitido de 20 a 40 horas.
 Reglas: RN-07
-Rel:   Desde RF-34, RF-37, RF-40. Alcance: RF-53.
+Rel:   Desde RF-34, RF-37, RF-40. Alcance: RF-58.
 
 RF-55 | Consulta global
 Desc:  El sistema debe permitir a los administradores consultar y filtrar
