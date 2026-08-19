@@ -978,53 +978,14 @@ BEGIN
 END$$
 DELIMITER ;
 
--- --- Validar ambiente ocupado (RN-05) ---
+-- --- RN-05: Ambiente ocupado es ALERTA SOFT, no bloqueo (19/08/2026) ---
+-- Los triggers tr_validar_ambiente_ocupado_before_insert/update fueron
+-- ELIMINADOS: hacian SIGNAL (hard block) y contradecian RN-05, que es una
+-- alerta soft ("los talleres pueden albergar varios grupos"). El aviso lo
+-- resuelve horario.service (alerta_ambiente_ocupado), sin impedir el registro.
+-- Se conservan los DROP para que una BD nueva no tenga estos triggers.
 DROP TRIGGER IF EXISTS tr_validar_ambiente_ocupado_before_insert;
-DELIMITER $$
-CREATE TRIGGER tr_validar_ambiente_ocupado_before_insert
-BEFORE INSERT ON horarios
-FOR EACH ROW
-BEGIN
-    DECLARE ocupado_count INT;
-    IF NEW.ambiente_id IS NOT NULL THEN
-        SELECT COUNT(*) INTO ocupado_count
-        FROM horarios
-        WHERE ambiente_id = NEW.ambiente_id
-          AND dia_semana = NEW.dia_semana
-          AND jornada_id = NEW.jornada_id
-          AND semana = NEW.semana
-          AND activo = TRUE;
-        IF ocupado_count > 0 THEN
-            SIGNAL SQLSTATE '45000'
-            SET MESSAGE_TEXT = 'RN-05: El ambiente ya está ocupado en esa jornada y día';
-        END IF;
-    END IF;
-END$$
-DELIMITER ;
-
 DROP TRIGGER IF EXISTS tr_validar_ambiente_ocupado_before_update;
-DELIMITER $$
-CREATE TRIGGER tr_validar_ambiente_ocupado_before_update
-BEFORE UPDATE ON horarios
-FOR EACH ROW
-BEGIN
-    DECLARE ocupado_count INT;
-    IF NEW.ambiente_id IS NOT NULL THEN
-        SELECT COUNT(*) INTO ocupado_count
-        FROM horarios
-        WHERE ambiente_id = NEW.ambiente_id
-          AND dia_semana = NEW.dia_semana
-          AND jornada_id = NEW.jornada_id
-          AND semana = NEW.semana
-          AND activo = TRUE
-          AND id != NEW.id;
-        IF ocupado_count > 0 THEN
-            SIGNAL SQLSTATE '45000'
-            SET MESSAGE_TEXT = 'RN-05: El ambiente ya está ocupado en esa jornada y día';
-        END IF;
-    END IF;
-END$$
-DELIMITER ;
 
 -- ============================================================
 -- 23. PROCEDIMIENTOS ALMACENADOS
