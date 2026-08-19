@@ -3,14 +3,33 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse } from '../utils/response.js';
 import pool from '../config/db.js';
 
-export const getCargaHoraria = asyncHandler(async (_req: Request, res: Response) => {
+// Semana (lunes) a mostrar en los paneles: la pedida por query, o por defecto
+// la semana con mas horarios registrados (para que el panel salga poblado sin
+// depender del reloj del servidor). Devuelve null si no hay horarios.
+async function resolverSemana(pedida?: string): Promise<string | null> {
+  if (pedida) return pedida;
+  const [rows] = await pool.query(
+    `SELECT semana FROM horarios WHERE activo = TRUE
+     GROUP BY semana ORDER BY COUNT(*) DESC, semana DESC LIMIT 1`,
+  );
+  const r = (rows as any[])[0]?.semana;
+  return r ? (r instanceof Date ? r.toISOString().split('T')[0] : String(r)) : null;
+}
+
+export const getCargaHoraria = asyncHandler(async (req: Request, res: Response) => {
+  // La carga es SEMANAL (limite 20-40h). Se calcula para una sola semana:
+  // ?semana=YYYY-MM-DD (lunes) o, por defecto, la semana actual.
+  // Nota: el total_horas se toma SOLO de horarios; no se une a
+  // asignacion_competencia porque ese JOIN multiplicaba cada bloque por el
+  // numero de competencias (fan-out) e inflaba las horas.
+  const semana = await resolverSemana(req.query.semana as string | undefined);
   const [rows] = await pool.query(`
     SELECT
       i.id AS instructor_id,
       u.nombre AS instructor_nombre,
       COALESCE(SUM(TIMESTAMPDIFF(MINUTE, h.hora_inicio, h.hora_fin)) / 60, 0) AS total_horas,
       COUNT(DISTINCT h.ficha_id) AS fichas_count,
-      COUNT(DISTINCT ac.competencia_id) AS competencias_count,
+      COUNT(DISTINCT h.competencia_id) AS competencias_count,
       CASE
         WHEN COALESCE(SUM(TIMESTAMPDIFF(MINUTE, h.hora_inicio, h.hora_fin)) / 60, 0) > 40 THEN 'Sobrecarga'
         WHEN COALESCE(SUM(TIMESTAMPDIFF(MINUTE, h.hora_inicio, h.hora_fin)) / 60, 0) < 20 THEN 'Bajo carga'
@@ -19,12 +38,11 @@ export const getCargaHoraria = asyncHandler(async (_req: Request, res: Response)
     FROM instructores i
     JOIN usuarios u ON i.usuario_id = u.id
     LEFT JOIN horarios h ON h.instructor_id = i.id AND h.activo = TRUE
-    LEFT JOIN asignacion a ON a.instructor_id = i.id AND a.activo = TRUE
-    LEFT JOIN asignacion_competencia ac ON ac.asignacion_id = a.id AND ac.activo = TRUE
+      AND h.semana = ?
     WHERE i.activo = TRUE
     GROUP BY i.id, u.nombre
     ORDER BY total_horas DESC
-  `);
+  `, [semana]);
   // total_horas viene como string (DECIMAL de mysql2) — se envia como number
   const data = (rows as any[]).map((r) => ({ ...r, total_horas: Number(r.total_horas) }));
   ApiResponse.success(res, data);
@@ -52,23 +70,28 @@ export const getHorariosFicha = asyncHandler(async (_req: Request, res: Response
   ApiResponse.success(res, rows);
 });
 
-export const getOcupacionAmbientes = asyncHandler(async (_req: Request, res: Response) => {
+export const getOcupacionAmbientes = asyncHandler(async (req: Request, res: Response) => {
+  // Ocupacion SEMANAL: horas ocupadas en una semana sobre una capacidad
+  // semanal de referencia (60h = 12h/dia x 5 dias). ?semana=YYYY-MM-DD (lunes)
+  // o, por defecto, la semana actual.
+  const semana = await resolverSemana(req.query.semana as string | undefined);
   const [rows] = await pool.query(`
     SELECT
       ab.nombre AS ambiente_nombre,
       ab.tipo,
       ab.capacidad,
       COALESCE(SUM(TIMESTAMPDIFF(MINUTE, h.hora_inicio, h.hora_fin)) / 60, 0) AS horas_ocupadas,
-      40 AS horas_totales,
+      60 AS horas_totales,
       ROUND(
-        COALESCE(SUM(TIMESTAMPDIFF(MINUTE, h.hora_inicio, h.hora_fin)) / 60, 0) / 40 * 100,
+        COALESCE(SUM(TIMESTAMPDIFF(MINUTE, h.hora_inicio, h.hora_fin)) / 60, 0) / 60 * 100,
         1
       ) AS porcentaje
     FROM ambientes ab
     LEFT JOIN horarios h ON h.ambiente_id = ab.id AND h.activo = TRUE
+      AND h.semana = ?
     WHERE ab.activo = TRUE
     GROUP BY ab.id, ab.nombre, ab.tipo, ab.capacidad
     ORDER BY porcentaje DESC
-  `);
+  `, [semana]);
   ApiResponse.success(res, rows);
 });
