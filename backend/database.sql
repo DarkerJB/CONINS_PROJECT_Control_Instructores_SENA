@@ -222,20 +222,20 @@ CREATE TABLE IF NOT EXISTS ambientes (
     FOREIGN KEY (sede_id) REFERENCES sedes(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
-INSERT IGNORE INTO ambientes (id, nombre, tipo) VALUES
-(1,  'Aula 200', 'aula'),
-(2,  'Aula 201', 'aula'),
-(3,  'Aula 202', 'aula'),
-(4,  'Aula 203', 'aula'),
-(5,  'Aula 204', 'aula'),
-(6,  'Aula 205', 'aula'),
-(7,  'Aula 206', 'aula'),
-(8,  'Aula 207', 'aula'),
-(9,  'Aula 208', 'aula'),
-(10, 'Taller 1', 'taller'),
-(11, 'Taller 2', 'taller'),
-(12, 'Taller 3', 'taller'),
-(13, 'Taller 4', 'taller');
+INSERT IGNORE INTO ambientes (id, nombre, tipo, capacidad) VALUES
+(1,  'Ambiente 200', 'aula',   30),
+(2,  'Ambiente 201', 'aula',   30),
+(3,  'Ambiente 202', 'aula',   30),
+(4,  'Ambiente 203', 'aula',   30),
+(5,  'Ambiente 204', 'aula',   30),
+(6,  'Ambiente 205', 'aula',   30),
+(7,  'Ambiente 206', 'aula',   30),
+(8,  'Ambiente 207', 'aula',   30),
+(9,  'Ambiente 208', 'aula',   30),
+(10, 'Taller 1', 'taller', 50),
+(11, 'Taller 2', 'taller', 50),
+(12, 'Taller 3', 'taller', 50),
+(13, 'Taller 4', 'taller', 50);
 
 -- ============================================================
 -- 10. FICHAS (grupos de formación)

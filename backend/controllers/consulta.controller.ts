@@ -71,26 +71,34 @@ export const getHorariosFicha = asyncHandler(async (_req: Request, res: Response
 });
 
 export const getOcupacionAmbientes = asyncHandler(async (req: Request, res: Response) => {
-  // Ocupacion SEMANAL: horas ocupadas en una semana sobre una capacidad
-  // semanal de referencia (60h = 12h/dia x 5 dias). ?semana=YYYY-MM-DD (lunes)
-  // o, por defecto, la semana actual.
+  // Ocupacion SEMANAL: horas-reloj que el aula esta fisicamente ocupada, sobre
+  // una capacidad semanal de referencia (60h = 12h/dia x 5 dias).
+  // La ficha/grupo es el eje: si dos instructores dictan el MISMO slot (dia+hora)
+  // en el mismo ambiente (trabajo conjunto sobre la misma ficha), es UNA sola
+  // ocupacion fisica, no el doble. Por eso se cuentan slots DISTINTOS
+  // (dia_semana, hora_inicio, hora_fin), no bloques por instructor.
+  // ?semana=YYYY-MM-DD (lunes) o, por defecto, la semana con mas horarios.
   const semana = await resolverSemana(req.query.semana as string | undefined);
   const [rows] = await pool.query(`
     SELECT
       ab.nombre AS ambiente_nombre,
       ab.tipo,
       ab.capacidad,
-      COALESCE(SUM(TIMESTAMPDIFF(MINUTE, h.hora_inicio, h.hora_fin)) / 60, 0) AS horas_ocupadas,
+      COALESCE(oc.horas, 0) AS horas_ocupadas,
       60 AS horas_totales,
-      ROUND(
-        COALESCE(SUM(TIMESTAMPDIFF(MINUTE, h.hora_inicio, h.hora_fin)) / 60, 0) / 60 * 100,
-        1
-      ) AS porcentaje
+      ROUND(COALESCE(oc.horas, 0) / 60 * 100, 1) AS porcentaje
     FROM ambientes ab
-    LEFT JOIN horarios h ON h.ambiente_id = ab.id AND h.activo = TRUE
-      AND h.semana = ?
+    LEFT JOIN (
+      SELECT ambiente_id,
+             SUM(TIMESTAMPDIFF(MINUTE, hora_inicio, hora_fin)) / 60 AS horas
+      FROM (
+        SELECT DISTINCT ambiente_id, dia_semana, hora_inicio, hora_fin
+        FROM horarios
+        WHERE activo = TRUE AND semana = ? AND ambiente_id IS NOT NULL
+      ) slots
+      GROUP BY ambiente_id
+    ) oc ON oc.ambiente_id = ab.id
     WHERE ab.activo = TRUE
-    GROUP BY ab.id, ab.nombre, ab.tipo, ab.capacidad
     ORDER BY porcentaje DESC
   `, [semana]);
   ApiResponse.success(res, rows);
