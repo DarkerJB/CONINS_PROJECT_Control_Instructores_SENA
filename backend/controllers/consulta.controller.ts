@@ -72,7 +72,9 @@ export const getHorariosFicha = asyncHandler(async (_req: Request, res: Response
 
 export const getOcupacionAmbientes = asyncHandler(async (req: Request, res: Response) => {
   // Ocupacion SEMANAL: horas-reloj que el aula esta fisicamente ocupada, sobre
-  // una capacidad semanal de referencia (60h = 12h/dia x 5 dias).
+  // la disponibilidad real del ambiente: 16h/dia (manana 6h + tarde 6h + noche 4h)
+  // x 6 dias (Lun-Sab) = 96h/semana. Asi, usar solo 2 de las 3 jornadas NO da 100%.
+  // (Si el centro opera Lun-Vie, cambiar 96 por 80 = 16 x 5.)
   // La ficha/grupo es el eje: si dos instructores dictan el MISMO slot (dia+hora)
   // en el mismo ambiente (trabajo conjunto sobre la misma ficha), es UNA sola
   // ocupacion fisica, no el doble. Por eso se cuentan slots DISTINTOS
@@ -85,8 +87,8 @@ export const getOcupacionAmbientes = asyncHandler(async (req: Request, res: Resp
       ab.tipo,
       ab.capacidad,
       COALESCE(oc.horas, 0) AS horas_ocupadas,
-      60 AS horas_totales,
-      ROUND(COALESCE(oc.horas, 0) / 60 * 100, 1) AS porcentaje
+      96 AS horas_totales,
+      ROUND(COALESCE(oc.horas, 0) / 96 * 100, 1) AS porcentaje
     FROM ambientes ab
     LEFT JOIN (
       SELECT ambiente_id,

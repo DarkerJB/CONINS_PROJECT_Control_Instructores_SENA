@@ -43,7 +43,7 @@ const DIAS_MAP: Record<number, string> = {
 };
 
 export const HorarioModel = {
-  async findAll(): Promise<HorarioDetail[]> {
+  async findAll(semana?: string): Promise<HorarioDetail[]> {
     const [rows] = await pool.query<HorarioDetail[]>(`
       SELECT MIN(h.id) AS id, f.numero_ficha AS ficha_numero, u.nombre AS instructor_nombre,
              c.nombre AS competencia,
@@ -68,10 +68,11 @@ export const HorarioModel = {
       LEFT JOIN ambientes ab ON h.ambiente_id = ab.id
       JOIN jornadas j ON h.jornada_id = j.id
       LEFT JOIN tipos_actividad ta ON h.tipo_actividad_id = ta.id
+      ${semana ? 'WHERE h.semana = ?' : ''}
       GROUP BY h.ficha_id, h.instructor_id, h.competencia_id, h.ambiente_id, h.jornada_id,
                h.tipo_actividad_id, h.hora_inicio, h.hora_fin, h.estado, h.motivo_rechazo, h.activo
       ORDER BY MIN(h.id)
-    `);
+    `, semana ? [semana] : []);
 
     return rows.map((row) => ({
       ...row,
@@ -81,7 +82,7 @@ export const HorarioModel = {
     })) as unknown as HorarioDetail[];
   },
 
-  async findAllByInstructorId(instructorId: number): Promise<HorarioDetail[]> {
+  async findAllByInstructorId(instructorId: number, semana?: string): Promise<HorarioDetail[]> {
     const [rows] = await pool.query<HorarioDetail[]>(`
       SELECT MIN(h.id) AS id, f.numero_ficha AS ficha_numero, u.nombre AS instructor_nombre,
              c.nombre AS competencia,
@@ -106,11 +107,11 @@ export const HorarioModel = {
       LEFT JOIN ambientes ab ON h.ambiente_id = ab.id
       JOIN jornadas j ON h.jornada_id = j.id
       LEFT JOIN tipos_actividad ta ON h.tipo_actividad_id = ta.id
-      WHERE h.instructor_id = ?
+      WHERE h.instructor_id = ? ${semana ? 'AND h.semana = ?' : ''}
       GROUP BY h.ficha_id, h.instructor_id, h.competencia_id, h.ambiente_id, h.jornada_id,
                h.tipo_actividad_id, h.hora_inicio, h.hora_fin, h.estado, h.motivo_rechazo, h.activo
       ORDER BY MIN(h.id)
-    `, [instructorId]);
+    `, semana ? [instructorId, semana] : [instructorId]);
 
     return rows.map((row) => ({
       ...row,

@@ -8,14 +8,14 @@ import { ROLES, RoleKey } from '../constants/roles.js';
 import pool from '../config/db.js';
 
 export const HorarioService = {
-  async getAll(userId?: number, roles?: RoleKey[]) {
+  async getAll(userId?: number, roles?: RoleKey[], semana?: string) {
     // P22: instructor solo ve sus propios horarios
     if (userId && roles && roles.length === 1 && roles[0] === ROLES.INSTRUCTOR) {
       const instructor = await InstructorModel.findByUsuarioId(userId);
       if (!instructor) return [];
-      return HorarioModel.findAllByInstructorId(instructor.id);
+      return HorarioModel.findAllByInstructorId(instructor.id, semana);
     }
-    return HorarioModel.findAll();
+    return HorarioModel.findAll(semana);
   },
 
   async getById(id: number) {
