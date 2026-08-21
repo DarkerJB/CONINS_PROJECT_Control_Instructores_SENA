@@ -103,5 +103,12 @@ export const getOcupacionAmbientes = asyncHandler(async (req: Request, res: Resp
     WHERE ab.activo = TRUE
     ORDER BY porcentaje DESC
   `, [semana]);
-  ApiResponse.success(res, rows);
+  // Convertir DECIMAL (string de mysql2) a number: evita "60.0000h" y el NaN
+  // en el promedio de ocupacion del PDF/frontend.
+  const data = (rows as any[]).map((r) => ({
+    ...r,
+    horas_ocupadas: Number(r.horas_ocupadas),
+    porcentaje: Number(r.porcentaje),
+  }));
+  ApiResponse.success(res, data);
 });
