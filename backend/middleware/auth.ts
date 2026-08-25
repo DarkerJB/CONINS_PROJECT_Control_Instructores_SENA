@@ -45,6 +45,8 @@ export const verifyToken = (
 export const requireRole = (rolesPermitidos: RoleKey[]) => {
   return (req: Request, _res: Response, next: NextFunction) => {
     const userRoles = req.user?.roles_globales ?? [];
+    // Super-usuario del sistema (Administrador): control total, pasa cualquier check.
+    if (userRoles.includes(ROLES.ADMINISTRADOR)) return next();
     const tiene = rolesPermitidos.some((r) => userRoles.includes(r));
     if (!tiene) {
       throw new ForbiddenError('Acceso denegado — rol insuficiente');
