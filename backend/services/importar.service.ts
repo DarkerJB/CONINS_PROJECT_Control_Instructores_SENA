@@ -63,7 +63,7 @@ const resolver = {
   async instructor(email: unknown): Promise<number> {
     return unico(
       `SELECT i.id FROM instructores i JOIN usuarios u ON i.usuario_id = u.id
-       WHERE u.email = ? AND i.activo = TRUE LIMIT 1`,
+       WHERE LOWER(u.email) = LOWER(?) AND i.activo = TRUE LIMIT 1`,
       [String(email ?? '').trim()], 'Instructor', email);
   },
   async ambiente(nombre: unknown): Promise<number | null> {
@@ -76,7 +76,7 @@ const resolver = {
   },
   async usuarioEmail(email: unknown): Promise<number | null> {
     if (!email) return null;
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT id FROM usuarios WHERE email = ? LIMIT 1', [String(email).trim()]);
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT id FROM usuarios WHERE LOWER(email) = LOWER(?) LIMIT 1', [String(email).trim()]);
     return rows.length ? (rows[0] as any).id : null;
   },
   async tipoActividad(nombre: unknown): Promise<number | null> {
@@ -96,9 +96,14 @@ async function procesarInstructor(row: any): Promise<void> {
     throw new ValidationError(`tipo_area invalido: "${row['tipo_area']}" (usa tecnica o transversal)`);
   }
 
-  const inst = await InstructorService.create(nombre, email, tipoArea);
+  // Idempotente: si el instructor ya existe (seed o import previo) se reusa,
+  // y de todos modos se aplican las habilitadas. Antes lanzaba ConflictError
+  // y omitia las habilitadas, dejando al instructor sin competencias y
+  // bloqueando sus asignaciones por RN-13.
+  const inst = await InstructorService.findOrCreateByEmail(nombre, email, tipoArea);
 
-  // Competencias habilitadas (opcional) — evita bloqueos RN-13 al asignar
+  // Competencias habilitadas (opcional) — evita bloqueos RN-13 al asignar.
+  // addCompetencia es INSERT IGNORE, asi que reimportar no duplica.
   const cods = String(row['codigos_competencia'] ?? '').split(/[,;]/).map((s) => s.trim()).filter(Boolean);
   for (const cod of cods) {
     const compId = await resolver.competencia(cod);
@@ -128,8 +133,20 @@ async function procesarAsignacion(row: any): Promise<void> {
   }
   if (competencia_ids.length === 0) throw new ValidationError('Se requiere al menos un codigo_competencia');
 
+  const instructor_id = await resolver.instructor(row['instructor_email']);
+
+  // La asignacion importada es fuente autoritativa (viene del reporte oficial de
+  // coordinacion). Garantizamos que el instructor quede habilitado para esas
+  // competencias antes de crear la asignacion, para que RN-13 no bloquee la
+  // carga masiva cuando la hoja Instructores no listo la competencia. Solo
+  // aplica en el importador; el flujo de UI sigue exigiendo habilitacion previa.
+  // addCompetencia es INSERT IGNORE: no duplica en reimports.
+  for (const compId of competencia_ids) {
+    await InstructorService.addCompetencia(instructor_id, compId);
+  }
+
   await AsignacionService.create({
-    instructor_id: await resolver.instructor(row['instructor_email']),
+    instructor_id,
     ficha_id: await resolver.ficha(row['numero_grupo'] ?? row['numero_ficha']),
     jornada_id: row['jornada'] ? await resolver.jornada(row['jornada']) : null,
     es_lider_ficha: norm(row['es_lider']) === 'si' || norm(row['es_lider']) === 'true',

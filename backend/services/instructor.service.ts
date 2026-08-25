@@ -128,6 +128,25 @@ export const InstructorService = {
     }
   },
 
+  // Idempotente por email. Usado por el importador (P39): si el usuario ya
+  // existe (p. ej. cargado por seed o import previo), reusa su instructor en
+  // vez de romper con ConflictError; si el usuario existe pero no tiene fila
+  // de instructor, la crea. Solo crea usuario nuevo cuando el email no existe.
+  async findOrCreateByEmail(nombre: string, email: string, tipoArea: string) {
+    const emailNorm = email.trim().toLowerCase();
+    const usuario = await UsuarioModel.findByEmail(emailNorm);
+    if (usuario) {
+      const inst = await InstructorModel.findByUsuarioId(usuario.id);
+      if (inst) return { id: inst.id, usuario_id: usuario.id, reused: true };
+      await InstructorModel.create(usuario.id, tipoArea);
+      const creado = await InstructorModel.findByUsuarioId(usuario.id);
+      if (!creado) throw new NotFoundError('No se pudo crear el instructor para el usuario existente');
+      return { id: creado.id, usuario_id: usuario.id, reused: true };
+    }
+    const nuevo = await this.create(nombre, emailNorm, tipoArea);
+    return { ...nuevo, reused: false };
+  },
+
   async registrarNovedad(
     instructorId: number,
     tipoNovedadId: number,
