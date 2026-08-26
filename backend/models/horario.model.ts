@@ -325,10 +325,14 @@ export const HorarioModel = {
     semana: string,
     excludeId?: number,
   ): Promise<boolean> {
+    // RN-05: los TALLERES pueden albergar varios grupos a la vez, asi que no se
+    // consideran "ocupados". Solo aulas y laboratorios generan conflicto.
     const query = `
-      SELECT 1 FROM horarios
-      WHERE ambiente_id = ? AND dia_semana = ? AND jornada_id = ? AND semana = ? AND activo = TRUE
-      ${excludeId ? 'AND id != ?' : ''}
+      SELECT 1 FROM horarios h
+      JOIN ambientes a ON h.ambiente_id = a.id
+      WHERE h.ambiente_id = ? AND h.dia_semana = ? AND h.jornada_id = ? AND h.semana = ? AND h.activo = TRUE
+        AND a.tipo <> 'taller'
+      ${excludeId ? 'AND h.id != ?' : ''}
       LIMIT 1
     `;
     const params = excludeId

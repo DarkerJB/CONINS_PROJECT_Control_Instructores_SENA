@@ -215,16 +215,29 @@ export const HorarioService = {
       }
     }
 
-    // RN-05: ambiente ocupado (soft alert) — revalida si cambia ambiente o dia
-    let alertaAmbienteOcupado = false;
+    // RN-05 (edicion interactiva = boton): BLOQUEA si el ambiente (aula/lab) queda
+    // ocupado en esa jornada. Los talleres no cuentan (ver hasAmbienteOcupado).
     if (finalAmbienteId && (data.ambiente_id !== undefined || data.dia_semana !== undefined)) {
-      alertaAmbienteOcupado = await HorarioModel.hasAmbienteOcupado(
+      const ocupado = await HorarioModel.hasAmbienteOcupado(
         finalAmbienteId,
         finalDia,
         existing.jornada_id,
         semana,
         id,
       );
+      if (ocupado) {
+        throw new ConflictError('El ambiente ya esta ocupado en esa jornada (RN-05). Elija otro ambiente u horario.');
+      }
+    }
+
+    // RN-06 (edicion interactiva): BLOQUEA si el RAP quedaria a cargo de otro
+    // instructor en el mismo grupo. La correccion (reasignar) si se permite.
+    const finalRapId = data.rap_id !== undefined ? data.rap_id : existing.rap_id;
+    if (finalRapId) {
+      const compartido = await HorarioModel.rapAsignadoAOtroEnFicha(existing.ficha_id, finalRapId, existing.instructor_id);
+      if (compartido) {
+        throw new ConflictError(`RN-06: el RAP ${finalRapId} ya esta a cargo de otro instructor en este grupo. Reasignelo a uno solo.`);
+      }
     }
 
     // RN-03: jornada restringida (soft alert) — revalida si cambia dia
@@ -242,7 +255,7 @@ export const HorarioService = {
 
     return {
       ...updated,
-      alerta_ambiente_ocupado: alertaAmbienteOcupado,
+      alerta_ambiente_ocupado: false, // si estuviera ocupado, se habria bloqueado arriba
       alerta_jornada_restringida: alertaJornadaRestringida,
     };
   },
@@ -328,6 +341,11 @@ export const HorarioService = {
         const tieneBloqueo = await AmbienteModel.hasBloqueoVigente(ambienteId, base.semana);
         if (tieneBloqueo) {
           throw new ValidationError('El ambiente tiene un bloqueo temporal vigente en esa semana (RN-09)');
+        }
+        // RN-05 (edicion interactiva): bloquea si el aula/lab ya esta ocupado ese dia.
+        const ocupado = await HorarioModel.hasAmbienteOcupado(ambienteId, dia, data.jornada_id, base.semana);
+        if (ocupado) {
+          throw new ConflictError(`El ambiente ya esta ocupado en esa jornada el dia ${dia} (RN-05). Elija otro ambiente u horario.`);
         }
       }
 
