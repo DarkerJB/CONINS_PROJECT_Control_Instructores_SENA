@@ -151,35 +151,6 @@ export const AuthService = {
     await UsuarioModel.updatePassword(user.id, hashed);
   },
 
-  async register(email: string, password: string, tipo_area?: string) {
-    const existingUser = await UsuarioModel.findByEmail(email);
-    if (!existingUser || !existingUser.activo) {
-      throw new ForbiddenError(
-        'El usuario no esta autorizado para registrarse. Debe existir previamente en el sistema con estado activo.',
-      );
-    }
-
-    if (existingUser.password !== null) {
-      throw new ConflictError('Este usuario ya tiene contrasena');
-    }
-
-    const hashed = await bcrypt.hash(password, BCRYPT_ROUNDS);
-    await UsuarioModel.updatePassword(existingUser.id, hashed);
-
-    const roles = await RolModel.findByUsuarioId(existingUser.id);
-    if (roles.includes('Instructor')) {
-      const instructorExists = await InstructorModel.findByUsuarioId(existingUser.id);
-      if (!instructorExists) {
-        await InstructorModel.create(
-          existingUser.id,
-          tipo_area ?? 'tecnica',
-        );
-      }
-    }
-
-    return { id: existingUser.id };
-  },
-
   async changePassword(userId: number, contrasenaActual: string, nuevaContrasena: string) {
     const user = await UsuarioModel.findById(userId);
     if (!user) throw new NotFoundError('Usuario no encontrado');

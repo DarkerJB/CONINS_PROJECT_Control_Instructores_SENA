@@ -2,7 +2,6 @@ import { AsignacionModel } from '../models/asignacion.model.js';
 import { AsignacionCompetenciaModel } from '../models/asignacion-competencia.model.js';
 import { InstructorModel } from '../models/instructor.model.js';
 import { FichaModel } from '../models/ficha.model.js';
-import { PermisoService } from '../services/permiso.service.js';
 import { NotFoundError, ValidationError, ForbiddenError, ConflictError } from '../utils/errors.js';
 import { ROLES, RoleKey } from '../constants/roles.js';
 import pool from '../config/db.js';
@@ -60,10 +59,6 @@ export const AsignacionService = {
       if ((rows as any[]).length === 0) {
         throw new ValidationError(`El instructor no tiene habilitada esta competencia segun su contrato (RN-13)`);
       }
-    }
-
-    if (data.usuarioId) {
-      await PermisoService.validarAlcanceCoordinador(data.usuarioId, data.ficha_id);
     }
 
     // El UNIQUE(instructor_id, ficha_id) no distingue activo/inactivo. Si existe
@@ -135,8 +130,6 @@ export const AsignacionService = {
     competencia_ids: number[];
     usuarioId: number;
   }) {
-    await PermisoService.validarNoLiderParaProvisional(data.usuarioId);
-
     return AsignacionService.create({
       ...data,
       es_provisional: true,

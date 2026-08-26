@@ -168,10 +168,17 @@
 | 3 | `Asistente Coordinacion` | 3 | Mismos permisos que Coordinadora Academica |
 | 4 | `Instructor` | 4 | Solo lectura de sus fichas activas |
 
-> Constantes en `backend/constants/roles.ts`. ROLES_ADMIN = [Subdirector, Coordinadora Academica, Asistente Coordinacion].
+> **Super-usuario del sistema (21/08/2026):** además de los 4 roles operativos,
+> existe el rol `Administrador` — la cuenta de despliegue/administración
+> (`SUPER_USER` del `.env`, ej. `admin@conins.sena`, id 0 virtual, fuera de la
+> tabla `usuarios`). Control total (bypass en `requireRole`, incluido en
+> ROLES_ADMIN). No es un rol operativo del negocio. El Subdirector real (Dyron
+> Ramírez) conserva su rol Subdirector.
+
+> Constantes en `backend/constants/roles.ts`. ROLES_ADMIN = [Administrador, Subdirector, Coordinadora Academica, Asistente Coordinacion].
 > `lider_programa` NO es un rol. Es una relación en tabla `lider_programa` — dato organizativo sin impacto en permisos.
 > `es_lider_ficha` NO es un rol. Es `BOOLEAN DEFAULT FALSE` en tabla `asignacion` — dato organizativo sin impacto en permisos.
-> Autorización en dos capas: `requireRole` (roles globales) + `permisoService` (acceso contextual por ficha/programa).
+> Autorización por `requireRole` (roles globales) en escrituras + filtrado por rol en lecturas (Instructor ve solo lo suyo; consultas y auditoría solo-admin). `permisoService` (acceso contextual por ficha/programa) fue eliminado en la auditoría 25/08/2026 por haber quedado en no-op tras el rework de roles del 01/07.
 
 ---
 
@@ -364,7 +371,7 @@ Ver `CONINS_Requisitos_Funcionales_v10_1.txt` para el texto completo y el mapa d
 | `auth-multirole` | JWT multirol · flujo `/auth` dos tabs · registro de dos pasos |
 | `backend-clean-architecture` | Controller / service / model — validaciones solo en service |
 | `horario-carga-validation` | Cálculo de carga horaria — siempre en backend |
-| `role-based-access-control` | Dos capas: `requireRole` + `permisoService` · `lider_ficha` no es rol |
+| `role-based-access-control` | `requireRole` (roles globales) + filtrado por rol en lecturas · `lider_ficha` no es rol |
 
 ---
 

@@ -3,6 +3,7 @@ import { CompetenciaModel } from '../models/competencia.model.js';
 import { UsuarioModel } from '../models/usuario.model.js';
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError } from '../utils/errors.js';
 import pool from '../config/db.js';
+import { auditStore } from '../config/audit-context.js';
 import { getLunesSemanaActual } from '../utils/date.js';
 
 export const InstructorService = {
@@ -101,6 +102,11 @@ export const InstructorService = {
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
+
+      // Atribucion de auditoria en la MISMA conexion de la transaccion (esta ruta
+      // usa getConnection y no pasa por el wrapper de pool.query).
+      const auditUid = auditStore.getStore()?.usuarioId ?? null;
+      await conn.query('SET @audit_usuario_id = ?', [auditUid]);
 
       const [userResult] = await conn.query(
         'INSERT INTO usuarios (nombre, email) VALUES (?, ?)',

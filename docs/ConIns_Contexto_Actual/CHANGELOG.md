@@ -1,6 +1,6 @@
 # CONINS — Registro de Contexto y Cambios
 **Centro del Diseño y Manufactura del Cuero (CDMC) — SENA**
-*Última actualización: 2026-06-30 (fix database.sql + seed_data.sql v5)*
+*Última actualización: 2026-08-25 (auditoría profesional backend + BD)*
 
 ---
 
@@ -21,6 +21,32 @@
 **Repo principal:** `https://github.com/Soywaz/conins`
 **Directorio local Jair:** `D:\2_ConIns\Jair_ConIns`
 **Directorio referencia instructor:** `D:\2_ConIns\WAZ_ConIns`
+
+---
+
+## Cambios recientes (25/08/2026) — auditoría profesional backend + BD
+
+Detalle completo en `Reportes_Cambios_Y_Otros/AUDITORIA_BACKEND_BD_25-08.md`.
+
+- **Auditoría (A1):** atribución de auditoría reescrita. Antes los triggers registraban `usuario_id` NULL (el `SET @audit_usuario_id` y el DML corrían en conexiones distintas del pool) y el middleware insertaba filas `API_CALL` con acción inexistente en el ENUM. Ahora: contexto por-request (`AsyncLocalStorage` en `config/audit-context.ts`), `verifyToken` fija el `usuarioId`, y `pool.query` setea `@audit_usuario_id` en la misma conexión del DML. Se retiró el `auditLogger` roto.
+- **Cobertura de auditoría (RF-59/RNF-24):** +36 triggers en 12 tablas operativas (usuario_roles, programas, competencias, raps, sedes, lider_programa, instructor_competencias_habilitadas, instructor_historico, ambiente_bloqueos, ficha_novedades, asignacion_rap, rap_ficha_seguimiento). En `database.sql` y en `migracion_auditoria_cobertura_2026-08-25.sql`.
+- **Seguridad (A2/M1/M2):** `/api/catalogo/*` ahora exige token (antes público); `/api/consultas/*` y `/api/auditoria/*` restringidas a ROLES_ADMIN (antes cualquier autenticado veía datos globales/bitácora).
+- **Errores (M3/B2/B4):** el errorHandler traduce SIGNAL de triggers (SQLSTATE 45000, p.ej. RN-04) a HTTP 409; log de errores pasa a asíncrono; handler 404 con JSON.
+- **Limpieza (M4/B3):** eliminado `permisoService` (capa contextual que había quedado en no-op tras el rework de roles del 01/07); retirado `/auth/register` (redundante con `/auth/crear-password`, sin uso en el frontend). Dead code para `git rm`: `alerta.service.ts`, `alerta.model.ts`, `jornada.model.ts`, `permiso.service.ts`.
+- **Docs:** alineadas `contexto_general` y RNF-03 (autorización de una capa + filtrado por rol). CLAUDE.md pendiente de ajuste manual (archivo protegido).
+
+---
+
+## Cambios recientes (19–21/08/2026) — preparación del simulacro a directivas
+
+- **Documentación:** RF v10.2 (referencias cruzadas corregidas + RF-37 aprobación automática), LN v5.7 (RN-28/29/30, sedes/histórico, 31 tablas) y RNF v1.1 (RNF-25 a RNF-30) — saneamiento del reporte de inconsistencias del 18/08.
+- **Backend — reglas:** RN-26 (no deshabilitar RAP con asignación activa); RN-05 confirmada **soft** (se eliminaron los triggers `tr_validar_ambiente_ocupado_*` que bloqueaban); RN-29 (cascada al desactivar asignación) y RN-28 (aprobación automática de horarios) ya documentadas.
+- **Backend — dashboard/consultas:** carga horaria y ocupación **por semana** (`?semana=`), fin del fan-out en carga horaria, y **ocupación de ambiente física** (slots distintos, centrada en la ficha) sobre 96h/semana (16h/día × 6). `GET /horarios?semana=` para proyectar semanas.
+- **Datos:** ambientes numerados renombrados **"Ambiente NNN"**, capacidades aula 30 / taller 50; carga real ADSO agosto en `seed_data.sql` (14 instructores, 7 grupos, 128 horarios), limpieza a **solo ADSO** + Carlos Álvarez como líder del programa.
+- **Roles:** super-usuario **Administrador** (cuenta de despliegue, control total; Dyron sigue Subdirector).
+- **Frontend (Laura):** buscador global, filtros dinámicos en asignaciones, navegación por semana en la grilla (Opción A), PDFs con jornada legible y ocupación sin NaN.
+
+> Nota: varias secciones más abajo de este CHANGELOG (roles "5 entradas", "25 tablas", RF viejos) siguen desactualizadas — pendiente Bloque E del reporte de inconsistencias.
 
 ---
 
