@@ -34,7 +34,7 @@ export const AsignacionService = {
     motivo_provisional?: string | null;
     competencia_ids: number[];
     usuarioId?: number;
-  }) {
+  }, origin: 'import' | 'ui' = 'ui') {
     const instructor = await InstructorModel.findById(data.instructor_id);
     if (!instructor) throw new NotFoundError('Instructor no encontrado');
 
@@ -46,8 +46,11 @@ export const AsignacionService = {
     if (tieneNovedad) throw new ValidationError('El instructor tiene una novedad activa vigente (RN-08)');
 
     for (const competenciaId of data.competencia_ids) {
+      // RN-06: en accion interactiva (boton) se BLOQUEA; en carga masiva por
+      // Excel se deja pasar (permisivo) y el conflicto real se alerta a nivel de
+      // horario/RAP para su correccion.
       const hasRap = await AsignacionModel.hasRapEnFicha(data.ficha_id, competenciaId);
-      if (hasRap) {
+      if (hasRap && origin === 'ui') {
         throw new ConflictError('Un RAP de esta competencia ya esta asignado a otro instructor en la misma ficha (RN-06)');
       }
 

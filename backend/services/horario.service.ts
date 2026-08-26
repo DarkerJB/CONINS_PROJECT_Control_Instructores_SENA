@@ -37,7 +37,7 @@ export const HorarioService = {
     tipo_actividad_id?: number | null;
     jornada_id: number;
     semana?: string;
-  }) {
+  }, origin: 'import' | 'ui' = 'ui') {
     const instructor = await InstructorModel.findById(data.instructor_id);
     if (!instructor) throw new NotFoundError('Instructor no encontrado');
 
@@ -73,19 +73,41 @@ export const HorarioService = {
       throw new ConflictError('El instructor tiene un horario superpuesto en ese dia y hora (RN-04)');
     }
 
+    // Conflictos que en ACCION INTERACTIVA (boton del sistema) se BLOQUEAN, pero
+    // en carga masiva por Excel solo generan ALERTA (permisivo para no rechazar
+    // el archivo real): RN-05 (ambiente ocupado), RN-06 (RAP compartido), carga >40h.
+    const conflictos: { tipo: string; mensaje: string }[] = [];
+
     let ambienteOcupado = false;
     if (data.ambiente_id) {
+      const tieneBloqueo = await AmbienteModel.hasBloqueoVigente(data.ambiente_id, semana);
+      if (tieneBloqueo) {
+        throw new ValidationError('El ambiente tiene un bloqueo temporal vigente en esa semana (RN-09)');
+      }
       ambienteOcupado = await HorarioModel.hasAmbienteOcupado(
         data.ambiente_id,
         data.dia_semana,
         data.jornada_id,
         semana,
       );
-
-      const tieneBloqueo = await AmbienteModel.hasBloqueoVigente(data.ambiente_id, semana);
-      if (tieneBloqueo) {
-        throw new ValidationError('El ambiente tiene un bloqueo temporal vigente en esa semana (RN-09)');
+      if (ambienteOcupado) {
+        conflictos.push({ tipo: TIPOS_ALERTA.AMBIENTE_OCUPADO, mensaje: 'Ambiente ocupado en la misma jornada (RN-05).' });
       }
+    }
+
+    let rapCompartido = false;
+    if (data.rap_id) {
+      rapCompartido = await HorarioModel.rapAsignadoAOtroEnFicha(data.ficha_id, data.rap_id, data.instructor_id);
+      if (rapCompartido) {
+        conflictos.push({ tipo: TIPOS_ALERTA.RAP_COMPARTIDO, mensaje: `RN-06: el RAP ${data.rap_id} ya esta a cargo de otro instructor en este grupo. Reasignelo a uno solo.` });
+      }
+    }
+
+    const horasActuales = await HorarioModel.getHorasPorInstructor(data.instructor_id, semana);
+    const nuevasHoras = ((new Date(`2000-01-01T${data.hora_fin}`).getTime() - new Date(`2000-01-01T${data.hora_inicio}`).getTime()) / (1000 * 60 * 60));
+    const totalHoras = horasActuales + nuevasHoras;
+    if (totalHoras > 40) {
+      conflictos.push({ tipo: TIPOS_ALERTA.HORAS_EXCEDIDAS, mensaje: `El instructor excede el limite de 40 horas semanales (total ${totalHoras}h).` });
     }
 
     let alertaJornadaRestringida = false;
@@ -95,22 +117,21 @@ export const HorarioService = {
       alertaJornadaRestringida = true;
     }
 
-    const horasActuales = await HorarioModel.getHorasPorInstructor(data.instructor_id, semana);
-    const nuevasHoras = ((new Date(`2000-01-01T${data.hora_fin}`).getTime() - new Date(`2000-01-01T${data.hora_inicio}`).getTime()) / (1000 * 60 * 60));
-    const totalHoras = horasActuales + nuevasHoras;
-
-    if (totalHoras > 40) {
-      throw new ValidationError(`El instructor excede el limite de 40 horas semanales (actual: ${horasActuales}h, nuevas: ${nuevasHoras}h)`);
+    // Boton del sistema: se bloquea hasta corregir. La carga por Excel no.
+    if (origin === 'ui' && conflictos.length > 0) {
+      throw new ConflictError(conflictos.map((c) => c.mensaje).join(' '));
     }
 
     const id = await HorarioModel.create({ ...data, semana });
     const horario = await HorarioModel.findById(id);
 
-    // Persistir alertas SOFT: quedan visibles en GET /api/alertas hasta que un
-    // admin las atienda (aceptar/omitir). No bloquean la creacion del horario.
-    if (ambienteOcupado) {
-      await AlertaService.crear({ instructor_id: data.instructor_id, tipo: TIPOS_ALERTA.AMBIENTE_OCUPADO, semana, total_horas: totalHoras,
-        mensaje: `Ambiente ocupado en la misma jornada (semana ${semana}).` });
+    // Persistir alertas (llega aca en carga masiva, o en UI sin conflictos).
+    for (const c of conflictos) {
+      if (c.tipo === TIPOS_ALERTA.RAP_COMPARTIDO && data.rap_id) {
+        await AlertaService.rapCompartido(data.instructor_id, data.ficha_id, data.rap_id, c.mensaje);
+      } else {
+        await AlertaService.crear({ instructor_id: data.instructor_id, tipo: c.tipo, mensaje: c.mensaje, semana, total_horas: totalHoras });
+      }
     }
     if (alertaJornadaRestringida) {
       await AlertaService.crear({ instructor_id: data.instructor_id, tipo: TIPOS_ALERTA.JORNADA_RESTRINGIDA, semana, total_horas: totalHoras,
@@ -119,16 +140,6 @@ export const HorarioService = {
     if (totalHoras < 20) {
       await AlertaService.crear({ instructor_id: data.instructor_id, tipo: TIPOS_ALERTA.HORAS_INSUFICIENTES, semana, total_horas: totalHoras,
         mensaje: `Carga por debajo del minimo de 20h: ${totalHoras}h en la semana ${semana}.` });
-    }
-    // RN-06: el RAP no debe estar a cargo de dos instructores en el mismo grupo
-    // (al evaluar no pueden existir dos juicios distintos del mismo RAP). No se
-    // bloquea la carga; se levanta una alerta persistente para CORREGIR el dato.
-    if (data.rap_id) {
-      const compartido = await HorarioModel.rapAsignadoAOtroEnFicha(data.ficha_id, data.rap_id, data.instructor_id);
-      if (compartido) {
-        await AlertaService.rapCompartido(data.instructor_id, data.ficha_id, data.rap_id,
-          `RN-06: el RAP ${data.rap_id} quedo a cargo de mas de un instructor en el mismo grupo. Debe reasignarse a uno solo.`);
-      }
     }
 
     return {

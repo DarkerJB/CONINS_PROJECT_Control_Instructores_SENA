@@ -35,6 +35,16 @@ export const AlertaModel = {
     return r.insertId;
   },
 
+  // RAPs con alerta de compartido ABIERTA en un grupo (para recomputar al editar).
+  async rapCompartidoAbiertasByFicha(ficha_id: number): Promise<{ rap_id: number }[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT DISTINCT rap_id FROM alertas
+       WHERE tipo = 'RAP_COMPARTIDO' AND ficha_id = ? AND rap_id IS NOT NULL AND atendida = FALSE`,
+      [ficha_id],
+    );
+    return rows as { rap_id: number }[];
+  },
+
   // Auto-cierre: al corregirse una condicion estructural (p.ej. se reasigno el
   // RAP), se marcan como atendidas las alertas abiertas de esa clave.
   async cerrarEstructural(tipo: string, ficha_id: number, rap_id: number): Promise<void> {

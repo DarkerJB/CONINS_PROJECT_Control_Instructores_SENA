@@ -1,4 +1,5 @@
 import { AlertaModel, AlertaInput } from '../models/alerta.model.js';
+import { AsignacionRapModel } from '../models/asignacion-rap.model.js';
 import { NotificacionService } from './notificacion.service.js';
 
 // Genera y persiste alertas SOFT (no bloquean la carga). Quedan visibles en
@@ -52,6 +53,22 @@ export const AlertaService = {
       await AlertaModel.cerrarEstructural(TIPOS_ALERTA.RAP_COMPARTIDO, ficha_id, rap_id);
     } catch (err) {
       console.error('[alerta] no se pudo cerrar la alerta estructural:', err);
+    }
+  },
+
+  // Tras una edicion en el grupo, cierra las alertas de RAP compartido que ya
+  // quedaron resueltas (el RAP dejo de estar a cargo de 2+ instructores).
+  async recomputarRapCompartido(ficha_id: number): Promise<void> {
+    try {
+      const abiertas = await AlertaModel.rapCompartidoAbiertasByFicha(ficha_id);
+      for (const { rap_id } of abiertas) {
+        const n = await AsignacionRapModel.countInstructoresConRap(ficha_id, rap_id);
+        if (n < 2) {
+          await AlertaModel.cerrarEstructural(TIPOS_ALERTA.RAP_COMPARTIDO, ficha_id, rap_id);
+        }
+      }
+    } catch (err) {
+      console.error('[alerta] no se pudo recomputar RAP compartido:', err);
     }
   },
 };

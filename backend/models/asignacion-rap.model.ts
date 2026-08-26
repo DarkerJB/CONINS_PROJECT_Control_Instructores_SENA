@@ -96,6 +96,19 @@ export const AsignacionRapModel = {
     return rows.length ? (rows[0] as any).ficha_id : null;
   },
 
+  // Cuantos instructores distintos tienen ese RAP activo en el grupo (RN-06).
+  async countInstructoresConRap(fichaId: number, rapId: number): Promise<number> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT COUNT(DISTINCT a.instructor_id) AS n
+       FROM asignacion_rap ar
+       JOIN asignacion_competencia ac ON ar.asignacion_competencia_id = ac.id
+       JOIN asignacion a ON ac.asignacion_id = a.id
+       WHERE a.ficha_id = ? AND ar.rap_id = ? AND ar.activo = TRUE AND a.activo = TRUE`,
+      [fichaId, rapId],
+    );
+    return Number((rows[0] as any)?.n ?? 0);
+  },
+
   async getInstructorIdByAc(acId: number): Promise<number | null> {
     const [rows] = await pool.query<RowDataPacket[]>(
       `SELECT a.instructor_id

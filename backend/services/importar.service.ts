@@ -151,7 +151,7 @@ async function procesarAsignacion(row: any): Promise<void> {
     jornada_id: row['jornada'] ? await resolver.jornada(row['jornada']) : null,
     es_lider_ficha: norm(row['es_lider']) === 'si' || norm(row['es_lider']) === 'true',
     competencia_ids,
-  });
+  }, 'import'); // carga masiva: permisivo (alerta), no bloquea RN-06/05/carga
 }
 
 async function procesarHorario(row: any): Promise<void> {
@@ -167,7 +167,7 @@ async function procesarHorario(row: any): Promise<void> {
     tipo_actividad_id: await resolver.tipoActividad(row['tipo_actividad']),
     jornada_id: await resolver.jornada(row['jornada']),
     semana: row['semana'] ? toFecha(row['semana']) : undefined,
-  });
+  }, 'import'); // carga masiva: permisivo (alerta), no bloquea RN-06/05/carga
 }
 
 const HOJAS: { nombre: string; fn: (row: any) => Promise<void> }[] = [

@@ -1,5 +1,5 @@
 import { AsignacionRapModel } from '../models/asignacion-rap.model.js';
-import { NotFoundError, ValidationError } from '../utils/errors.js';
+import { NotFoundError, ValidationError, ConflictError } from '../utils/errors.js';
 import { AlertaService } from './alerta.service.js';
 
 // ============================================================
@@ -43,7 +43,6 @@ export const AsignacionRapService = {
     // Sin duplicados en la peticion
     const unicos = [...new Set(rapIds)];
 
-    const compartidos: number[] = [];
     for (const rapId of unicos) {
       // El RAP debe pertenecer a la competencia
       const pertenece = await AsignacionRapModel.rapBelongsToCompetencia(rapId, competenciaId);
@@ -51,26 +50,21 @@ export const AsignacionRapService = {
         throw new ValidationError(`El RAP ${rapId} no pertenece a la competencia indicada o esta inactivo`);
       }
 
-      // RN-06: un RAP NO puede estar a cargo de dos instructores en el mismo
-      // grupo (al evaluarlo, los aprendices no pueden tener dos juicios distintos
-      // del mismo RAP). No se bloquea la carga para no rechazar el archivo real;
-      // en su lugar se registra una alerta persistente para CORREGIR el dato
-      // (reasignar el RAP a un solo instructor).
+      // RN-06 en ACCION INTERACTIVA (boton del sistema): se BLOQUEA. Un RAP no
+      // puede quedar a cargo de dos instructores en el mismo grupo (al evaluarlo,
+      // los aprendices no pueden tener dos juicios distintos del mismo RAP). La
+      // carga masiva por Excel si es permisiva (alerta, no bloqueo); aqui, como es
+      // una edicion deliberada, se impide dejar/introducir el conflicto.
       const tomado = await AsignacionRapModel.rapTakenByOtherInFicha(fichaId, rapId, acId);
-      if (tomado) compartidos.push(rapId);
+      if (tomado) {
+        throw new ConflictError(`RN-06: el RAP ${rapId} ya esta a cargo de otro instructor en este grupo. Reasignelo a uno solo antes de continuar.`);
+      }
     }
 
     await AsignacionRapModel.syncRaps(acId, unicos);
 
-    if (compartidos.length) {
-      const instructorId = await AsignacionRapModel.getInstructorIdByAc(acId);
-      if (instructorId) {
-        for (const rapId of compartidos) {
-          await AlertaService.rapCompartido(instructorId, fichaId, rapId,
-            `RN-06: el RAP ${rapId} quedo a cargo de mas de un instructor en el mismo grupo. Debe reasignarse a uno solo (al evaluar no pueden existir dos juicios del mismo RAP).`);
-        }
-      }
-    }
+    // Al editar, cierra las alertas de RAP compartido del grupo que ya se resolvieron.
+    await AlertaService.recomputarRapCompartido(fichaId);
     return AsignacionRapModel.getRapsByAc(acId);
   },
 };
