@@ -1,4 +1,5 @@
 import { AsignacionModel } from '../models/asignacion.model.js';
+import { AlertaService, TIPOS_ALERTA } from './alerta.service.js';
 import { AsignacionCompetenciaModel } from '../models/asignacion-competencia.model.js';
 import { InstructorModel } from '../models/instructor.model.js';
 import { FichaModel } from '../models/ficha.model.js';
@@ -78,6 +79,20 @@ export const AsignacionService = {
     }
 
     const id = await AsignacionModel.create(data);
+
+    // Alerta SOFT: asignacion provisional (instructor fuera de su area). Visible
+    // hasta que el admin la atienda.
+    if (data.es_provisional) {
+      await AlertaService.crear({
+        instructor_id: data.instructor_id,
+        tipo: TIPOS_ALERTA.ASIGNACION_PROVISIONAL,
+        ficha_id: data.ficha_id,
+        mensaje: data.motivo_provisional
+          ? `Asignacion provisional: ${data.motivo_provisional}`
+          : 'Asignacion provisional (instructor fuera de su area tecnica).',
+      });
+    }
+
     return AsignacionModel.findById(id);
   },
 

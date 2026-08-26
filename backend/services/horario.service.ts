@@ -5,6 +5,7 @@ import { AmbienteModel } from '../models/ambiente.model.js';
 import { NotFoundError, ValidationError, ConflictError } from '../utils/errors.js';
 import { getLunesSemanaActual } from '../utils/date.js';
 import { ROLES, RoleKey } from '../constants/roles.js';
+import { AlertaService, TIPOS_ALERTA } from './alerta.service.js';
 import pool from '../config/db.js';
 
 export const HorarioService = {
@@ -104,6 +105,31 @@ export const HorarioService = {
 
     const id = await HorarioModel.create({ ...data, semana });
     const horario = await HorarioModel.findById(id);
+
+    // Persistir alertas SOFT: quedan visibles en GET /api/alertas hasta que un
+    // admin las atienda (aceptar/omitir). No bloquean la creacion del horario.
+    if (ambienteOcupado) {
+      await AlertaService.crear({ instructor_id: data.instructor_id, tipo: TIPOS_ALERTA.AMBIENTE_OCUPADO, semana, total_horas: totalHoras,
+        mensaje: `Ambiente ocupado en la misma jornada (semana ${semana}).` });
+    }
+    if (alertaJornadaRestringida) {
+      await AlertaService.crear({ instructor_id: data.instructor_id, tipo: TIPOS_ALERTA.JORNADA_RESTRINGIDA, semana, total_horas: totalHoras,
+        mensaje: `Instructor de planta en jornada nocturna o fin de semana (semana ${semana}).` });
+    }
+    if (totalHoras < 20) {
+      await AlertaService.crear({ instructor_id: data.instructor_id, tipo: TIPOS_ALERTA.HORAS_INSUFICIENTES, semana, total_horas: totalHoras,
+        mensaje: `Carga por debajo del minimo de 20h: ${totalHoras}h en la semana ${semana}.` });
+    }
+    // RN-06: el RAP no debe estar a cargo de dos instructores en el mismo grupo
+    // (al evaluar no pueden existir dos juicios distintos del mismo RAP). No se
+    // bloquea la carga; se levanta una alerta persistente para CORREGIR el dato.
+    if (data.rap_id) {
+      const compartido = await HorarioModel.rapAsignadoAOtroEnFicha(data.ficha_id, data.rap_id, data.instructor_id);
+      if (compartido) {
+        await AlertaService.rapCompartido(data.instructor_id, data.ficha_id, data.rap_id,
+          `RN-06: el RAP ${data.rap_id} quedo a cargo de mas de un instructor en el mismo grupo. Debe reasignarse a uno solo.`);
+      }
+    }
 
     return {
       ...horario,

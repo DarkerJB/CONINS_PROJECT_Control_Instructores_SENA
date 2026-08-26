@@ -218,6 +218,17 @@ export const HorarioModel = {
   },
 
   // RN-27: el RAP debe pertenecer a una competencia del programa del grupo.
+  // RN-06 (soft): ¿el RAP ya lo dicta OTRO instructor en el mismo grupo?
+  async rapAsignadoAOtroEnFicha(fichaId: number, rapId: number, instructorId: number): Promise<boolean> {
+    const [rows] = await pool.query(
+      `SELECT 1 FROM horarios
+       WHERE ficha_id = ? AND rap_id = ? AND instructor_id != ? AND activo = TRUE
+       LIMIT 1`,
+      [fichaId, rapId, instructorId],
+    );
+    return (rows as any[]).length > 0;
+  },
+
   async rapPerteneceAlProgramaDeFicha(rapId: number, fichaId: number): Promise<boolean> {
     const [rows] = await pool.query(
       `SELECT 1

@@ -96,6 +96,17 @@ export const AsignacionRapModel = {
     return rows.length ? (rows[0] as any).ficha_id : null;
   },
 
+  async getInstructorIdByAc(acId: number): Promise<number | null> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT a.instructor_id
+       FROM asignacion_competencia ac
+       JOIN asignacion a ON ac.asignacion_id = a.id
+       WHERE ac.id = ? LIMIT 1`,
+      [acId],
+    );
+    return rows.length ? (rows[0] as any).instructor_id : null;
+  },
+
   async competenciaIdByAc(acId: number): Promise<number | null> {
     const [rows] = await pool.query<RowDataPacket[]>(
       'SELECT competencia_id FROM asignacion_competencia WHERE id = ? LIMIT 1',

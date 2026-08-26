@@ -464,15 +464,21 @@ CREATE TABLE IF NOT EXISTS horarios (
 CREATE TABLE IF NOT EXISTS alertas (
     id            INT AUTO_INCREMENT PRIMARY KEY,
     instructor_id INT NOT NULL,
-    tipo          VARCHAR(60)  NOT NULL COMMENT 'HORAS_EXCEDIDAS | HORAS_INSUFICIENTES | AMBIENTE_OCUPADO | ASIGNACION_PROVISIONAL | INSTRUCTOR_PLANTA_JORNADA_NOCTURNA',
+    tipo          VARCHAR(60)  NOT NULL COMMENT 'HORAS_EXCEDIDAS | HORAS_INSUFICIENTES | AMBIENTE_OCUPADO | ASIGNACION_PROVISIONAL | INSTRUCTOR_PLANTA_JORNADA_NOCTURNA | RAP_COMPARTIDO',
     mensaje       VARCHAR(255) NOT NULL,
-    semana        DATE         NOT NULL COMMENT 'Fecha del lunes de la semana afectada',
-    total_horas   DECIMAL(5,2) NOT NULL,
-    atendida      BOOLEAN NOT NULL DEFAULT FALSE,
+    semana        DATE         NULL COMMENT 'Lunes de la semana afectada (alertas de carga); NULL en alertas estructurales',
+    total_horas   DECIMAL(5,2) NULL COMMENT 'Solo alertas de carga',
+    ficha_id      INT NULL COMMENT 'Alertas estructurales (p.ej. RAP_COMPARTIDO)',
+    rap_id        INT NULL COMMENT 'Alertas estructurales (p.ej. RAP_COMPARTIDO)',
+    atendida      BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'admin marca aceptada/omitida; visible mientras FALSE',
     leida         BOOLEAN NOT NULL DEFAULT FALSE,
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_alerta_semana_tipo (instructor_id, semana, tipo),
-    FOREIGN KEY (instructor_id) REFERENCES instructores(id) ON DELETE CASCADE
+    INDEX idx_alerta_instructor (instructor_id),
+    INDEX idx_alerta_atendida (atendida),
+    INDEX idx_alerta_ficha_rap (ficha_id, rap_id),
+    FOREIGN KEY (instructor_id) REFERENCES instructores(id) ON DELETE CASCADE,
+    FOREIGN KEY (ficha_id)      REFERENCES fichas(id)       ON DELETE CASCADE,
+    FOREIGN KEY (rap_id)        REFERENCES raps(id)         ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ============================================================

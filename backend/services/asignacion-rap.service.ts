@@ -1,5 +1,6 @@
 import { AsignacionRapModel } from '../models/asignacion-rap.model.js';
-import { NotFoundError, ValidationError, ConflictError } from '../utils/errors.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
+import { AlertaService } from './alerta.service.js';
 
 // ============================================================
 // RF-42 — Asignacion explicita de RAP al instructor.
@@ -42,6 +43,7 @@ export const AsignacionRapService = {
     // Sin duplicados en la peticion
     const unicos = [...new Set(rapIds)];
 
+    const compartidos: number[] = [];
     for (const rapId of unicos) {
       // El RAP debe pertenecer a la competencia
       const pertenece = await AsignacionRapModel.rapBelongsToCompetencia(rapId, competenciaId);
@@ -49,14 +51,26 @@ export const AsignacionRapService = {
         throw new ValidationError(`El RAP ${rapId} no pertenece a la competencia indicada o esta inactivo`);
       }
 
-      // RN-06: el RAP no puede estar a cargo de otro instructor en el mismo grupo
+      // RN-06: un RAP NO puede estar a cargo de dos instructores en el mismo
+      // grupo (al evaluarlo, los aprendices no pueden tener dos juicios distintos
+      // del mismo RAP). No se bloquea la carga para no rechazar el archivo real;
+      // en su lugar se registra una alerta persistente para CORREGIR el dato
+      // (reasignar el RAP a un solo instructor).
       const tomado = await AsignacionRapModel.rapTakenByOtherInFicha(fichaId, rapId, acId);
-      if (tomado) {
-        throw new ConflictError(`El RAP ${rapId} ya esta asignado a otro instructor en este grupo (RN-06)`);
-      }
+      if (tomado) compartidos.push(rapId);
     }
 
     await AsignacionRapModel.syncRaps(acId, unicos);
+
+    if (compartidos.length) {
+      const instructorId = await AsignacionRapModel.getInstructorIdByAc(acId);
+      if (instructorId) {
+        for (const rapId of compartidos) {
+          await AlertaService.rapCompartido(instructorId, fichaId, rapId,
+            `RN-06: el RAP ${rapId} quedo a cargo de mas de un instructor en el mismo grupo. Debe reasignarse a uno solo (al evaluar no pueden existir dos juicios del mismo RAP).`);
+        }
+      }
+    }
     return AsignacionRapModel.getRapsByAc(acId);
   },
 };
