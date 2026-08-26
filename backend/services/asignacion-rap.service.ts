@@ -57,7 +57,7 @@ export const AsignacionRapService = {
       // una edicion deliberada, se impide dejar/introducir el conflicto.
       const tomado = await AsignacionRapModel.rapTakenByOtherInFicha(fichaId, rapId, acId);
       if (tomado) {
-        throw new ConflictError(`RN-06: el RAP ${rapId} ya esta a cargo de otro instructor en este grupo. Reasignelo a uno solo antes de continuar.`);
+        throw new ConflictError('Este resultado de aprendizaje ya esta a cargo de otro instructor en el grupo. Debe quedar con uno solo; reasignelo antes de continuar.');
       }
     }
 

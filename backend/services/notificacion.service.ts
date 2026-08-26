@@ -40,11 +40,12 @@ export const NotificacionService = {
   },
 
   async notificarCoordinadoresYSubdirector(tipo: string, mensaje: string) {
+    // nivel <= 3 = Subdirector (1), Coordinadora (2) y Asistente de Coordinacion (3).
     const [rows] = await pool.query(
       `SELECT DISTINCT u.id FROM usuario_roles ur
        JOIN roles r ON ur.rol_id = r.id
        JOIN usuarios u ON ur.usuario_id = u.id
-       WHERE r.nivel <= 2`,
+       WHERE r.nivel <= 3`,
     );
     for (const row of rows as any[]) {
       await NotificacionModel.crear({

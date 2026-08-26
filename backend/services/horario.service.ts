@@ -91,7 +91,8 @@ export const HorarioService = {
         semana,
       );
       if (ambienteOcupado) {
-        conflictos.push({ tipo: TIPOS_ALERTA.AMBIENTE_OCUPADO, mensaje: 'Ambiente ocupado en la misma jornada (RN-05).' });
+        conflictos.push({ tipo: TIPOS_ALERTA.AMBIENTE_OCUPADO,
+          mensaje: `El ambiente ya esta ocupado por otro grupo en esa jornada (grupo ${(ficha as any).numero_ficha ?? data.ficha_id}, semana ${semana}). Revisa el cruce de ambiente.` });
       }
     }
 
@@ -99,7 +100,7 @@ export const HorarioService = {
     if (data.rap_id) {
       rapCompartido = await HorarioModel.rapAsignadoAOtroEnFicha(data.ficha_id, data.rap_id, data.instructor_id);
       if (rapCompartido) {
-        conflictos.push({ tipo: TIPOS_ALERTA.RAP_COMPARTIDO, mensaje: `RN-06: el RAP ${data.rap_id} ya esta a cargo de otro instructor en este grupo. Reasignelo a uno solo.` });
+        conflictos.push({ tipo: TIPOS_ALERTA.RAP_COMPARTIDO, mensaje: 'Este resultado de aprendizaje ya esta a cargo de otro instructor en el grupo. Debe quedar con uno solo; reasignelo antes de continuar.' });
       }
     }
 
@@ -107,7 +108,7 @@ export const HorarioService = {
     const nuevasHoras = ((new Date(`2000-01-01T${data.hora_fin}`).getTime() - new Date(`2000-01-01T${data.hora_inicio}`).getTime()) / (1000 * 60 * 60));
     const totalHoras = horasActuales + nuevasHoras;
     if (totalHoras > 40) {
-      conflictos.push({ tipo: TIPOS_ALERTA.HORAS_EXCEDIDAS, mensaje: `El instructor excede el limite de 40 horas semanales (total ${totalHoras}h).` });
+      conflictos.push({ tipo: TIPOS_ALERTA.HORAS_EXCEDIDAS, mensaje: `La carga del instructor supera las 40 horas en la semana ${semana} (queda en ${totalHoras}h). Revisa su horario.` });
     }
 
     let alertaJornadaRestringida = false;
@@ -128,18 +129,18 @@ export const HorarioService = {
     // Persistir alertas (llega aca en carga masiva, o en UI sin conflictos).
     for (const c of conflictos) {
       if (c.tipo === TIPOS_ALERTA.RAP_COMPARTIDO && data.rap_id) {
-        await AlertaService.rapCompartido(data.instructor_id, data.ficha_id, data.rap_id, c.mensaje);
+        await AlertaService.rapCompartido(data.instructor_id, data.ficha_id, data.rap_id);
       } else {
         await AlertaService.crear({ instructor_id: data.instructor_id, tipo: c.tipo, mensaje: c.mensaje, semana, total_horas: totalHoras });
       }
     }
     if (alertaJornadaRestringida) {
       await AlertaService.crear({ instructor_id: data.instructor_id, tipo: TIPOS_ALERTA.JORNADA_RESTRINGIDA, semana, total_horas: totalHoras,
-        mensaje: `Instructor de planta en jornada nocturna o fin de semana (semana ${semana}).` });
+        mensaje: `Instructor de planta programado en jornada nocturna o fin de semana (grupo ${(ficha as any).numero_ficha ?? data.ficha_id}, semana ${semana}).` });
     }
     if (totalHoras < 20) {
       await AlertaService.crear({ instructor_id: data.instructor_id, tipo: TIPOS_ALERTA.HORAS_INSUFICIENTES, semana, total_horas: totalHoras,
-        mensaje: `Carga por debajo del minimo de 20h: ${totalHoras}h en la semana ${semana}.` });
+        mensaje: `La carga del instructor esta por debajo de 20 horas en la semana ${semana} (queda en ${totalHoras}h).` });
     }
 
     return {
@@ -226,7 +227,7 @@ export const HorarioService = {
         id,
       );
       if (ocupado) {
-        throw new ConflictError('El ambiente ya esta ocupado en esa jornada (RN-05). Elija otro ambiente u horario.');
+        throw new ConflictError('El ambiente ya esta ocupado por otro grupo en esa jornada. Elija otro ambiente u horario.');
       }
     }
 
@@ -236,7 +237,7 @@ export const HorarioService = {
     if (finalRapId) {
       const compartido = await HorarioModel.rapAsignadoAOtroEnFicha(existing.ficha_id, finalRapId, existing.instructor_id);
       if (compartido) {
-        throw new ConflictError(`RN-06: el RAP ${finalRapId} ya esta a cargo de otro instructor en este grupo. Reasignelo a uno solo.`);
+        throw new ConflictError('Este resultado de aprendizaje ya esta a cargo de otro instructor en el grupo. Debe quedar con uno solo; reasignelo antes de continuar.');
       }
     }
 
@@ -345,7 +346,7 @@ export const HorarioService = {
         // RN-05 (edicion interactiva): bloquea si el aula/lab ya esta ocupado ese dia.
         const ocupado = await HorarioModel.hasAmbienteOcupado(ambienteId, dia, data.jornada_id, base.semana);
         if (ocupado) {
-          throw new ConflictError(`El ambiente ya esta ocupado en esa jornada el dia ${dia} (RN-05). Elija otro ambiente u horario.`);
+          throw new ConflictError(`El ambiente ya esta ocupado por otro grupo en esa jornada el dia ${dia}. Elija otro ambiente u horario.`);
         }
       }
 

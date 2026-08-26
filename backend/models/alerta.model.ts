@@ -35,6 +35,27 @@ export const AlertaModel = {
     return r.insertId;
   },
 
+  // Contexto legible para el mensaje de RAP compartido: nombre del RAP, numero
+  // del grupo e instructores que hoy lo dictan en ese grupo (para que coordinacion
+  // sepa exactamente donde esta el error).
+  async contextoRapCompartido(fichaId: number, rapId: number): Promise<{ rapNombre: string; fichaNumero: string; instructores: string[] }> {
+    const [r] = await pool.query<RowDataPacket[]>('SELECT nombre FROM raps WHERE id = ?', [rapId]);
+    const [f] = await pool.query<RowDataPacket[]>('SELECT numero_ficha FROM fichas WHERE id = ?', [fichaId]);
+    const [ins] = await pool.query<RowDataPacket[]>(
+      `SELECT DISTINCT u.nombre FROM horarios h
+       JOIN instructores i ON h.instructor_id = i.id
+       JOIN usuarios u ON i.usuario_id = u.id
+       WHERE h.ficha_id = ? AND h.rap_id = ? AND h.activo = TRUE
+       ORDER BY u.nombre`,
+      [fichaId, rapId],
+    );
+    return {
+      rapNombre: (r[0] as any)?.nombre ?? `RAP ${rapId}`,
+      fichaNumero: (f[0] as any)?.numero_ficha ?? String(fichaId),
+      instructores: (ins as any[]).map((x) => x.nombre as string),
+    };
+  },
+
   // RAPs con alerta de compartido ABIERTA en un grupo (para recomputar al editar).
   async rapCompartidoAbiertasByFicha(ficha_id: number): Promise<{ rap_id: number }[]> {
     const [rows] = await pool.query<RowDataPacket[]>(

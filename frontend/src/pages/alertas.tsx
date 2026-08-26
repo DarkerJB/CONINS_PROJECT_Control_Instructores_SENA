@@ -22,8 +22,10 @@ type Alerta = {
   instructor_nombre: string
   tipo: string
   mensaje: string
-  semana: string
-  total_horas: number
+  semana: string | null
+  total_horas: number | null
+  ficha_id?: number | null
+  rap_id?: number | null
   atendida: boolean
   created_at: string
 }
@@ -273,12 +275,26 @@ export default function AlertasPage() {
                       </div>
 
                       <div className="flex items-center gap-4 text-xs text-gray-400 mt-2">
-                        <span>{alerta.instructor_nombre}</span>
-                        <span>·</span>
-                        <span>Semana del {new Date(alerta.semana).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}</span>
-                        <span>·</span>
-                        <span>{alerta.total_horas}h</span>
-                        <span>·</span>
+                        {/* En RAP compartido el nombre confunde (parece "firma");
+                            los instructores implicados ya van en el mensaje. */}
+                        {alerta.tipo !== "RAP_COMPARTIDO" && (
+                          <>
+                            <span>{alerta.instructor_nombre}</span>
+                            <span>·</span>
+                          </>
+                        )}
+                        {alerta.semana && (
+                          <>
+                            <span>Semana del {new Date(alerta.semana).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}</span>
+                            <span>·</span>
+                          </>
+                        )}
+                        {alerta.total_horas != null && (
+                          <>
+                            <span>{alerta.total_horas}h</span>
+                            <span>·</span>
+                          </>
+                        )}
                         <span>{formatTimeAgo(alerta.created_at)}</span>
                       </div>
                     </div>

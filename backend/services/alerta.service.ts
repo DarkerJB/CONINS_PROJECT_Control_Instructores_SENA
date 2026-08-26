@@ -35,7 +35,15 @@ export const AlertaService = {
   // No se bloquea la carga masiva (para no rechazar el archivo real); se levanta
   // una alerta persistente que queda visible hasta que se CORRIJA el dato
   // (reasignar el RAP a un solo instructor) o el admin/lider la marque atendida.
-  async rapCompartido(instructor_id: number, ficha_id: number, rap_id: number, mensaje: string): Promise<void> {
+  async rapCompartido(instructor_id: number, ficha_id: number, rap_id: number): Promise<void> {
+    // Mensaje legible para coordinacion: nombre del resultado de aprendizaje,
+    // grupo e instructores involucrados (para saber donde esta el error).
+    const ctx = await AlertaModel.contextoRapCompartido(ficha_id, rap_id);
+    const quienes = ctx.instructores.length >= 2
+      ? ctx.instructores.join(' y ')
+      : (ctx.instructores[0] ?? 'varios instructores');
+    const mensaje = `El resultado de aprendizaje "${ctx.rapNombre}" quedo a cargo de ${ctx.instructores.length || 'varios'} instructores (${quienes}) en el grupo ${ctx.fichaNumero}. Debe quedar con un solo instructor para poder evaluarlo. Revisa y corrige la asignacion.`;
+
     const creada = await this.crear({ instructor_id, tipo: TIPOS_ALERTA.RAP_COMPARTIDO, mensaje, ficha_id, rap_id });
     if (!creada) return;
     // Enciende la campanita (GET /api/notificaciones) para quienes deben actuar:
