@@ -103,13 +103,23 @@ personal, sin restricción de dominio.
 
 4. ROLES DEL SISTEMA
 
-Tabla de roles (4 entradas exactas):
+Cuatro roles OPERATIVOS del negocio (en la tabla `roles` de la BD):
 
    ID  Nombre                    Nivel  Alcance
-   1   Subdirector               1      CDMC completo
-   2   Coordinadora Academica    2      Alcance de gestión completo
+   1   Subdirector               1      Supervisión CDMC (en el frontend actual,
+                                        vista de supervisor: menú reducido y solo
+                                        lectura en asignaciones/competencias)
+   2   Coordinadora Academica    2      Gestión operativa completa (crea/edita)
    3   Asistente Coordinacion    3      Mismos permisos que Coordinadora
    4   Instructor                4      Solo lectura de sus grupos
+
+SUPER-USUARIO DEL SISTEMA (21/08/2026): existe además un tier de administración
+por encima de los 4 roles operativos: el rol "Administrador", usado por la cuenta
+de despliegue/sistema (SUPER_USER del .env, ej. admin@conins.sena, id 0 virtual —
+no existe en la tabla usuarios). Tiene control TOTAL: `requireRole` lo deja pasar
+en cualquier ruta y está en ROLES_ADMIN. NO es un rol operativo del negocio; es la
+cuenta de administración del sistema. El Subdirector real (Dyron Ramírez) conserva
+su rol Subdirector.
 
 Datos organizativos SIN impacto en permisos:
    - Referente de programa (lider_programa): relación instructor-programa.
@@ -542,6 +552,19 @@ PRINCIPIO GENERAL:
    v5.6 rev 31/07/2026   Decisiones de Leidy: auto-aprobación de horarios
                          (RN-28), cascada de desactivación (RN-29),
                          registro de horario multidía.
+   v5.7 rev 21/08/2026   Simulacro directivas: super-usuario Administrador (tier
+                         de sistema, control total; Dyron sigue Subdirector).
+                         RN-05 confirmada SOFT (se elimino trigger que bloqueaba).
+                         Ocupacion de ambiente = FISICA, centrada en la ficha (dos
+                         instructores en el mismo slot = 1 ocupacion, no doble).
+                         Disponibilidad de ambiente = 16h/dia (manana 6 + tarde 6 +
+                         noche 4); ocupacion sobre 96h/semana (16x6). Definicion
+                         precisa de PROVISIONAL: salir del flujo normal (una ficha,
+                         un instructor, una jornada, un ambiente, sin superposicion)
+                         por justa causa. Ambientes numerados renombrados
+                         "Ambiente NNN"; capacidades aula 30 / taller 50. Jornada
+                         de tarde = 'mixta' en el catalogo (12-18). Proyeccion por
+                         semana en la vista de horarios (GET /horarios?semana=).
    v5.7     05-19/08/2026 Importador masivo (RN-30), validación de entrada
                          completa (RNF-25), revisión de seguridad. RF v10.2
                          (referencias cruzadas corregidas; RF-37 reescrito
@@ -551,5 +574,5 @@ PRINCIPIO GENERAL:
 
 ========================================================================================
 
-CONINS · SENA CDMC · Lógica de Negocio v5.7 · 19 de Agosto 2026
+CONINS · SENA CDMC · Lógica de Negocio v5.7 (rev 21/08/2026) · 19 de Agosto 2026
 Autores: Jair Enrique González Buelvas · Laura Sofía Posada
