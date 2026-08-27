@@ -9,6 +9,9 @@ import { getLunesSemanaActual } from '../utils/date.js';
 export const InstructorService = {
   async getAll() {
     const instructors = await InstructorModel.findAll();
+    // Regla de negocio: Horas/sem = carga de la SEMANA EN CURSO (lunes actual).
+    // Fuera del rango de horarios cargados el instructor muestra 0h (correcto):
+    // esa semana no tiene clases planeadas hasta que llegue la planeacion nueva.
     const semana = getLunesSemanaActual();
     const horasMap = await InstructorModel.getHorasSemanalesTodos(semana);
     const result = [];
