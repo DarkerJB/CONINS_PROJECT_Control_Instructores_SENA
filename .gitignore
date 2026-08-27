@@ -28,3 +28,6 @@ Thumbs.db
 
 # Claude Code
 .claude
+
+# Reportes/notas de trabajo: se guardan FUERA del repo (D:\2_ConIns\Reportes_Cambios_Y_Otros)
+Reportes_Cambios_Y_Otros/
