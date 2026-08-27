@@ -120,7 +120,21 @@ INSERT INTO roles (id, nombre, nivel) VALUES
 (1, 'Subdirector',             1),
 (2, 'Coordinadora Academica',  2),
 (3, 'Asistente Coordinacion',  3),
-(4, 'Instructor',              4);
+(4, 'Instructor',              4),
+(5, 'Administrador',           0);  -- soporte del sistema: control total (nivel 0, por encima de Subdirector)
+
+-- ============================================================
+-- USUARIO ADMINISTRADOR (soporte del sistema) — bootstrap
+-- Usuario REAL de la BD que reemplaza al super admin virtual del .env.
+-- Se entrega al centro; la persona de soporte cambia correo y clave desde la
+-- app (o por "crear/recuperar contrasena"). Clave inicial: ConinsAdmin2026*
+-- (bcrypt) — CAMBIAR obligatoriamente en el handover.
+-- El .env (SUPER_USER) queda solo como acceso de EMERGENCIA (break-glass):
+-- el login lo usa unicamente si no existe un usuario real con ese correo.
+-- ============================================================
+INSERT IGNORE INTO usuarios (id, nombre, email, password) VALUES
+(1, 'Administrador', 'admin@conins.sena', '$2b$10$ZurWiiYzvXrilhHVFVCfguOwojJVhRzYUi/Dj9.6J6pCqbuStq0DC');
+INSERT IGNORE INTO usuario_roles (usuario_id, rol_id) VALUES (1, 5);
 
 -- ============================================================
 -- 5. INSTRUCTORES (perfil extendido de usuarios)

@@ -49,40 +49,33 @@ export const AuthService = {
   async login(email: string, password: string) {
     checkLoginAttempt(email);
 
-    const superUser = process.env.SUPER_USER;
-    const superPassword = process.env.SUPER_USER_PASSWORD;
-
-    if (superUser && superPassword && email === superUser) {
-      if (password !== superPassword) {
-        recordFailedAttempt(email);
-        throw new UnauthorizedError('Credenciales invalidas');
-      }
-
-      recordSuccessfulLogin(email);
-
-      const secret = process.env.JWT_SECRET;
-      if (!secret) throw new Error('JWT_SECRET no configurado');
-      const expiresIn = (process.env.JWT_EXPIRES_IN || '24h') as jwt.SignOptions['expiresIn'];
-
-      const token = jwt.sign(
-        { id: 0, nombre: 'Administrador', roles_globales: ['Administrador'] },
-        secret,
-        { expiresIn },
-      );
-
-      return {
-        token,
-        user: {
-          id: 0,
-          nombre: 'Administrador',
-          email: superUser,
-          roles: ['Administrador'],
-        },
-      };
-    }
-
+    // El Administrador es ahora un usuario REAL de la BD (rol Administrador).
+    // Login normal (BD) primero; el super usuario del .env queda solo como
+    // acceso de EMERGENCIA (break-glass) y se activa unicamente si NO existe un
+    // usuario con ese correo — asi el usuario real siempre tiene prioridad.
     const user = await UsuarioModel.findByEmail(email);
     if (!user) {
+      const superUser = process.env.SUPER_USER;
+      const superPassword = process.env.SUPER_USER_PASSWORD;
+      if (superUser && superPassword && email === superUser) {
+        if (password !== superPassword) {
+          recordFailedAttempt(email);
+          throw new UnauthorizedError('Credenciales invalidas');
+        }
+        recordSuccessfulLogin(email);
+        const secret = process.env.JWT_SECRET;
+        if (!secret) throw new Error('JWT_SECRET no configurado');
+        const expiresIn = (process.env.JWT_EXPIRES_IN || '24h') as jwt.SignOptions['expiresIn'];
+        const token = jwt.sign(
+          { id: 0, nombre: 'Administrador', roles_globales: ['Administrador'] },
+          secret,
+          { expiresIn },
+        );
+        return {
+          token,
+          user: { id: 0, nombre: 'Administrador', email: superUser, roles: ['Administrador'] },
+        };
+      }
       recordFailedAttempt(email);
       throw new UnauthorizedError('Credenciales invalidas');
     }
