@@ -12,7 +12,7 @@ Antes: el Administrador era **virtual** — vivía solo en el `.env` (`SUPER_USE
 Ahora: el Administrador es un **usuario real de la BD**:
 
 - Rol nuevo en `roles`: `(5, 'Administrador', 0)` — nivel 0, por encima de Subdirector.
-- Usuario bootstrap en `database.sql`: `id 1`, `admin@conins.sena`, clave **`ConinsAdmin2026*`** (bcrypt), rol Administrador.
+- Usuario bootstrap en `database.sql`: `id 1`, `admin@conins.sena`, clave **`Admin2026!`** (bcrypt, coincide con `SUPER_USER_PASSWORD` del `.env`), rol Administrador.
 - Login reordenado: **el usuario real de la BD tiene prioridad**. El `.env` (`SUPER_USER`) queda solo como **break-glass de emergencia**: el login lo usa únicamente si NO existe un usuario con ese correo en la BD (es decir, queda dormido mientras exista el admin real).
 
 Beneficios: se edita desde la UI, recibe notificaciones, clave con bcrypt que la persona de soporte define, integridad de FK completa, y el `id 0` mágico queda relegado solo al acceso de emergencia.
