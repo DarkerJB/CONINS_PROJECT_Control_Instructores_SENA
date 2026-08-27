@@ -97,6 +97,10 @@ Pendientes menores de mi lado (no te afectan): scoping de `marcar-todas` por rol
 
 Reportado que la columna **Horas/sem** salía en 0h para todos. Verificado: **no es bug de frontend.** Tu `instructores.tsx` lee `inst.horas_semana` correctamente y el backend lo devuelve bien.
 
-Causa: la BD en ejecución tenía un seed anterior a la carga de horarios, y el cálculo es por **regla de negocio = carga de la semana en curso** (lunes actual). Con la BD recargada (`database.sql` + `seed_data.sql`), en la semana actual (08-24) los instructores con horario muestran su carga (6h–36h); los que no tienen clase esa semana muestran 0h, que es correcto. Después de una semana sin datos cargados (p. ej. tras 08-31, hasta la planeación de septiembre) es normal ver 0h.
+Causa real (bug de backend, ya corregido): la función `getLunesSemanaActual()` calculaba el lunes de la semana con componentes **locales** pero lo formateaba con `toISOString()` (**UTC**). En Colombia (UTC-5), de tarde/noche el resultado saltaba +1 día (devolvía p. ej. `2026-08-25`, que no es lunes), no coincidía con la columna `horarios.semana` y la carga salía en 0h para todos. Se disparaba solo según la hora del día — de mañana funcionaba, de tarde no.
 
-No requiere cambios de frontend.
+Fix aplicado (commit `d858e58`): el lunes ahora se arma con componentes locales, sin salto de día. Verificado a las 09/14/19/22h: siempre devuelve el lunes correcto.
+
+Regla de negocio (sin cambio): **Horas/sem = carga de la semana en curso**. En la semana actual (08-24) los instructores con horario muestran su carga (6h–36h); los que no tienen clase esa semana, y todo el listado tras 08-31 hasta cargar la planeación de septiembre, muestran 0h — correcto.
+
+No requiere cambios de frontend. Solo reiniciar el backend tras el fix.
