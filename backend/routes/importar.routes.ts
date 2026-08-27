@@ -8,6 +8,9 @@ const router = Router();
 router.use(verifyToken);
 
 // Solo administradores pueden cargar datos masivamente
+// Preview: normaliza y clasifica SIN escribir (paso de revision)
+router.post('/preview', requireRole([...ROLES_ADMIN]), importarController.preview);
+// Confirmar: escribe el template (crea ambientes aprobados primero)
 router.post('/', requireRole([...ROLES_ADMIN]), importarController.importar);
 
 export default router;

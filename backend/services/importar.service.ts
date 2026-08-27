@@ -6,6 +6,9 @@ import { FichaService } from './ficha.service.js';
 import { AsignacionService } from './asignacion.service.js';
 import { HorarioService } from './horario.service.js';
 import { InstructorService } from './instructor.service.js';
+import {
+  detectarFormato, normalizarCrudo, filasATemplateBase64, detectarPosibleBaja, PreviewResultado,
+} from './normalizador.service.js';
 
 // ============================================================
 // P39 — Importador de datos via Excel (24/07 feedback lider, 31/07 Laura)
@@ -184,17 +187,87 @@ export interface ResumenHoja {
   errores: { fila: number; mensaje: string }[];
 }
 
-export const ImportarService = {
-  async importar(archivoBase64: string): Promise<{ resumen: ResumenHoja[] }> {
-    if (!archivoBase64) throw new ValidationError('archivo_base64 es obligatorio');
+function leerWorkbook(archivoBase64: string): XLSX.WorkBook {
+  if (!archivoBase64) throw new ValidationError('archivo_base64 es obligatorio');
+  try {
+    const limpio = archivoBase64.replace(/^data:.*;base64,/, '');
+    return XLSX.read(Buffer.from(limpio, 'base64'), { type: 'buffer' });
+  } catch {
+    throw new ValidationError('No se pudo leer el archivo (¿es un .xlsx valido en base64?)');
+  }
+}
 
-    let wb: XLSX.WorkBook;
-    try {
-      const limpio = archivoBase64.replace(/^data:.*;base64,/, '');
-      wb = XLSX.read(Buffer.from(limpio, 'base64'), { type: 'buffer' });
-    } catch {
-      throw new ValidationError('No se pudo leer el archivo (¿es un .xlsx valido en base64?)');
+// Crea los ambientes aprobados que aun no existen (salones nuevos de la
+// planeacion). tipo 'aula' por defecto; el admin puede ajustarlo despues.
+async function crearAmbientesAprobados(nombres: string[]): Promise<void> {
+  for (const raw of nombres ?? []) {
+    const nombre = String(raw).trim();
+    if (!nombre) continue;
+    const [ex] = await pool.query<RowDataPacket[]>('SELECT id FROM ambientes WHERE nombre = ? LIMIT 1', [nombre]);
+    if ((ex as any[]).length) continue;
+    await pool.query(
+      'INSERT INTO ambientes (nombre, tipo, capacidad, area_id, sede_id) VALUES (?, ?, ?, ?, ?)',
+      [nombre, 'aula', 30, null, null],
+    );
+  }
+}
+
+export const ImportarService = {
+  // Previsualiza SIN escribir: detecta formato, normaliza el crudo del lider
+  // contra el catalogo vivo, y clasifica en resumen / nuevos / errores /
+  // posible_baja. Devuelve tambien el template normalizado (base64) para que
+  // el frontend lo reenvie a importar() cuando el admin confirme.
+  async preview(archivoBase64: string, programaCodigo?: string): Promise<PreviewResultado> {
+    const wb = leerWorkbook(archivoBase64);
+    const formato = detectarFormato(wb);
+
+    if (formato === 'template') {
+      const cuenta = (hoja: string) => {
+        const ws = wb.Sheets[hoja];
+        return ws ? XLSX.utils.sheet_to_json<any>(ws, { defval: null }).length : 0;
+      };
+      return {
+        formato,
+        resumen: {
+          instructores: cuenta('Instructores'), grupos: cuenta('Grupos'),
+          asignaciones: cuenta('Asignaciones'), horarios: cuenta('Horarios'),
+        },
+        nuevos: { ambientes: [], instructores: [] },
+        errores: [],
+        posible_baja: { asignaciones: [] },
+        plantilla_base64: archivoBase64.replace(/^data:.*;base64,/, ''),
+      };
     }
+
+    if (!programaCodigo) {
+      throw new ValidationError('Para un archivo crudo del lider se requiere el codigo del programa (programa_codigo)');
+    }
+    const prog = await pool.query<RowDataPacket[]>('SELECT id FROM programas WHERE codigo = ? AND activo = TRUE LIMIT 1', [programaCodigo.trim()]);
+    if ((prog[0] as any[]).length === 0) throw new ValidationError(`Programa no encontrado: "${programaCodigo}"`);
+
+    const { filas, nuevos, errores, grupos, asignacionesSet } = await normalizarCrudo(wb, programaCodigo.trim());
+    const posibleBaja = await detectarPosibleBaja(grupos, asignacionesSet);
+    return {
+      formato,
+      resumen: {
+        instructores: filas.instructores.length - 1, grupos: filas.grupos.length - 1,
+        asignaciones: filas.asignaciones.length - 1, horarios: filas.horarios.length - 1,
+      },
+      nuevos,
+      errores,
+      posible_baja: { asignaciones: posibleBaja },
+      plantilla_base64: filasATemplateBase64(filas),
+    };
+  },
+
+  async importar(
+    archivoBase64: string,
+    opts?: { crearAmbientes?: string[] },
+  ): Promise<{ resumen: ResumenHoja[] }> {
+    const wb = leerWorkbook(archivoBase64);
+
+    // Ambientes nuevos aprobados en el preview: crearlos antes de resolver grupos/horarios.
+    if (opts?.crearAmbientes?.length) await crearAmbientesAprobados(opts.crearAmbientes);
 
     const resumen: ResumenHoja[] = [];
 
