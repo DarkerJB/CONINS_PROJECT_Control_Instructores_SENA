@@ -29,6 +29,33 @@ const DIAS: Record<string, number> = {
   '4': 4, 'jueves': 4, '5': 5, 'viernes': 5, '6': 6, 'sabado': 6, '7': 7, 'domingo': 7,
 };
 
+const DIA_NOMBRE: Record<number, string> = {
+  1: 'lunes', 2: 'martes', 3: 'miercoles', 4: 'jueves', 5: 'viernes', 6: 'sabado', 7: 'domingo',
+};
+
+// Contexto humano de la fila para que un error sea UBICABLE sin depender del
+// numero de fila del template: nombra instructor, grupo, dia y horas.
+function contextoFila(hoja: string, row: any): string {
+  const g = row['numero_grupo'] ?? row['numero_ficha'];
+  const email = row['instructor_email'] ?? row['email'];
+  if (hoja === 'Horarios') {
+    const dia = DIA_NOMBRE[Number(row['dia_semana'])] ?? String(row['dia_semana'] ?? '');
+    const horas = row['hora_inicio'] && row['hora_fin'] ? ` ${row['hora_inicio']}-${row['hora_fin']}` : '';
+    return `Instructor ${email ?? '?'} · grupo ${g ?? '?'} · ${dia}${horas}`.trim();
+  }
+  if (hoja === 'Asignaciones') return `Instructor ${email ?? '?'} · grupo ${g ?? '?'}`;
+  if (hoja === 'Grupos') return `Grupo ${g ?? '?'}`;
+  if (hoja === 'Instructores') return `${row['nombre'] ?? email ?? '?'}`;
+  return '';
+}
+
+// Referencia al Excel ORIGINAL del lider (hoja + fila), si el template la trae.
+function origenFila(row: any): string {
+  return row['origen_hoja']
+    ? ` [Excel del lider: hoja "${row['origen_hoja']}", fila ${row['origen_fila']}]`
+    : '';
+}
+
 function toDiaSemana(v: unknown): number {
   const d = DIAS[norm(v)];
   if (!d) throw new ValidationError(`dia_semana invalido: "${v}" (usa 1-7 o Lunes..Domingo)`);
@@ -286,7 +313,9 @@ export const ImportarService = {
           await fn(rows[i]);
           r.creados++;
         } catch (err: any) {
-          r.errores.push({ fila, mensaje: err?.message ?? 'Error desconocido' });
+          const ctx = contextoFila(nombre, rows[i]);
+          const base = err?.message ?? 'Error desconocido';
+          r.errores.push({ fila, mensaje: `${ctx ? ctx + ' — ' : ''}${base}${origenFila(rows[i])}` });
         }
       }
       resumen.push(r);

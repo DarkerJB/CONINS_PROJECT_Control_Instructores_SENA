@@ -252,7 +252,10 @@ export async function normalizarCrudo(
       const aAcc = asignaciones.get(aKey) ?? { email, ficha, comps: new Set<string>() };
       aAcc.comps.add(cod); asignaciones.set(aKey, aAcc);
       for (const d of fechas) {
-        horarios.push([email, ficha, cod, '', amb, DIA_ISO(d), horaI ?? '', horaF ?? '', jor ?? '', fechaLunes(d)]);
+        // Se arrastra hoja/fila del Excel del lider (origen_*) para que los
+        // errores del import sean ubicables en el archivo original, no por el
+        // numero de fila del template.
+        horarios.push([email, ficha, cod, '', amb, DIA_ISO(d), horaI ?? '', horaF ?? '', jor ?? '', fechaLunes(d), sheetName, filaNum]);
       }
     });
   }
@@ -262,7 +265,7 @@ export async function normalizarCrudo(
     instructores: [['nombre', 'email', 'tipo_area', 'codigos_competencia']],
     grupos: [['numero_grupo', 'codigo_programa', 'jornada', 'ambiente']],
     asignaciones: [['instructor_email', 'numero_grupo', 'codigos_competencia']],
-    horarios: [['instructor_email', 'numero_grupo', 'codigo_competencia', 'codigo_rap', 'ambiente', 'dia_semana', 'hora_inicio', 'hora_fin', 'jornada', 'semana']],
+    horarios: [['instructor_email', 'numero_grupo', 'codigo_competencia', 'codigo_rap', 'ambiente', 'dia_semana', 'hora_inicio', 'hora_fin', 'jornada', 'semana', 'origen_hoja', 'origen_fila']],
   };
   for (const [email, v] of instructoresByEmail) filas.instructores.push([v.nombre, email, v.tipo_area, [...v.comps].sort().join(';')]);
   for (const [ficha, v] of grupos) filas.grupos.push([ficha, programaCodigo, v.jornada, v.ambiente]);

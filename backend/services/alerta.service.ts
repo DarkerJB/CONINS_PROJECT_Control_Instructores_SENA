@@ -15,6 +15,10 @@ export const TIPOS_ALERTA = {
   RAP_COMPARTIDO: 'RAP_COMPARTIDO',
 } as const;
 
+// Tipos que NO encienden la campanita (quedan visibles solo en la pagina de
+// Alertas). HORAS_INSUFICIENTES es esperado (baja carga real), no accionable.
+const TIPOS_SIN_CAMPANITA = new Set<string>([TIPOS_ALERTA.HORAS_INSUFICIENTES]);
+
 export const AlertaService = {
   // Devuelve true si se creo una alerta NUEVA (no habia una abierta igual). Se
   // usa para disparar la notificacion de campanita solo en alertas nuevas.
@@ -22,6 +26,19 @@ export const AlertaService = {
     try {
       if (await AlertaModel.existsAbierta(a)) return false;
       await AlertaModel.crear(a);
+      // Enciende la campanita para coordinacion/subdireccion en alertas nuevas
+      // ACCIONABLES (ambiente ocupado, carga excedida, provisional, RAP, etc.).
+      // HORAS_INSUFICIENTES se excluye del contador: la baja carga es real (los
+      // instructores completan horas con otros programas), asi que solo queda
+      // visible en la pagina de Alertas sin inundar la campanita.
+      // Best-effort: si falla la notificacion, la alerta ya quedo registrada.
+      if (!TIPOS_SIN_CAMPANITA.has(a.tipo)) {
+        try {
+          await NotificacionService.notificarCoordinadoresYSubdirector(a.tipo, a.mensaje);
+        } catch (e) {
+          console.error('[alerta] alerta creada pero no se pudo notificar:', e);
+        }
+      }
       return true;
     } catch (err) {
       console.error('[alerta] no se pudo registrar la alerta:', err);
@@ -46,13 +63,13 @@ export const AlertaService = {
 
     const creada = await this.crear({ instructor_id, tipo: TIPOS_ALERTA.RAP_COMPARTIDO, mensaje, ficha_id, rap_id });
     if (!creada) return;
-    // Enciende la campanita (GET /api/notificaciones) para quienes deben actuar:
-    // el lider del programa del grupo (arma el Excel y corrige) y coordinacion/subdireccion.
+    // crear() ya notifico a coordinacion/subdireccion. Aqui solo agregamos a los
+    // LIDERES del programa del grupo (ellos arman el Excel y corrigen), que es
+    // especifico de RAP compartido.
     try {
       await NotificacionService.notificarLideresPrograma(ficha_id, TIPOS_ALERTA.RAP_COMPARTIDO, mensaje);
-      await NotificacionService.notificarCoordinadoresYSubdirector(TIPOS_ALERTA.RAP_COMPARTIDO, mensaje);
     } catch (err) {
-      console.error('[alerta] no se pudo notificar RAP compartido:', err);
+      console.error('[alerta] no se pudo notificar a lideres (RAP compartido):', err);
     }
   },
 

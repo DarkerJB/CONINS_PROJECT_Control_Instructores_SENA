@@ -70,7 +70,7 @@ export const HorarioService = {
       semana,
     );
     if (hasOverlap) {
-      throw new ConflictError('El instructor tiene un horario superpuesto en ese dia y hora (RN-04)');
+      throw new ConflictError('El instructor ya tiene otra clase ese dia a esa hora (los horarios se cruzan)');
     }
 
     // Conflictos que en ACCION INTERACTIVA (boton del sistema) se BLOQUEAN, pero
@@ -204,7 +204,7 @@ export const HorarioService = {
         id,
       );
       if (hasOverlap) {
-        throw new ConflictError('El instructor tiene un horario superpuesto en ese dia y hora (RN-04)');
+        throw new ConflictError('El instructor ya tiene otra clase ese dia a esa hora (los horarios se cruzan)');
       }
     }
 
@@ -334,7 +334,7 @@ export const HorarioService = {
         base.semana,
       );
       if (hasOverlap) {
-        throw new ConflictError(`El instructor tiene un horario superpuesto el dia ${dia} (RN-04)`);
+        throw new ConflictError(`El instructor ya tiene otra clase el ${dia} a esa hora (los horarios se cruzan)`);
       }
 
       const ambienteId = data.ambiente_id ?? base.ambiente_id;
