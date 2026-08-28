@@ -219,6 +219,23 @@ export const HorarioModel = {
 
   // RN-27: el RAP debe pertenecer a una competencia del programa del grupo.
   // RN-06 (soft): ¿el RAP ya lo dicta OTRO instructor en el mismo grupo?
+  // Co-docencia: OTROS instructores ya asignados al MISMO grupo, mismo dia,
+  // jornada y semana (a diferencia de RN-05, que mira el ambiente y excluye el
+  // mismo grupo, aqui es el mismo grupo con instructores distintos). Devuelve sus
+  // nombres para armar el mensaje.
+  async coDocentesEnGrupo(fichaId: number, diaSemana: number, jornadaId: number, semana: string, instructorId: number): Promise<string[]> {
+    const [rows] = await pool.query(
+      `SELECT DISTINCT u.nombre
+       FROM horarios h
+       JOIN instructores i ON h.instructor_id = i.id
+       JOIN usuarios u ON i.usuario_id = u.id
+       WHERE h.ficha_id = ? AND h.dia_semana = ? AND h.jornada_id = ? AND h.semana = ?
+         AND h.instructor_id != ? AND h.activo = TRUE`,
+      [fichaId, diaSemana, jornadaId, semana, instructorId],
+    );
+    return (rows as any[]).map((r) => String(r.nombre));
+  },
+
   async rapAsignadoAOtroEnFicha(fichaId: number, rapId: number, instructorId: number): Promise<boolean> {
     const [rows] = await pool.query(
       `SELECT 1 FROM horarios

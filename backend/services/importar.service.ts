@@ -226,11 +226,22 @@ async function procesarAsignacion(row: any): Promise<void> {
     await InstructorService.addCompetencia(instructor_id, compId);
   }
 
+  // Provisional (RN-11): NO se infiere por area. Los instructores transversales /
+  // bilinguismo en ADSO son COMPLEMENTOS del programa (competencias transversales
+  // normales), no estan "fuera de su area". Una asignacion es provisional solo si
+  // se aclara EXPLICITAMENTE en el Excel (columna es_provisional / provisional) o
+  // si la coordinacion la marca a mano en el sistema. Aqui se respeta el flag del
+  // Excel si viene; si no, no es provisional.
+  const esProvisional = norm(row['es_provisional'] ?? row['provisional']) === 'si'
+    || norm(row['es_provisional'] ?? row['provisional']) === 'true';
+
   await AsignacionService.create({
     instructor_id,
     ficha_id,
     jornada_id: row['jornada'] ? await resolver.jornada(row['jornada']) : null,
     es_lider_ficha: norm(row['es_lider']) === 'si' || norm(row['es_lider']) === 'true',
+    es_provisional: esProvisional,
+    motivo_provisional: esProvisional ? String(row['motivo_provisional'] ?? 'Provisional segun el Excel de planeacion') : null,
     competencia_ids,
   }, 'import'); // carga masiva: permisivo (alerta), no bloquea RN-06/05/carga
 }
@@ -356,7 +367,7 @@ export const ImportarService = {
     }
 
     if (!programaCodigo) {
-      throw new ValidationError('Para un archivo crudo del lider se requiere el codigo del programa (programa_codigo)');
+      throw new ValidationError('Para un Excel de planeacion sin normalizar se requiere el codigo del programa (programa_codigo)');
     }
     const prog = await pool.query<RowDataPacket[]>('SELECT id FROM programas WHERE codigo = ? AND activo = TRUE LIMIT 1', [programaCodigo.trim()]);
     if ((prog[0] as any[]).length === 0) throw new ValidationError(`Programa no encontrado: "${programaCodigo}"`);

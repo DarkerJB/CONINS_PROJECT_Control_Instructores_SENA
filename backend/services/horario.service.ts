@@ -115,6 +115,22 @@ export const HorarioService = {
       }
     }
 
+    // Co-docencia (soft, informativa — la coordinacion decide): dos o mas
+    // instructores distintos en el MISMO grupo, dia, jornada y semana. No es
+    // provisional (eso es area mismatch) ni ambiente ocupado (eso excluye el
+    // mismo grupo). Nunca bloquea, ni en UI ni en import; solo alerta.
+    const coDocentes = await HorarioModel.coDocentesEnGrupo(
+      data.ficha_id, data.dia_semana, data.jornada_id, semana, data.instructor_id,
+    );
+    let coDocenciaMsg: string | null = null;
+    if (coDocentes.length > 0) {
+      const diaNombre = DIA_ES[data.dia_semana] ?? `dia ${data.dia_semana}`;
+      const jorNombre = await nombreDe('jornadas', data.jornada_id);
+      const grupo = String((ficha as any).numero_ficha ?? data.ficha_id);
+      const todos = [...new Set([instructor.nombre, ...coDocentes])];
+      coDocenciaMsg = `Dos o mas instructores (${todos.join(' y ')}) quedaron asignados al mismo grupo ${grupo} el ${diaNombre} en la jornada ${jorNombre} (semana ${rangoSemana(semana)}). Revisa si es co-docencia intencional o un cruce; la coordinacion decide.`;
+    }
+
     let rapCompartido = false;
     if (data.rap_id) {
       rapCompartido = await HorarioModel.rapAsignadoAOtroEnFicha(data.ficha_id, data.rap_id, data.instructor_id);
@@ -156,6 +172,11 @@ export const HorarioService = {
     if (alertaJornadaRestringida) {
       await AlertaService.crear({ instructor_id: data.instructor_id, tipo: TIPOS_ALERTA.JORNADA_RESTRINGIDA, semana, total_horas: totalHoras,
         mensaje: `El instructor de planta ${instructor.nombre} quedo programado en jornada nocturna o fin de semana (grupo ${(ficha as any).numero_ficha ?? data.ficha_id}, semana ${rangoSemana(semana)}).` });
+    }
+    // Co-docencia: alerta soft (nunca bloquea). Se persiste aparte de `conflictos`
+    // para que ni en UI se rechace la creacion.
+    if (coDocenciaMsg) {
+      await AlertaService.crear({ instructor_id: data.instructor_id, tipo: TIPOS_ALERTA.CO_DOCENCIA, semana, ficha_id: data.ficha_id, mensaje: coDocenciaMsg });
     }
     if (totalHoras < 20) {
       await AlertaService.crear({ instructor_id: data.instructor_id, tipo: TIPOS_ALERTA.HORAS_INSUFICIENTES, semana, total_horas: totalHoras,

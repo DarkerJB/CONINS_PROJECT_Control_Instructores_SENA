@@ -214,7 +214,7 @@ export default function ImportarPage() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Importar datos</h1>
-          <p className="text-gray-500 text-sm">Sube el Excel del líder o la plantilla de 4 hojas. Se previsualiza antes de cargar.</p>
+          <p className="text-gray-500 text-sm">Suba el Excel de planeación de horarios. Se previsualiza antes de cargar.</p>
         </div>
 
         {/* Paso 1: Subir archivo + programa */}
