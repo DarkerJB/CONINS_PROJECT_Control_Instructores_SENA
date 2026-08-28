@@ -13,5 +13,6 @@ router.use(requireRole([...ROLES_ADMIN]));
 router.get('/carga-horaria', consultaController.getCargaHoraria);
 router.get('/horarios-ficha', consultaController.getHorariosFicha);
 router.get('/ocupacion-ambientes', consultaController.getOcupacionAmbientes);
+router.get('/correcciones', consultaController.getCorrecciones);
 
 export default router;

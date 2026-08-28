@@ -3,6 +3,7 @@ import { useDebounce } from "@/lib/useDebounce"
 import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
+import { useConfirm } from "@/lib/ConfirmContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
 import CrearAmbienteModal from "@/components/ambientes/CrearAmbienteModal"
 import EditarAmbienteModal from "@/components/ambientes/EditarAmbienteModal"
@@ -46,6 +47,7 @@ type Ambiente = {
 export default function AmbientesPage() {
   const { user, loading: authLoading } = useProtectedRoute()
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const [ambientes, setAmbientes] = useState<Ambiente[]>([])
   const [loading, setLoading] = useState(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -99,6 +101,7 @@ export default function AmbientesPage() {
   useEffect(() => { setPaginaActual(1) }, [search, filtroTipo, filtroEstado])
 
   const handleCreate = async (data: any) => {
+    if (!(await confirm({ title: "Registrar ambiente", message: "¿Confirmas el registro de este ambiente?" }))) return
     try {
       await api.ambientes.create(data)
       showToast("Ambiente registrado exitosamente", "success")
@@ -167,6 +170,7 @@ export default function AmbientesPage() {
 
   const handleBloqueo = async (data: any) => {
     if (!selectedAmbiente) return
+    if (!(await confirm({ title: "Bloquear ambiente", message: `¿Confirmas el bloqueo del ambiente ${selectedAmbiente.nombre}?` }))) return
     try {
       await api.ambientes.bloquear(selectedAmbiente.id, data)
       showToast("Bloqueo registrado exitosamente", "success")
@@ -179,6 +183,7 @@ export default function AmbientesPage() {
 
   const handleEdit = async (data: any) => {
     if (!selectedAmbiente) return
+    if (!(await confirm({ title: "Guardar cambios", message: `¿Confirmas los cambios en el ambiente ${selectedAmbiente.nombre}?` }))) return
     try {
       await api.ambientes.update(selectedAmbiente.id, data)
       showToast("Ambiente actualizado exitosamente", "success")

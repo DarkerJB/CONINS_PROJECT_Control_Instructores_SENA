@@ -12,6 +12,7 @@ import CrearBloqueHorarioModal from "@/components/horarios/CrearBloqueHorarioMod
 import EditarHorarioModal from "@/components/horarios/EditarHorarioModal"
 import GrillaHorarios from "@/components/horarios/GrillaHorarios"
 import ConfirmDialog from "@/components/ui/ConfirmDialog"
+import { useConfirm } from "@/lib/ConfirmContext"
 import { TableSkeleton, PageSkeleton } from "@/components/ui/Skeleton"
 import EmptyState from "@/components/ui/EmptyState"
 import MultiSelect from "@/components/ui/MultiSelect"
@@ -60,6 +61,7 @@ export default function HorariosPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useProtectedRoute()
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const [horarios, setHorarios] = useState<Horario[]>([])
   const [loading, setLoading] = useState(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -156,6 +158,7 @@ export default function HorariosPage() {
   useEffect(() => { setPaginaActual(1) }, [search, filtroFicha, filtroInstructor, filtroJornada, filtroEstado])
 
   const handleCreate = async (data: any) => {
+    if (!(await confirm({ title: "Crear horario", message: "¿Confirmas la creación de este horario?" }))) return
     try {
       const now = new Date()
       const day = now.getDay()
@@ -196,6 +199,7 @@ export default function HorariosPage() {
 
   const handleEdit = async (data: any) => {
     if (!selectedHorario) return
+    if (!(await confirm({ title: "Guardar cambios", message: "¿Confirmas los cambios en este horario?" }))) return
     try {
       const res = await api.horarios.update(selectedHorario.id, data)
       

@@ -431,6 +431,9 @@ export const api = {
         getOcupacionAmbientes() {
             return apiFetch('/consultas/ocupacion-ambientes')
         },
+        getCorrecciones() {
+            return apiFetch('/consultas/correcciones')
+        },
     },
 
     rapSeguimiento: {

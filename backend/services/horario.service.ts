@@ -8,6 +8,10 @@ import { ROLES, RoleKey } from '../constants/roles.js';
 import { AlertaService, TIPOS_ALERTA } from './alerta.service.js';
 import pool from '../config/db.js';
 
+const DIA_ES: Record<number, string> = {
+  1: 'lunes', 2: 'martes', 3: 'miercoles', 4: 'jueves', 5: 'viernes', 6: 'sabado', 7: 'domingo',
+};
+
 // Nombre legible de un ambiente o jornada por id (para mensajes de alerta).
 async function nombreDe(tabla: 'ambientes' | 'jornadas', id: number | null | undefined): Promise<string> {
   if (!id) return '';
@@ -96,12 +100,18 @@ export const HorarioService = {
         data.dia_semana,
         data.jornada_id,
         semana,
+        data.ficha_id,
       );
       if (ambienteOcupado) {
         const ambNombre = await nombreDe('ambientes', data.ambiente_id);
         const jorNombre = await nombreDe('jornadas', data.jornada_id);
+        const diaNombre = DIA_ES[data.dia_semana] ?? `dia ${data.dia_semana}`;
+        // Nombra los grupos que comparten el ambiente (los OTROS ya cargados + el actual).
+        const otros = await HorarioModel.gruposEnAmbiente(data.ambiente_id, data.dia_semana, data.jornada_id, semana, data.ficha_id);
+        const grupoActual = String((ficha as any).numero_ficha ?? data.ficha_id);
+        const grupos = [...new Set([grupoActual, ...otros])];
         conflictos.push({ tipo: TIPOS_ALERTA.AMBIENTE_OCUPADO,
-          mensaje: `El ambiente ${ambNombre} que se quiere asignar al grupo ${(ficha as any).numero_ficha ?? data.ficha_id} en la jornada ${jorNombre} ya esta ocupado por otro grupo en esa jornada (semana ${rangoSemana(semana)}). Revisa el cruce de ambiente.` });
+          mensaje: `Dos o mas grupos (${grupos.join(' y ')}) tienen asignado el mismo ambiente (${ambNombre}) el ${diaNombre} en la jornada ${jorNombre} (semana ${rangoSemana(semana)}). Revisa el cruce de ambiente.` });
       }
     }
 
@@ -233,6 +243,7 @@ export const HorarioService = {
         finalDia,
         existing.jornada_id,
         semana,
+        existing.ficha_id,
         id,
       );
       if (ocupado) {
@@ -353,7 +364,7 @@ export const HorarioService = {
           throw new ValidationError('El ambiente tiene un bloqueo temporal vigente en esa semana (RN-09)');
         }
         // RN-05 (edicion interactiva): bloquea si el aula/lab ya esta ocupado ese dia.
-        const ocupado = await HorarioModel.hasAmbienteOcupado(ambienteId, dia, data.jornada_id, base.semana);
+        const ocupado = await HorarioModel.hasAmbienteOcupado(ambienteId, dia, data.jornada_id, base.semana, base.ficha_id);
         if (ocupado) {
           throw new ConflictError(`El ambiente ya esta ocupado por otro grupo en esa jornada el dia ${dia}. Elija otro ambiente u horario.`);
         }

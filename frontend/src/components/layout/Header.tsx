@@ -1,6 +1,7 @@
 import { Bell, LogOut, Menu, Check, Loader2 } from "lucide-react"
 import { useRouter } from "next/router"
 import { useAuth } from "@/lib/AuthContext"
+import { useConfirm } from "@/lib/ConfirmContext"
 import { api } from "@/lib/api"
 import { useState, useRef, useEffect, useCallback } from "react"
 import GlobalSearch from "./GlobalSearch"
@@ -35,6 +36,7 @@ type HeaderProps = {
 
 export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }: HeaderProps) {
   const { user, logout } = useAuth()
+  const confirm = useConfirm()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
@@ -96,22 +98,12 @@ export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }
   }
 
   const handleAtender = async (id: number) => {
+    if (!(await confirm({ title: "Marcar como atendida", message: "¿Confirmas que esta alerta ya fue atendida? Dejará de aparecer como pendiente." }))) return
     try {
       // Atender una alerta la saca del pendiente y baja el contador.
       await api.alertas.marcarAtendida(id)
       setNotificaciones((prev) => prev.filter((n) => n.id !== id))
       setNoLeidasCount((prev) => Math.max(0, prev - 1))
-    } catch {
-      // Silencioso
-    }
-  }
-
-  const handleMarcarTodas = async () => {
-    try {
-      const actuales = [...notificaciones]
-      await Promise.all(actuales.map((n) => api.alertas.marcarAtendida(n.id)))
-      setNotificaciones([])
-      await cargarConteo()
     } catch {
       // Silencioso
     }
@@ -180,14 +172,6 @@ export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }
                     </span>
                   )}
                 </h3>
-                {noLeidasCount > 0 && (
-                  <button
-                    onClick={handleMarcarTodas}
-                    className="text-xs text-sena hover:underline font-medium"
-                  >
-                    Atender visibles
-                  </button>
-                )}
               </div>
 
               {/* Lista */}
@@ -222,7 +206,7 @@ export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }
                               className="text-xs text-sena hover:underline flex items-center gap-1"
                             >
                               <Check className="w-3 h-3" />
-                              Atender
+                              Marcar como atendida
                             </button>
                           </div>
                         </div>

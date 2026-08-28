@@ -294,6 +294,42 @@ export function exportarOcupacionPDF(data: OcupacionAmbiente[]) {
 }
 
 // ═════════════════════════════════════════════════
+// 4b. Correcciones pendientes (importador)
+// ═════════════════════════════════════════════════
+type Correccion = {
+  hoja: string
+  fila: number
+  entidad: string
+  valor: string
+  motivo: string
+}
+
+export function exportarCorreccionesPDF(data: Correccion[]) {
+  const doc = new jsPDF()
+  addHeader(doc, "Correcciones pendientes", `${data.length} pendientes por corregir en la ultima carga de Excel`)
+
+  autoTable(doc, {
+    startY: 46,
+    head: [["Hoja", "Fila", "Dato", "Valor", "Motivo"]],
+    body: data.map((c) => [c.hoja || "—", c.fila != null ? String(c.fila) : "—", c.entidad || "—", c.valor || "—", c.motivo || "—"]),
+    ...tableDefaults,
+    columnStyles: {
+      0: { cellWidth: 25 },
+      1: { cellWidth: 14, halign: "center" },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 55 },
+      4: { cellWidth: 60 },
+    },
+    didParseCell: (d: any) => {
+      if (d.column.index === 4 && d.section === "body") d.cell.styles.textColor = COLOR_DANGER
+    },
+  })
+
+  addFooter(doc)
+  doc.save(`correcciones-pendientes-${new Date().toISOString().split("T")[0]}.pdf`)
+}
+
+// ═════════════════════════════════════════════════
 // 5. Instructores
 // ═════════════════════════════════════════════════
 type InstructorExport = {

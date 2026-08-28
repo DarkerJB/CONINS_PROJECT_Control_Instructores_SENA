@@ -4,7 +4,7 @@ import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
 import { useToast } from "@/lib/ToastContext"
-import { exportarCargaHorariaPDF, exportarHorarioFichaPDF, exportarOcupacionPDF } from "@/lib/exportPDF"
+import { exportarCargaHorariaPDF, exportarHorarioFichaPDF, exportarOcupacionPDF, exportarCorreccionesPDF } from "@/lib/exportPDF"
 import { TableSkeleton, PageSkeleton } from "@/components/ui/Skeleton"
 import EmptyState from "@/components/ui/EmptyState"
 import {
@@ -20,6 +20,7 @@ import {
   BarChart3,
   TrendingUp,
   ArrowUpRight,
+  ClipboardList,
 } from "lucide-react"
 
 // --- Types ---
@@ -50,6 +51,16 @@ type OcupacionAmbiente = {
   horas_ocupadas: number
   horas_totales: number
   porcentaje: number
+}
+
+type Correccion = {
+  id: number
+  hoja: string
+  fila: number
+  entidad: string
+  valor: string
+  motivo: string
+  created_at?: string
 }
 
 // --- Chart Components ---
@@ -318,11 +329,12 @@ function FichaHeatmap({ data }: { data: HorarioFicha[] }) {
 export default function ConsultasPage() {
   const { user, loading: authLoading } = useProtectedRoute()
   const { showToast } = useToast()
-  const [activeTab, setActiveTab] = useState<"carga" | "ficha" | "ocupacion">("carga")
+  const [activeTab, setActiveTab] = useState<"carga" | "ficha" | "ocupacion" | "correcciones">("carga")
 
   const [carga, setCarga] = useState<CargaHoraria[]>([])
   const [horariosFicha, setHorariosFicha] = useState<HorarioFicha[]>([])
   const [ocupacion, setOcupacion] = useState<OcupacionAmbiente[]>([])
+  const [correcciones, setCorrecciones] = useState<Correccion[]>([])
 
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -337,14 +349,16 @@ export default function ConsultasPage() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [resCarga, resHorarios, resOcupacion] = await Promise.all([
+      const [resCarga, resHorarios, resOcupacion, resCorrecciones] = await Promise.all([
         api.consultas.getCargaHoraria(),
         api.consultas.getHorariosPorFicha(),
         api.consultas.getOcupacionAmbientes(),
+        api.consultas.getCorrecciones(),
       ])
       setCarga(resCarga.data || [])
       setHorariosFicha(resHorarios.data || [])
       setOcupacion(resOcupacion.data || [])
+      setCorrecciones(resCorrecciones.data || [])
     } catch (err) {
       console.warn("Error cargando reportes:", err)
       showToast("Error al cargar reportes del backend", "error")
@@ -361,6 +375,8 @@ export default function ConsultasPage() {
         exportarHorarioFichaPDF(horariosFicha)
       } else if (activeTab === "ocupacion") {
         exportarOcupacionPDF(ocupacion)
+      } else if (activeTab === "correcciones") {
+        exportarCorreccionesPDF(correcciones)
       }
       showToast("PDF generado exitosamente", "success")
     } catch {
@@ -517,6 +533,7 @@ export default function ConsultasPage() {
             { id: "carga", label: "Carga Horaria", icon: Users },
             { id: "ficha", label: "Horario por Grupo", icon: Calendar },
             { id: "ocupacion", label: "Ocupacion Ambientes", icon: Building2 },
+            { id: "correcciones", label: `Correcciones pendientes${correcciones.length ? ` (${correcciones.length})` : ""}`, icon: ClipboardList },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -883,6 +900,57 @@ export default function ConsultasPage() {
                   <div className="px-3 py-3 md:px-6 md:py-4 border-t border-gray-200 bg-gray-50 flex justify-between text-sm text-gray-500">
                     <span>{ocupacion.length} ambientes</span>
                     <span>Ocupacion promedio: {promedioOcupacion}%</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab: Correcciones pendientes */}
+            {activeTab === "correcciones" && (
+              <div className="space-y-4">
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 items-start print:hidden">
+                  <ClipboardList className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-800 leading-relaxed">
+                    Datos de la ultima carga de Excel que no coincidieron con el catalogo (RAP o competencia sin coincidencia, horas invalidas, etc.).
+                    Quedan aqui para que coordinacion, subdireccion y administracion los corrijan; se actualizan al volver a previsualizar un Excel.
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                  {correcciones.length === 0 ? (
+                    <EmptyState icon={CheckCircle} title="Sin correcciones pendientes" description="La ultima carga no dejo datos por corregir." />
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-left">
+                        <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
+                          <tr>
+                            <th className="px-3 py-3 md:px-6 md:py-4">Hoja</th>
+                            <th className="px-3 py-3 md:px-6 md:py-4 text-center">Fila</th>
+                            <th className="px-3 py-3 md:px-6 md:py-4">Dato</th>
+                            <th className="px-3 py-3 md:px-6 md:py-4">Valor</th>
+                            <th className="px-3 py-3 md:px-6 md:py-4">Motivo</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {correcciones.map((c) => (
+                            <tr key={c.id} className="hover:bg-gray-50/50">
+                              <td className="px-3 py-3 md:px-6 md:py-4 text-gray-700">{c.hoja || "—"}</td>
+                              <td className="px-3 py-3 md:px-6 md:py-4 text-center text-gray-600">{c.fila ?? "—"}</td>
+                              <td className="px-3 py-3 md:px-6 md:py-4">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 capitalize">
+                                  {c.entidad || "—"}
+                                </span>
+                              </td>
+                              <td className="px-3 py-3 md:px-6 md:py-4 text-gray-600">{c.valor || "—"}</td>
+                              <td className="px-3 py-3 md:px-6 md:py-4 text-red-600">{c.motivo || "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  <div className="px-3 py-3 md:px-6 md:py-4 border-t border-gray-200 bg-gray-50 text-sm text-gray-500">
+                    {correcciones.length} correccion{correcciones.length === 1 ? "" : "es"} pendiente{correcciones.length === 1 ? "" : "s"}
                   </div>
                 </div>
               </div>

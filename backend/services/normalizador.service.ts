@@ -86,8 +86,14 @@ function parseFechas(cell: unknown): Date[] {
 function parseAmbiente(v: unknown): string {
   const s = String(v ?? '').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
   if (!s) return '';
-  if (/^\d+$/.test(s)) return `Ambiente ${s}`;
   if (s.toLowerCase().includes('estrella')) return 'Aula Ambiental La Estrella';
+  // Canonizacion: "202", "Aula 202", "Ambiente 202", "Salon 202" -> "Ambiente 202".
+  // El importador resuelve el ambiente por nombre exacto contra el catalogo (seed
+  // usa "Ambiente NNN"); sin esto, variantes como "Aula 202" se toman como ambiente
+  // NUEVO y crean duplicados, lo que impide que RN-05 (AMBIENTE_OCUPADO) detecte
+  // dos grupos en el mismo salon.
+  const numerado = s.match(/^(?:aula|ambiente|salon|sal[oó]n|amb\.?)?\s*(\d+)$/i);
+  if (numerado) return `Ambiente ${numerado[1]}`;
   return s.split(' ').map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w)).join(' ');
 }
 
@@ -112,6 +118,7 @@ function emailSugerido(nombre: string, usados: Set<string>): string {
 // --- catalogo vivo ---
 interface Catalogo {
   competencias: { nombreNorm: string; codigo: string }[];
+  raps: { nombreNorm: string; codigo: string }[]; // resultados de aprendizaje (RAP)
   instructores: Map<string, string>; // nombreNorm -> email
   ambientes: Set<string>;            // nombres existentes
   jornadas: Set<string>;             // nombres existentes (norm)
@@ -120,6 +127,7 @@ interface Catalogo {
 
 async function cargarCatalogo(): Promise<Catalogo> {
   const [comp] = await pool.query<RowDataPacket[]>('SELECT nombre, codigo FROM competencias WHERE activo = TRUE');
+  const [rap] = await pool.query<RowDataPacket[]>('SELECT nombre, codigo FROM raps WHERE activo = TRUE');
   const [inst] = await pool.query<RowDataPacket[]>(
     `SELECT u.nombre, u.email FROM instructores i JOIN usuarios u ON i.usuario_id = u.id WHERE i.activo = TRUE`,
   );
@@ -130,6 +138,7 @@ async function cargarCatalogo(): Promise<Catalogo> {
   for (const r of inst as any[]) instMap.set(norm(r.nombre), String(r.email));
   return {
     competencias: (comp as any[]).map((r) => ({ nombreNorm: norm(r.nombre), codigo: String(r.codigo) })),
+    raps: (rap as any[]).map((r) => ({ nombreNorm: norm(r.nombre), codigo: String(r.codigo) })),
     instructores: instMap,
     ambientes: new Set((amb as any[]).map((r) => String(r.nombre))),
     jornadas: new Set((jor as any[]).map((r) => norm(r.nombre))),
@@ -137,11 +146,14 @@ async function cargarCatalogo(): Promise<Catalogo> {
   };
 }
 
-function matchCompetencia(texto: unknown, cat: Catalogo): string | null {
+// Emparejamiento difuso por nombre (indice Jaccard de tokens). Se usa para
+// resolver competencia y RAP contra el catalogo vivo, ya que el Excel del lider
+// trae el NOMBRE (no el codigo) y puede variar en redaccion.
+function jaccardMatch(texto: unknown, lista: { nombreNorm: string; codigo: string }[], umbral = 0.35): string | null {
   const t = new Set(norm(texto).split(' ').filter(Boolean));
   if (t.size === 0) return null;
   let best = 0, bestCod: string | null = null;
-  for (const c of cat.competencias) {
+  for (const c of lista) {
     const s = new Set(c.nombreNorm.split(' ').filter(Boolean));
     if (s.size === 0) continue;
     let inter = 0;
@@ -150,7 +162,17 @@ function matchCompetencia(texto: unknown, cat: Catalogo): string | null {
     const j = union ? inter / union : 0;
     if (j > best) { best = j; bestCod = c.codigo; }
   }
-  return best >= 0.35 ? bestCod : null;
+  return best >= umbral ? bestCod : null;
+}
+
+function matchCompetencia(texto: unknown, cat: Catalogo): string | null {
+  return jaccardMatch(texto, cat.competencias);
+}
+
+// RAP: nombres largos y muy parecidos entre si dentro de una competencia, por lo
+// que se exige un umbral mas alto para no confundir un RAP con su vecino.
+function matchRap(texto: unknown, cat: Catalogo): string | null {
+  return jaccardMatch(texto, cat.raps, 0.5);
 }
 
 function matchInstructorEmail(nombre: string, cat: Catalogo): string | null {
@@ -214,6 +236,7 @@ export async function normalizarCrudo(
 
       const nombre = u.split(' - ')[0].trim();
       const compTxt = r[3];
+      const rapTxt = r[4]; // RESULTADOS DE APRENDIZAJE (nombre del RAP)
       const ambC = r[7];
       const ficC = r[8];
 
@@ -222,12 +245,20 @@ export async function normalizarCrudo(
       let horaI = hi, horaF = hf;
       if (jor && !(horaI && horaF)) { [horaI, horaF] = JHORA[jor] ?? [null, null]; }
       const cod = matchCompetencia(compTxt, cat);
+      const codRap = matchRap(rapTxt, cat);
       const amb = parseAmbiente(ambC);
       const fechas = parseFechas(r[5]);
 
       // errores duros
       if (!ficha) { errores.push({ hoja: sheetName, fila: filaNum, entidad: 'grupo', valor: String(ficC ?? ''), motivo: 'ficha no detectada' }); return; }
       if (!cod) { errores.push({ hoja: sheetName, fila: filaNum, entidad: 'competencia', valor: String(compTxt ?? '').slice(0, 60), motivo: 'competencia sin coincidencia en catalogo (Sofia Plus)' }); return; }
+
+      // RAP: error ubicable (NO bloquea la fila) cuando el Excel trae un resultado
+      // de aprendizaje que no empata con el catalogo. Sin el RAP, RN-06 (RAP a cargo
+      // de dos instructores) y RN-27 no se pueden evaluar en ese horario.
+      if (rapTxt && String(rapTxt).trim() && !codRap) {
+        errores.push({ hoja: sheetName, fila: filaNum, entidad: 'rap', valor: String(rapTxt).slice(0, 60), motivo: 'resultado de aprendizaje sin coincidencia en catalogo (RAP)' });
+      }
 
       // instructor: existente o NUEVO (no bloquea; se marca)
       let email = matchInstructorEmail(nombre, cat);
@@ -244,18 +275,39 @@ export async function normalizarCrudo(
       // ambiente nuevo (se marca; el import lo crea si se aprueba)
       if (amb && !cat.ambientes.has(amb)) nuevosAmbientes.add(amb);
 
-      // acumular template
+      // Validar las horas AQUI (en la revision) para que datos imposibles como
+      // "28:00" o rangos invertidos (16:00-12:00) se marquen como error claro en
+      // el preview, en vez de colarse y aparecer como un falso "cruce" al cargar.
+      // El resto de la fila (instructor, grupo, asignacion) sigue siendo valido.
+      let horasOk = true;
+      if (horaI && horaF) {
+        const aMin = (t: string) => {
+          const mm = t.match(/^(\d{1,2}):(\d{2})$/);
+          return mm && Number(mm[1]) <= 23 && Number(mm[2]) <= 59 ? Number(mm[1]) * 60 + Number(mm[2]) : null;
+        };
+        const a = aMin(horaI), b = aMin(horaF);
+        if (a === null || b === null) {
+          errores.push({ hoja: sheetName, fila: filaNum, entidad: 'horario', valor: `${horaI}-${horaF}`, motivo: 'hora fuera de rango: debe estar entre 00:00 y 23:59' });
+          horasOk = false;
+        } else if (b <= a) {
+          errores.push({ hoja: sheetName, fila: filaNum, entidad: 'horario', valor: `${horaI}-${horaF}`, motivo: 'la hora de fin es anterior o igual a la de inicio' });
+          horasOk = false;
+        }
+      }
+
+      // acumular template (instructor/grupo/asignacion siempre; horarios solo si las horas son validas)
       const iAcc = instructoresByEmail.get(email) ?? { nombre, tipo_area: tipoArea, comps: new Set<string>() };
       iAcc.comps.add(cod); instructoresByEmail.set(email, iAcc);
       if (!grupos.has(ficha)) grupos.set(ficha, { jornada: jor ?? '', ambiente: amb });
       const aKey = `${email}||${ficha}`;
       const aAcc = asignaciones.get(aKey) ?? { email, ficha, comps: new Set<string>() };
       aAcc.comps.add(cod); asignaciones.set(aKey, aAcc);
-      for (const d of fechas) {
-        // Se arrastra hoja/fila del Excel del lider (origen_*) para que los
-        // errores del import sean ubicables en el archivo original, no por el
-        // numero de fila del template.
-        horarios.push([email, ficha, cod, '', amb, DIA_ISO(d), horaI ?? '', horaF ?? '', jor ?? '', fechaLunes(d), sheetName, filaNum]);
+      if (horasOk) {
+        for (const d of fechas) {
+          // Se arrastra hoja/fila del Excel (origen_*) para que los errores del
+          // import sean ubicables en el archivo original, no por la fila del template.
+          horarios.push([email, ficha, cod, codRap ?? '', amb, DIA_ISO(d), horaI ?? '', horaF ?? '', jor ?? '', fechaLunes(d), sheetName, filaNum]);
+        }
       }
     });
   }

@@ -1,11 +1,14 @@
 import * as XLSX from 'xlsx';
 import pool from '../config/db.js';
 import { RowDataPacket } from 'mysql2';
-import { ValidationError } from '../utils/errors.js';
+import { ValidationError, DuplicadoError } from '../utils/errors.js';
 import { FichaService } from './ficha.service.js';
 import { AsignacionService } from './asignacion.service.js';
 import { HorarioService } from './horario.service.js';
 import { InstructorService } from './instructor.service.js';
+import { FichaModel } from '../models/ficha.model.js';
+import { AsignacionModel } from '../models/asignacion.model.js';
+import { HorarioModel } from '../models/horario.model.js';
 import {
   detectarFormato, normalizarCrudo, filasATemplateBase64, detectarPosibleBaja, PreviewResultado,
 } from './normalizador.service.js';
@@ -24,6 +27,18 @@ function norm(v: unknown): string {
     .normalize('NFD').replace(/[̀-ͯ]/g, ''); // quita tildes
 }
 
+// Canoniza el nombre de un ambiente numerado: "202", "Aula 202", "Ambiente 202",
+// "Salon 202" -> "Ambiente 202". Debe coincidir con parseAmbiente del normalizador.
+// Sin esto, un Excel que dice "Aula 202" no matchea el catalogo ("Ambiente 202"),
+// se toma como ambiente nuevo/duplicado y RN-05 (AMBIENTE_OCUPADO) no detecta el choque.
+function canonAmbiente(v: unknown): string {
+  const s = String(v ?? '').replace(/\s+/g, ' ').trim();
+  if (!s) return '';
+  if (s.toLowerCase().includes('estrella')) return 'Aula Ambiental La Estrella';
+  const m = s.match(/^(?:aula|ambiente|salon|sal[oó]n|amb\.?)?\s*(\d+)$/i);
+  return m ? `Ambiente ${m[1]}` : s;
+}
+
 const DIAS: Record<string, number> = {
   '1': 1, 'lunes': 1, '2': 2, 'martes': 2, '3': 3, 'miercoles': 3,
   '4': 4, 'jueves': 4, '5': 5, 'viernes': 5, '6': 6, 'sabado': 6, '7': 7, 'domingo': 7,
@@ -34,25 +49,28 @@ const DIA_NOMBRE: Record<number, string> = {
 };
 
 // Contexto humano de la fila para que un error sea UBICABLE sin depender del
-// numero de fila del template: nombra instructor, grupo, dia y horas.
-function contextoFila(hoja: string, row: any): string {
+// numero de fila del template: nombra al instructor (por NOMBRE, no correo),
+// grupo, dia y horas. `nombres` = mapa email -> nombre de la hoja Instructores.
+function contextoFila(hoja: string, row: any, nombres: Map<string, string>): string {
   const g = row['numero_grupo'] ?? row['numero_ficha'];
-  const email = row['instructor_email'] ?? row['email'];
+  const email = String(row['instructor_email'] ?? row['email'] ?? '').trim().toLowerCase();
+  const persona = nombres.get(email) ?? row['nombre'] ?? row['instructor_email'] ?? row['email'] ?? '?';
   if (hoja === 'Horarios') {
     const dia = DIA_NOMBRE[Number(row['dia_semana'])] ?? String(row['dia_semana'] ?? '');
     const horas = row['hora_inicio'] && row['hora_fin'] ? ` ${row['hora_inicio']}-${row['hora_fin']}` : '';
-    return `Instructor ${email ?? '?'} · grupo ${g ?? '?'} · ${dia}${horas}`.trim();
+    return `Instructor ${persona} · grupo ${g ?? '?'} · ${dia}${horas}`.trim();
   }
-  if (hoja === 'Asignaciones') return `Instructor ${email ?? '?'} · grupo ${g ?? '?'}`;
+  if (hoja === 'Asignaciones') return `Instructor ${persona} · grupo ${g ?? '?'}`;
   if (hoja === 'Grupos') return `Grupo ${g ?? '?'}`;
-  if (hoja === 'Instructores') return `${row['nombre'] ?? email ?? '?'}`;
+  if (hoja === 'Instructores') return `${row['nombre'] ?? persona}`;
   return '';
 }
 
-// Referencia al Excel ORIGINAL del lider (hoja + fila), si el template la trae.
+// Referencia a la ubicacion en el Excel cargado (hoja + fila), si el template la
+// trae. Se dice "Excel cargado" (no "del lider") para no señalar a una persona.
 function origenFila(row: any): string {
   return row['origen_hoja']
-    ? ` [Excel del lider: hoja "${row['origen_hoja']}", fila ${row['origen_fila']}]`
+    ? ` [Excel cargado: hoja "${row['origen_hoja']}", fila ${row['origen_fila']}]`
     : '';
 }
 
@@ -64,13 +82,29 @@ function toDiaSemana(v: unknown): number {
 
 function toHora(v: unknown): string {
   const s = String(v ?? '').trim();
-  if (!/^\d{1,2}:\d{2}$/.test(s)) throw new ValidationError(`hora invalida: "${v}" (formato HH:MM)`);
+  const m = s.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) throw new ValidationError(`hora invalida: "${v}" (formato HH:MM)`);
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  // La hora debe EXISTIR (00:00–23:59). Antes solo se validaba el formato, asi
+  // que un dato mal escrito como "28:00" pasaba y luego aparecia como un falso
+  // "cruce de horarios". Ahora se rechaza con un mensaje claro y ubicable.
+  if (h > 23 || min > 59) {
+    throw new ValidationError(`la hora "${v}" no existe (debe estar entre 00:00 y 23:59)`);
+  }
   return s.length === 4 ? '0' + s : s;
 }
 
 function toFecha(v: unknown): string {
   const s = String(v ?? '').trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) throw new ValidationError(`fecha invalida: "${v}" (formato YYYY-MM-DD)`);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) throw new ValidationError(`fecha invalida: "${v}" (formato YYYY-MM-DD)`);
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  const dt = new Date(y, mo - 1, d);
+  // La fecha debe EXISTIR (no solo tener el formato): rechaza 2026-13-45, etc.
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) {
+    throw new ValidationError(`la fecha "${v}" no existe`);
+  }
   return s;
 }
 
@@ -98,7 +132,8 @@ const resolver = {
   },
   async ambiente(nombre: unknown): Promise<number | null> {
     if (!nombre) return null;
-    return unico('SELECT id FROM ambientes WHERE nombre = ? AND activo = TRUE LIMIT 1', [String(nombre).trim()], 'Ambiente', nombre);
+    const canon = canonAmbiente(nombre);
+    return unico('SELECT id FROM ambientes WHERE nombre = ? AND activo = TRUE LIMIT 1', [canon], 'Ambiente', canon);
   },
   async rap(codigo: unknown): Promise<number | null> {
     if (!codigo) return null;
@@ -139,11 +174,19 @@ async function procesarInstructor(row: any): Promise<void> {
     const compId = await resolver.competencia(cod);
     await InstructorService.addCompetencia(inst.id, compId);
   }
+
+  // Idempotencia: si el instructor ya existia, se cuenta como OMITIDO (no error).
+  if ((inst as any).reused) throw new DuplicadoError('El instructor ya existe');
 }
 
 async function procesarGrupo(row: any): Promise<void> {
+  const numero = String(row['numero_grupo'] ?? row['numero_ficha'] ?? '').trim();
+  // Idempotencia: si el grupo ya existe, se omite (no se duplica ni es error).
+  if (numero && (await FichaModel.findByNumero(numero))) {
+    throw new DuplicadoError('El grupo ya existe');
+  }
   await FichaService.create({
-    numero_ficha: String(row['numero_grupo'] ?? row['numero_ficha'] ?? '').trim(),
+    numero_ficha: numero,
     programa_id: await resolver.programa(row['codigo_programa']),
     jornada_id: await resolver.jornada(row['jornada']),
     ambiente_id: await resolver.ambiente(row['ambiente']),
@@ -164,6 +207,14 @@ async function procesarAsignacion(row: any): Promise<void> {
   if (competencia_ids.length === 0) throw new ValidationError('Se requiere al menos un codigo_competencia');
 
   const instructor_id = await resolver.instructor(row['instructor_email']);
+  const ficha_id = await resolver.ficha(row['numero_grupo'] ?? row['numero_ficha']);
+
+  // Idempotencia: si ya existe una asignacion ACTIVA de ese instructor en ese
+  // grupo, se omite (no error). Si existe inactiva, el service la reactiva.
+  const existente = await AsignacionModel.findRawByInstructorFicha(instructor_id, ficha_id);
+  if (existente && (existente as any).activo) {
+    throw new DuplicadoError('La asignacion ya existe');
+  }
 
   // La asignacion importada es fuente autoritativa (viene del reporte oficial de
   // coordinacion). Garantizamos que el instructor quede habilitado para esas
@@ -177,7 +228,7 @@ async function procesarAsignacion(row: any): Promise<void> {
 
   await AsignacionService.create({
     instructor_id,
-    ficha_id: await resolver.ficha(row['numero_grupo'] ?? row['numero_ficha']),
+    ficha_id,
     jornada_id: row['jornada'] ? await resolver.jornada(row['jornada']) : null,
     es_lider_ficha: norm(row['es_lider']) === 'si' || norm(row['es_lider']) === 'true',
     competencia_ids,
@@ -185,18 +236,32 @@ async function procesarAsignacion(row: any): Promise<void> {
 }
 
 async function procesarHorario(row: any): Promise<void> {
+  const instructor_id = await resolver.instructor(row['instructor_email']);
+  const ficha_id = await resolver.ficha(row['numero_grupo'] ?? row['numero_ficha']);
+  const competencia_id = await resolver.competencia(row['codigo_competencia']);
+  const dia_semana = toDiaSemana(row['dia_semana'] ?? row['dia']);
+  const hora_inicio = toHora(row['hora_inicio']);
+  const hora_fin = toHora(row['hora_fin']);
+  const semana = row['semana'] ? toFecha(row['semana']) : null;
+
+  // Idempotencia: si ya existe un horario IDENTICO, se omite (no error ni
+  // duplicado). Asi se puede re-subir el Excel corregido y solo entra lo nuevo.
+  if (semana && (await HorarioModel.existeIdentico(instructor_id, ficha_id, competencia_id, dia_semana, hora_inicio, hora_fin, semana))) {
+    throw new DuplicadoError('El horario ya existe');
+  }
+
   await HorarioService.create({
-    instructor_id: await resolver.instructor(row['instructor_email']),
-    ficha_id: await resolver.ficha(row['numero_grupo'] ?? row['numero_ficha']),
-    competencia_id: await resolver.competencia(row['codigo_competencia']),
+    instructor_id,
+    ficha_id,
+    competencia_id,
     rap_id: await resolver.rap(row['codigo_rap']),
     ambiente_id: await resolver.ambiente(row['ambiente']),
-    dia_semana: toDiaSemana(row['dia_semana'] ?? row['dia']),
-    hora_inicio: toHora(row['hora_inicio']),
-    hora_fin: toHora(row['hora_fin']),
+    dia_semana,
+    hora_inicio,
+    hora_fin,
     tipo_actividad_id: await resolver.tipoActividad(row['tipo_actividad']),
     jornada_id: await resolver.jornada(row['jornada']),
-    semana: row['semana'] ? toFecha(row['semana']) : undefined,
+    semana: semana ?? undefined,
   }, 'import'); // carga masiva: permisivo (alerta), no bloquea RN-06/05/carga
 }
 
@@ -211,6 +276,7 @@ export interface ResumenHoja {
   hoja: string;
   filas: number;
   creados: number;
+  omitidos: number; // ya existian (idempotencia): no son error
   errores: { fila: number; mensaje: string }[];
 }
 
@@ -228,7 +294,7 @@ function leerWorkbook(archivoBase64: string): XLSX.WorkBook {
 // planeacion). tipo 'aula' por defecto; el admin puede ajustarlo despues.
 async function crearAmbientesAprobados(nombres: string[]): Promise<void> {
   for (const raw of nombres ?? []) {
-    const nombre = String(raw).trim();
+    const nombre = canonAmbiente(raw);
     if (!nombre) continue;
     const [ex] = await pool.query<RowDataPacket[]>('SELECT id FROM ambientes WHERE nombre = ? LIMIT 1', [nombre]);
     if ((ex as any[]).length) continue;
@@ -236,6 +302,29 @@ async function crearAmbientesAprobados(nombres: string[]): Promise<void> {
       'INSERT INTO ambientes (nombre, tipo, capacidad, area_id, sede_id) VALUES (?, ?, ?, ?, ?)',
       [nombre, 'aula', 30, null, null],
     );
+  }
+}
+
+// Persiste las correcciones pendientes detectadas en el preview para que
+// coordinacion / subdireccion / admin las tengan a la mano en Reportes aunque se
+// cierre la pestana. Reemplaza el set anterior: siempre se muestra lo ultimo
+// detectado. Best-effort: un fallo aqui nunca tumba el preview.
+async function persistirCorrecciones(
+  errores: { hoja?: string; fila?: number; entidad?: string; valor?: string; motivo?: string }[],
+): Promise<void> {
+  try {
+    await pool.query('DELETE FROM import_correcciones');
+    if (!errores.length) return;
+    const values = errores.map((e) => [
+      String(e.hoja ?? ''), Number(e.fila ?? 0), String(e.entidad ?? ''),
+      String(e.valor ?? '').slice(0, 255), String(e.motivo ?? '').slice(0, 255),
+    ]);
+    await pool.query(
+      'INSERT INTO import_correcciones (hoja, fila, entidad, valor, motivo) VALUES ?',
+      [values],
+    );
+  } catch (err) {
+    console.error('[importar] no se pudieron guardar las correcciones pendientes:', err);
   }
 }
 
@@ -274,6 +363,8 @@ export const ImportarService = {
 
     const { filas, nuevos, errores, grupos, asignacionesSet } = await normalizarCrudo(wb, programaCodigo.trim());
     const posibleBaja = await detectarPosibleBaja(grupos, asignacionesSet);
+    // Guardar las correcciones pendientes para que queden a la mano en Reportes.
+    await persistirCorrecciones(errores);
     return {
       formato,
       resumen: {
@@ -298,12 +389,24 @@ export const ImportarService = {
 
     const resumen: ResumenHoja[] = [];
 
+    // Mapa email -> nombre (hoja Instructores) para mostrar el NOMBRE del
+    // instructor en los mensajes de error, no el correo.
+    const emailToNombre = new Map<string, string>();
+    const wsInst = wb.Sheets['Instructores'];
+    if (wsInst) {
+      for (const row of XLSX.utils.sheet_to_json<any>(wsInst, { defval: null })) {
+        const em = String((row as any)['email'] ?? '').trim().toLowerCase();
+        const nom = String((row as any)['nombre'] ?? '').trim();
+        if (em && nom) emailToNombre.set(em, nom);
+      }
+    }
+
     for (const { nombre, fn } of HOJAS) {
       const ws = wb.Sheets[nombre];
       if (!ws) continue; // hoja opcional: si no viene, se omite
 
       const rows = XLSX.utils.sheet_to_json<any>(ws, { defval: null });
-      const r: ResumenHoja = { hoja: nombre, filas: rows.length, creados: 0, errores: [] };
+      const r: ResumenHoja = { hoja: nombre, filas: rows.length, creados: 0, omitidos: 0, errores: [] };
 
       for (let i = 0; i < rows.length; i++) {
         const fila = i + 2; // fila 1 = encabezados
@@ -313,7 +416,9 @@ export const ImportarService = {
           await fn(rows[i]);
           r.creados++;
         } catch (err: any) {
-          const ctx = contextoFila(nombre, rows[i]);
+          // Idempotencia: "ya existe" no es error, se cuenta como omitido.
+          if (err instanceof DuplicadoError) { r.omitidos++; continue; }
+          const ctx = contextoFila(nombre, rows[i], emailToNombre);
           const base = err?.message ?? 'Error desconocido';
           r.errores.push({ fila, mensaje: `${ctx ? ctx + ' — ' : ''}${base}${origenFila(rows[i])}` });
         }

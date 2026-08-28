@@ -21,3 +21,8 @@ SET FOREIGN_KEY_CHECKS = 1;
 SELECT (SELECT COUNT(*) FROM fichas) grupos, (SELECT COUNT(*) FROM horarios) horarios,
        (SELECT COUNT(*) FROM alertas) alertas, (SELECT COUNT(*) FROM instructores) instructores,
        (SELECT COUNT(*) FROM competencias) competencias;
+
+
+Verificar validez actual del query de borrado
+Validar las alertas que desaparecieron, analizar porqué no aparecen
+Editar la presentación con base en el documento de contexto general, más informativo, más específico, que no sature de información técnica pero que no sea tan general.

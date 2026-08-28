@@ -39,3 +39,12 @@ export class UnauthorizedError extends AppError {
     super(message, 401);
   }
 }
+
+// Señal interna del importador: la entidad ya existe (idempotencia). No es un
+// error real; el importador la cuenta como "omitido", no como "error".
+export class DuplicadoError extends Error {
+  constructor(message: string) {
+    super(message);
+    Object.setPrototypeOf(this, DuplicadoError.prototype);
+  }
+}

@@ -4,6 +4,7 @@ import { useDebounce } from "@/lib/useDebounce"
 import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
+import { useConfirm } from "@/lib/ConfirmContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
 import { formatJornada } from "@/lib/terminology"
 import CrearAsignacionModal from "@/components/asignaciones/CrearAsignacionModal"
@@ -52,6 +53,7 @@ export default function AsignacionesPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useProtectedRoute()
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([])
   const [loading, setLoading] = useState(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -151,6 +153,7 @@ export default function AsignacionesPage() {
   useEffect(() => { setPaginaActual(1) }, [search, filtroPrograma, filtroCoordinacion, activeTab])
 
   const handleCreate = async (data: any) => {
+    if (!(await confirm({ title: "Crear asignación", message: "¿Confirmas la creación de esta asignación?" }))) return
     try {
       const { rapsSeleccionados, horario, ...asignacionData } = data
       const res = await api.assignments.create(asignacionData)
@@ -304,6 +307,7 @@ export default function AsignacionesPage() {
 
   const handleEditAsignacion = async (data: any) => {
     if (!selectedAsignacion) return
+    if (!(await confirm({ title: "Guardar cambios", message: `¿Confirmas los cambios en la asignación de ${selectedAsignacion.instructor_nombre}?` }))) return
     try {
       await api.assignments.update(selectedAsignacion.id, data)
       showToast("Asignación actualizada exitosamente", "success")

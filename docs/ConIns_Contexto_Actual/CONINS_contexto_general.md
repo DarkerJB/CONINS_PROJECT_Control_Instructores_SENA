@@ -1,7 +1,7 @@
 # CONINS — Contexto General
 ### Sistema de Control de Instructores · SENA CDMC
-**Versión:** 9.7 · **Fecha:** 28 de Julio 2026
-**Basado en:** RF v10.1 · RNF v1.0 · ERS v3.0 · Lógica de Negocio v5.6 · CRONOGRAMA v4.8 · CHANGELOG al 28/07/2026
+**Versión:** 9.8 · **Fecha:** 27 de Agosto 2026
+**Basado en:** RF v10.1 · RNF v1.0 · ERS v3.0 · Lógica de Negocio v5.6 · CRONOGRAMA v4.8 · CHANGELOG al 27/08/2026
 
 ---
 
@@ -11,9 +11,16 @@
 |---|---|---|
 | F1 — Análisis y requisitos | 09/04 – 30/04/2026 | ✅ Completada |
 | F2 — Modelado y diseño | 04/05 – 15/05/2026 | ✅ Completada anticipadamente |
-| F3 — Construcción | 19/05 – 06/08/2026 | 🔄 En curso |
-| F4 — Pruebas y ajustes | 10/08 – 28/08/2026 | ⬜ Pendiente |
+| F3 — Construcción | 19/05 – 06/08/2026 | ✅ Completada |
+| F4 — Pruebas y ajustes | 10/08 – 28/08/2026 | 🔄 En curso — simulacros y ajustes con datos reales ADSO |
 | F5 — Documentación y despliegue | 31/08 – 18/09/2026 | ⬜ Pendiente |
+
+**Hitos cerrados en Agosto 2026 (simulacros + preparación de exposición):**
+- **Importador de datos vía Excel (P39):** el líder envía su Excel crudo tal cual; el sistema lo normaliza en una **vista previa revisable** (empareja instructores por correo, competencias/RAPs contra el catálogo, ambientes y jornadas por nombre) y solo escribe al confirmar. Import **idempotente** (re-cargar un Excel corregido no duplica: cuenta "omitidos"), mensajes de error **ubicables** (nombre del instructor · grupo · día · horas + hoja y fila de origen), validación de horas/fechas imposibles, y botón de "Generar reporte" de correcciones. Canonización de ambientes ("202"/"Aula 202"/"Ambiente 202" → un mismo salón) para que las alertas de ambiente ocupado detecten los cruces reales.
+- **Usuario Administrador real:** rol `Administrador` como cuenta de BD para entrega al soporte del centro (login contra BD primero; `SUPER_USER` del `.env` queda como acceso de emergencia).
+- **Política de confirmación transversal (frontend):** toda acción de crear, editar o cambiar estado pide confirmación explícita a coordinación y administración, con mensajes específicos por entidad. Campanita de alertas que refleja las alertas pendientes reales y "Marcar como atendida" con confirmación.
+- **Seguridad (P17):** hardening del backend implementado (hpp, validación zod en rutas pendientes, revisión de cabeceras y límites).
+- **Seed maestro:** carga solo catálogo + instructores para arrancar con el sistema vacío de planeación y llenarlo desde el Excel en la demo.
 
 **Hitos cerrados al 28/07/2026 (integración con frontend de Laura):**
 - **Pendientes de backend del reporte de Laura resueltos:** `instructores_count` corregido (subconsulta), `GET /fichas/:id` devuelve array `instructores`, y `jornada_id` en `asignacion` (Opción A, informativa — pendiente confirmar RN-20 con líder)
@@ -168,12 +175,14 @@
 | 3 | `Asistente Coordinacion` | 3 | Mismos permisos que Coordinadora Academica |
 | 4 | `Instructor` | 4 | Solo lectura de sus fichas activas |
 
-> **Super-usuario del sistema (21/08/2026):** además de los 4 roles operativos,
-> existe el rol `Administrador` — la cuenta de despliegue/administración
-> (`SUPER_USER` del `.env`, ej. `admin@conins.sena`, id 0 virtual, fuera de la
-> tabla `usuarios`). Control total (bypass en `requireRole`, incluido en
-> ROLES_ADMIN). No es un rol operativo del negocio. El Subdirector real (Dyron
-> Ramírez) conserva su rol Subdirector.
+> **Administrador del sistema (27/08/2026):** además de los 4 roles operativos,
+> existe el rol `Administrador` — la cuenta de administración/entrega para el
+> soporte del centro. Desde 27/08 es un **usuario real en la tabla `usuarios`**
+> (id 1, `admin@conins.sena`), con login contra BD primero. La credencial
+> `SUPER_USER`/`SUPER_USER_PASSWORD` del `.env` se conserva como **acceso de
+> emergencia** (break-glass, id 0 virtual) solo si el usuario no está en BD.
+> Control total (incluido en ROLES_ADMIN). No es un rol operativo del negocio.
+> El Subdirector real (Dyron Ramírez) conserva su rol Subdirector.
 
 > Constantes en `backend/constants/roles.ts`. ROLES_ADMIN = [Administrador, Subdirector, Coordinadora Academica, Asistente Coordinacion].
 > `lider_programa` NO es un rol. Es una relación en tabla `lider_programa` — dato organizativo sin impacto en permisos.
@@ -438,5 +447,5 @@ Ver `CONINS_Requisitos_Funcionales_v10_1.txt` para el texto completo y el mapa d
 
 ---
 
-*CONINS · SENA CDMC · Contexto General v9.7 · 28 de Julio 2026*
+*CONINS · SENA CDMC · Contexto General v9.8 · 27 de Agosto 2026*
 *Autores: Jair Enrique González Buelvas · Laura Sofía Posada*

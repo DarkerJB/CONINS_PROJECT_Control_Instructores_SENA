@@ -4,6 +4,7 @@ import { useDebounce } from "@/lib/useDebounce"
 import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
+import { useConfirm } from "@/lib/ConfirmContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
 import { formatJornada } from "@/lib/terminology"
 import CrearFichaModal from "@/components/fichas/CrearFichaModal"
@@ -50,6 +51,7 @@ export default function FichasPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useProtectedRoute()
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const [fichas, setFichas] = useState<Ficha[]>([])
   const [loading, setLoading] = useState(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -210,6 +212,7 @@ export default function FichasPage() {
 
   const handleEditFicha = async (data: Partial<Ficha>) => {
     if (!selectedFicha) return
+    if (!(await confirm({ title: "Guardar cambios", message: `¿Confirmas los cambios en el grupo ${selectedFicha.numero_ficha}?` }))) return
     try {
       await api.fichas.update(selectedFicha.id, data)
       showToast("Grupo actualizado exitosamente", "success")
@@ -517,6 +520,7 @@ export default function FichasPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={async (data) => {
+          if (!(await confirm({ title: "Registrar grupo", message: data.numero_ficha ? `¿Confirmas el registro del grupo ${data.numero_ficha}?` : "¿Confirmas el registro de este grupo?" }))) return
           try {
             await api.fichas.create(data)
             showToast("Grupo registrado exitosamente", "success")

@@ -1335,6 +1335,23 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 ) ENGINE=InnoDB;
 
 -- ============================================================
+-- Correcciones pendientes del importador (RF importador): errores ubicables
+-- detectados en la previsualizacion. Se persisten para que coordinacion,
+-- subdireccion y admin las tengan a la mano en Reportes aunque se cierre la
+-- pestana. El preview reemplaza el set (siempre se muestra lo ultimo detectado).
+-- ============================================================
+CREATE TABLE IF NOT EXISTS import_correcciones (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    hoja        VARCHAR(100),
+    fila        INT,
+    entidad     VARCHAR(40),
+    valor       VARCHAR(255),
+    motivo      VARCHAR(255),
+    resuelta    BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- ============================================================
 -- 25. UTF-8 COLLATION
 -- Todas las tablas en utf8mb4_general_ci para caracteres especiales
 -- ============================================================

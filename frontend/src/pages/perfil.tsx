@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
+import { useConfirm } from "@/lib/ConfirmContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
 import { useAuth } from "@/lib/AuthContext"
 import { PageSkeleton, FormSkeleton } from "@/components/ui/Skeleton"
@@ -29,6 +30,7 @@ type PerfilData = {
 export default function PerfilPage() {
   const { user, loading: authLoading } = useProtectedRoute()
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const { refreshUser } = useAuth()
 
   const [perfil, setPerfil] = useState<PerfilData | null>(null)
@@ -90,6 +92,7 @@ export default function PerfilPage() {
       return
     }
 
+    if (!(await confirm({ title: "Actualizar perfil", message: "¿Confirmas los cambios en tu perfil?" }))) return
     setSaving(true)
     try {
       await api.auth.updatePerfil(nombre.trim(), email.trim())

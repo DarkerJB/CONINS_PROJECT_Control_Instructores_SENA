@@ -23,11 +23,12 @@ export const importar = asyncHandler(async (req: Request, res: Response) => {
   const resultado = await ImportarService.importar(archivo_base64, { crearAmbientes: crear_ambientes });
 
   const totalCreados = resultado.resumen.reduce((s, h) => s + h.creados, 0);
+  const totalOmitidos = resultado.resumen.reduce((s, h) => s + h.omitidos, 0);
   const totalErrores = resultado.resumen.reduce((s, h) => s + h.errores.length, 0);
 
   ApiResponse.success(
     res,
     resultado,
-    `Importacion procesada: ${totalCreados} creados, ${totalErrores} con error`,
+    `Importacion procesada: ${totalCreados} creados, ${totalOmitidos} omitidos (ya existian), ${totalErrores} con error`,
   );
 });

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { X, Plus, Pencil, Power, Loader2, FileText, AlertTriangle } from "lucide-react"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
+import { useConfirm } from "@/lib/ConfirmContext"
 
 type Competencia = {
   id: number
@@ -34,6 +35,7 @@ export default function VerRapsModal({
   puedeEditar,
 }: VerRapsModalProps) {
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const [raps, setRaps] = useState<Rap[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -95,6 +97,7 @@ export default function VerRapsModal({
     e.preventDefault()
     if (!competencia || !rapCodigo.trim() || !rapDescripcion.trim()) return
 
+    if (!(await confirm({ title: editingRap ? "Actualizar RAP" : "Crear RAP", message: editingRap ? "¿Confirmas los cambios en este RAP?" : "¿Confirmas la creación de este RAP?" }))) return
     setSubmitting(true)
     try {
       if (editingRap) {

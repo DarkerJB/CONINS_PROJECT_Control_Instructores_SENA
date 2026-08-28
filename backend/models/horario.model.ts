@@ -318,28 +318,75 @@ export const HorarioModel = {
     return (rows as any[]).length > 0;
   },
 
+  // Idempotencia del importador: TRUE si ya existe un horario identico (mismo
+  // instructor, grupo, competencia, dia, franja y semana). Permite re-subir el
+  // Excel corregido sin duplicar ni marcar como error lo que ya estaba.
+  async existeIdentico(
+    instructorId: number,
+    fichaId: number,
+    competenciaId: number,
+    diaSemana: number,
+    horaInicio: string,
+    horaFin: string,
+    semana: string,
+  ): Promise<boolean> {
+    const [rows] = await pool.query(
+      `SELECT 1 FROM horarios
+       WHERE instructor_id = ? AND ficha_id = ? AND competencia_id = ? AND dia_semana = ?
+         AND hora_inicio = ? AND hora_fin = ? AND semana = ? AND activo = TRUE
+       LIMIT 1`,
+      [instructorId, fichaId, competenciaId, diaSemana, horaInicio, horaFin, semana],
+    );
+    return (rows as any[]).length > 0;
+  },
+
   async hasAmbienteOcupado(
     ambienteId: number,
     diaSemana: number,
     jornadaId: number,
     semana: string,
+    fichaId: number,
     excludeId?: number,
   ): Promise<boolean> {
-    // RN-05: los TALLERES pueden albergar varios grupos a la vez, asi que no se
-    // consideran "ocupados". Solo aulas y laboratorios generan conflicto.
+    // RN-05: conflicto SOLO si OTRO grupo (ficha distinta) usa el mismo ambiente
+    // en ese dia/jornada/semana. El mismo grupo puede tener varias clases en su
+    // salon (no es conflicto). Los TALLERES albergan varios grupos, tampoco cuentan.
     const query = `
       SELECT 1 FROM horarios h
       JOIN ambientes a ON h.ambiente_id = a.id
       WHERE h.ambiente_id = ? AND h.dia_semana = ? AND h.jornada_id = ? AND h.semana = ? AND h.activo = TRUE
+        AND h.ficha_id != ?
         AND a.tipo <> 'taller'
       ${excludeId ? 'AND h.id != ?' : ''}
       LIMIT 1
     `;
     const params = excludeId
-      ? [ambienteId, diaSemana, jornadaId, semana, excludeId]
-      : [ambienteId, diaSemana, jornadaId, semana];
+      ? [ambienteId, diaSemana, jornadaId, semana, fichaId, excludeId]
+      : [ambienteId, diaSemana, jornadaId, semana, fichaId];
     const [rows] = await pool.query(query, params);
     return (rows as any[]).length > 0;
+  },
+
+  // Grupos (numero_ficha) que YA tienen ese ambiente asignado en ese dia/jornada/
+  // semana. Se usa para nombrar en la alerta cuales grupos comparten el ambiente.
+  async gruposEnAmbiente(
+    ambienteId: number,
+    diaSemana: number,
+    jornadaId: number,
+    semana: string,
+    fichaId: number,
+  ): Promise<string[]> {
+    // OTROS grupos (ficha distinta) que ya tienen ese ambiente en ese dia/jornada/semana.
+    const [rows] = await pool.query(
+      `SELECT DISTINCT f.numero_ficha
+       FROM horarios h
+       JOIN fichas f ON h.ficha_id = f.id
+       JOIN ambientes a ON h.ambiente_id = a.id
+       WHERE h.ambiente_id = ? AND h.dia_semana = ? AND h.jornada_id = ? AND h.semana = ?
+         AND h.activo = TRUE AND h.ficha_id != ? AND a.tipo <> 'taller'`,
+      [ambienteId, diaSemana, jornadaId, semana, fichaId],
+    );
+    return (rows as any[]).map((r) => String(r.numero_ficha));
   },
 
   // tipo_contrato se eliminó el 14/07/2026 — RN-03 (jornada restringida) aplica

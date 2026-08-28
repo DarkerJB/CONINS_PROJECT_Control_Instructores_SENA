@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { api } from "@/lib/api"
+import { useConfirm } from "@/lib/ConfirmContext"
 import {
   X,
   Loader2,
@@ -81,6 +82,7 @@ export default function RapSeguimientoModal({
   puedeEditar,
   onToast,
 }: Props) {
+  const confirm = useConfirm()
   const [seguimientos, setSeguimientos] = useState<RapSeguimiento[]>([])
   const [disponibles, setDisponibles] = useState<RapDisponible[]>([])
   const [loading, setLoading] = useState(true)
@@ -133,6 +135,7 @@ export default function RapSeguimientoModal({
   }
 
   const handleEvaluar = async (segId: number, estado: "aprobado" | "no_aprobado") => {
+    if (!(await confirm({ title: "Evaluar RAP", message: `¿Confirmas marcar el RAP como ${estado === "aprobado" ? "aprobado" : "no aprobado"}?` }))) return
     try {
       await api.rapSeguimiento.evaluar(segId, estado)
       onToast(`RAP marcado como ${estado === "aprobado" ? "aprobado" : "no aprobado"}`, "success")
@@ -147,6 +150,7 @@ export default function RapSeguimientoModal({
     const rap = disponibles[crearForm.selectedIndex]
     if (!rap) return
 
+    if (!(await confirm({ title: "Crear seguimiento", message: "¿Confirmas la creación de este seguimiento de RAP?" }))) return
     setSubmitting(true)
     try {
       await api.rapSeguimiento.create({

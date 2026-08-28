@@ -6,6 +6,8 @@ import { useToast } from "@/lib/ToastContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
 import EditarUsuarioModal from "@/components/usuarios/EditarUsuarioModal"
 import AsignarProgramasLiderModal from "@/components/usuarios/AsignarProgramasLiderModal"
+import ConfirmDialog from "@/components/ui/ConfirmDialog"
+import { useConfirm } from "@/lib/ConfirmContext"
 import { exportarUsuariosPDF } from "@/lib/exportPDF"
 import { TableSkeleton, PageSkeleton } from "@/components/ui/Skeleton"
 import EmptyState from "@/components/ui/EmptyState"
@@ -41,6 +43,8 @@ export default function UsuariosPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isAsignarProgramasModalOpen, setIsAsignarProgramasModalOpen] = useState(false)
   const [selectedUsuario, setSelectedUsuario] = useState<Usuario | null>(null)
+  const [confirmToggle, setConfirmToggle] = useState<Usuario | null>(null)
+  const confirm = useConfirm()
 
   const [search, setSearch] = useState("")
   const debouncedSearch = useDebounce(search)
@@ -101,6 +105,7 @@ export default function UsuariosPage() {
   }
 
   const handleAsignarProgramas = async (liderId: number, programaIds: number[]) => {
+    if (!(await confirm({ title: "Guardar programas", message: "¿Confirmas los programas asignados a este líder?" }))) return
     try {
       await api.users.asignarProgramas(liderId, programaIds)
       showToast("Programas asignados exitosamente", "success")
@@ -112,6 +117,7 @@ export default function UsuariosPage() {
 
   const handleEdit = async (data: any) => {
     if (!selectedUsuario) return
+    if (!(await confirm({ title: "Guardar cambios", message: `¿Confirmas los cambios del usuario ${selectedUsuario.nombre}?` }))) return
     try {
       await api.users.update(selectedUsuario.id, data)
       showToast("Usuario actualizado exitosamente", "success")
@@ -254,7 +260,7 @@ export default function UsuariosPage() {
                             </button>
                           )}
                           <button
-                            onClick={() => handleToggleEstado(u)}
+                            onClick={() => (u.activo ? setConfirmToggle(u) : handleToggleEstado(u))}
                             className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                             title={u.activo ? "Desactivar" : "Activar"}
                           >
@@ -317,6 +323,18 @@ export default function UsuariosPage() {
         lider={selectedUsuario ? { id: selectedUsuario.id, nombre: selectedUsuario.nombre } : null}
         onSubmit={handleAsignarProgramas}
       />
+
+      {confirmToggle && (
+        <ConfirmDialog
+          title="Desactivar usuario"
+          message={`¿Seguro que deseas desactivar a ${confirmToggle.nombre}? No podra ingresar al sistema hasta que se reactive.`}
+          onConfirm={() => {
+            handleToggleEstado(confirmToggle)
+            setConfirmToggle(null)
+          }}
+          onCancel={() => setConfirmToggle(null)}
+        />
+      )}
     </DashboardLayout>
   )
 }

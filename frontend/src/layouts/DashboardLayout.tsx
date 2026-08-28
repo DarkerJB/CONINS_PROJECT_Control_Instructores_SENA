@@ -4,6 +4,7 @@ import Sidebar from "@/components/layout/Sidebar"
 import Header from "@/components/layout/Header"
 import Footer from "@/components/layout/Footer"
 import { useAuth } from "@/lib/AuthContext"
+import { ConfirmProvider } from "@/lib/ConfirmContext"
 
 export default function DashboardLayout({
   children,
@@ -41,6 +42,7 @@ export default function DashboardLayout({
   const closeSidebar = () => setIsSidebarOpen(false)
 
   return (
+    <ConfirmProvider>
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
@@ -67,5 +69,6 @@ export default function DashboardLayout({
         <Footer />
       </div>
     </div>
+    </ConfirmProvider>
   )
 }

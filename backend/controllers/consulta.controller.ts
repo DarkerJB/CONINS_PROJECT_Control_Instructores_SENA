@@ -70,6 +70,19 @@ export const getHorariosFicha = asyncHandler(async (_req: Request, res: Response
   ApiResponse.success(res, rows);
 });
 
+// Correcciones pendientes del importador: errores ubicables detectados en la
+// ultima previsualizacion (RAP/competencia sin coincidencia, horas invalidas,
+// etc.). Persistidas para que coordinacion/subdireccion/admin las tengan a la
+// mano en Reportes aunque se cierre la pestana del importador.
+export const getCorrecciones = asyncHandler(async (_req: Request, res: Response) => {
+  const [rows] = await pool.query(
+    `SELECT id, hoja, fila, entidad, valor, motivo, resuelta, created_at
+     FROM import_correcciones
+     ORDER BY hoja, fila`,
+  );
+  ApiResponse.success(res, rows);
+});
+
 export const getOcupacionAmbientes = asyncHandler(async (req: Request, res: Response) => {
   // Ocupacion SEMANAL: horas-reloj que el aula esta fisicamente ocupada, sobre
   // la disponibilidad real del ambiente: 16h/dia (manana 6h + tarde 6h + noche 4h)

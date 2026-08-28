@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { X, Loader2, AlertTriangle, Plus, Calendar, FileText } from "lucide-react"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
+import { useConfirm } from "@/lib/ConfirmContext"
 
 type TipoNovedad = {
   id: number
@@ -29,6 +30,7 @@ type NovedadFichaModalProps = {
 
 export default function NovedadFichaModal({ isOpen, onClose, ficha, puedeEditar }: NovedadFichaModalProps) {
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const [novedades, setNovedades] = useState<Novedad[]>([])
   const [tiposNovedad, setTiposNovedad] = useState<TipoNovedad[]>([])
   const [loading, setLoading] = useState(false)
@@ -88,6 +90,7 @@ export default function NovedadFichaModal({ isOpen, onClose, ficha, puedeEditar 
       return
     }
 
+    if (!(await confirm({ title: "Registrar novedad", message: "¿Confirmas el registro de esta novedad?" }))) return
     setSubmitting(true)
     try {
       await api.fichas.crearNovedad(ficha.id, formData)
