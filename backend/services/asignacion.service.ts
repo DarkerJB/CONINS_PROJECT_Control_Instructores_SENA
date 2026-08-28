@@ -86,13 +86,16 @@ export const AsignacionService = {
     // Alerta SOFT: asignacion provisional (instructor fuera de su area). Visible
     // hasta que el admin la atienda.
     if (data.es_provisional) {
+      const inst = await InstructorModel.findById(data.instructor_id);
+      const fic = await FichaModel.findById(data.ficha_id);
+      const nombre = (inst as any)?.nombre ?? `instructor #${data.instructor_id}`;
+      const grupo = (fic as any)?.numero_ficha ?? data.ficha_id;
+      const detalle = data.motivo_provisional ? ` Motivo: ${data.motivo_provisional}.` : '';
       await AlertaService.crear({
         instructor_id: data.instructor_id,
         tipo: TIPOS_ALERTA.ASIGNACION_PROVISIONAL,
         ficha_id: data.ficha_id,
-        mensaje: data.motivo_provisional
-          ? `Asignacion provisional: ${data.motivo_provisional}`
-          : 'Asignacion provisional (instructor fuera de su area tecnica).',
+        mensaje: `El instructor ${nombre} fue asignado de forma provisional al grupo ${grupo} (fuera de su area tecnica).${detalle}`,
       });
     }
 

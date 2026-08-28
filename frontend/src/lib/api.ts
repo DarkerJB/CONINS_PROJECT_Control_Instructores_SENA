@@ -383,11 +383,24 @@ export const api = {
     },
 
     alertas: {
-        getAll() {
-            return apiFetch('/alertas')
+        getAll(soloNoAtendidas = false) {
+            return apiFetch(`/alertas${soloNoAtendidas ? '?solo_no_atendidas=true' : ''}`)
+        },
+        getNoAtendidasCount() {
+            return apiFetch('/alertas/no-atendidas/count')
         },
         marcarAtendida(id: number) {
             return apiFetch(`/alertas/${id}/atendida`, {
+                method: 'PATCH',
+            })
+        },
+        marcarLeida(id: number) {
+            return apiFetch(`/alertas/${id}/leida`, {
+                method: 'PATCH',
+            })
+        },
+        marcarTodas() {
+            return apiFetch('/alertas/marcar-todas', {
                 method: 'PATCH',
             })
         },
@@ -459,10 +472,16 @@ export const api = {
     },
 
     importar: {
-        cargar(archivo_base64: string) {
+        preview(archivo_base64: string, programa_codigo?: string) {
+            return apiFetch('/importar/preview', {
+                method: 'POST',
+                body: JSON.stringify({ archivo_base64, programa_codigo }),
+            })
+        },
+        cargar(archivo_base64: string, crear_ambientes?: string[]) {
             return apiFetch('/importar', {
                 method: 'POST',
-                body: JSON.stringify({ archivo_base64 }),
+                body: JSON.stringify({ archivo_base64, crear_ambientes }),
             })
         },
     },
@@ -470,12 +489,6 @@ export const api = {
     users: {
         getAll() {
             return apiFetch('/auth/usuarios')
-        },
-        create(data: any) {
-            return apiFetch('/auth/register', {
-                method: 'POST',
-                body: JSON.stringify(data),
-            })
         },
         update(id: number, data: any) {
             return apiFetch(`/auth/usuarios/${id}`, {

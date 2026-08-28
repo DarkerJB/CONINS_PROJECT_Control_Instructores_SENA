@@ -1,0 +1,23 @@
+-- CONINS — limpiar planeacion para reprobar el import (conserva catalogo + instructores)
+SET FOREIGN_KEY_CHECKS = 0;
+DELETE FROM horarios;
+DELETE FROM alertas;
+DELETE FROM notificaciones;
+DELETE FROM rap_ficha_seguimiento;
+DELETE FROM asignacion_rap;
+DELETE FROM asignacion_competencia;
+DELETE FROM asignacion;
+DELETE FROM ficha_novedades;
+DELETE FROM fichas;
+ALTER TABLE horarios               AUTO_INCREMENT = 1;
+ALTER TABLE alertas                AUTO_INCREMENT = 1;
+ALTER TABLE asignacion             AUTO_INCREMENT = 1;
+ALTER TABLE asignacion_competencia AUTO_INCREMENT = 1;
+ALTER TABLE asignacion_rap         AUTO_INCREMENT = 1;
+ALTER TABLE fichas                 AUTO_INCREMENT = 1;
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- verificacion (grupos=0, horarios=0, alertas=0; competencias/instructores > 0)
+SELECT (SELECT COUNT(*) FROM fichas) grupos, (SELECT COUNT(*) FROM horarios) horarios,
+       (SELECT COUNT(*) FROM alertas) alertas, (SELECT COUNT(*) FROM instructores) instructores,
+       (SELECT COUNT(*) FROM competencias) competencias;

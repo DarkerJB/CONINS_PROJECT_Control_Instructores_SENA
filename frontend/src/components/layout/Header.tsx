@@ -56,7 +56,8 @@ export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }
   // Cargar conteo de no leídas al montar y cada 30s
   const cargarConteo = useCallback(async () => {
     try {
-      const res = await api.notificaciones.getNoLeidasCount()
+      // La campanita refleja las ALERTAS no atendidas (no notificaciones).
+      const res = await api.alertas.getNoAtendidasCount()
       setNoLeidasCount(res.data?.count ?? 0)
     } catch {
       // Silencioso — si falla no rompe nada
@@ -75,7 +76,8 @@ export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }
   const cargarNotificaciones = async () => {
     setLoadingNotifs(true)
     try {
-      const res = await api.notificaciones.getMis()
+      // Lista las alertas NO atendidas (las que hay que revisar).
+      const res = await api.alertas.getAll(true)
       setNotificaciones((res.data || []).slice(0, 8))
     } catch {
       setNotificaciones([])
@@ -93,12 +95,11 @@ export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }
     }
   }
 
-  const handleMarcarLeida = async (id: number) => {
+  const handleAtender = async (id: number) => {
     try {
-      await api.notificaciones.marcarLeida(id)
-      setNotificaciones((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, leida: true } : n))
-      )
+      // Atender una alerta la saca del pendiente y baja el contador.
+      await api.alertas.marcarAtendida(id)
+      setNotificaciones((prev) => prev.filter((n) => n.id !== id))
       setNoLeidasCount((prev) => Math.max(0, prev - 1))
     } catch {
       // Silencioso
@@ -107,9 +108,10 @@ export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }
 
   const handleMarcarTodas = async () => {
     try {
-      await api.notificaciones.marcarTodasLeidas()
-      setNotificaciones((prev) => prev.map((n) => ({ ...n, leida: true })))
-      setNoLeidasCount(0)
+      const actuales = [...notificaciones]
+      await Promise.all(actuales.map((n) => api.alertas.marcarAtendida(n.id)))
+      setNotificaciones([])
+      await cargarConteo()
     } catch {
       // Silencioso
     }
@@ -171,10 +173,10 @@ export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }
               {/* Header del dropdown */}
               <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h3 className="text-sm font-bold text-gray-900">
-                  Notificaciones
+                  Alertas
                   {noLeidasCount > 0 && (
                     <span className="ml-2 text-xs font-normal text-gray-500">
-                      {noLeidasCount} sin leer
+                      {noLeidasCount} sin atender
                     </span>
                   )}
                 </h3>
@@ -183,7 +185,7 @@ export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }
                     onClick={handleMarcarTodas}
                     className="text-xs text-sena hover:underline font-medium"
                   >
-                    Marcar todas
+                    Atender visibles
                   </button>
                 )}
               </div>
@@ -196,40 +198,32 @@ export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }
                   </div>
                 ) : notificaciones.length === 0 ? (
                   <div className="py-8 text-center text-sm text-gray-400">
-                    No hay notificaciones
+                    No hay alertas pendientes
                   </div>
                 ) : (
                   notificaciones.map((notif) => (
                     <div
                       key={notif.id}
-                      className={`px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors ${
-                        notif.leida ? "opacity-60" : ""
-                      }`}
+                      className="px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex items-start gap-3">
-                        <span
-                          className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${
-                            notif.leida ? "bg-gray-300" : "bg-sena"
-                          }`}
-                        />
+                        <span className="mt-1.5 w-2 h-2 rounded-full shrink-0 bg-sena" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-gray-700">{notif.mensaje}</p>
                           <div className="flex items-center justify-between mt-1">
                             <p className="text-xs text-gray-400">
                               {notif.created_at ? tiempoRelativo(notif.created_at) : ""}
                             </p>
-                            {!notif.leida && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleMarcarLeida(notif.id)
-                                }}
-                                className="text-xs text-sena hover:underline flex items-center gap-1"
-                              >
-                                <Check className="w-3 h-3" />
-                                Leida
-                              </button>
-                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleAtender(notif.id)
+                              }}
+                              className="text-xs text-sena hover:underline flex items-center gap-1"
+                            >
+                              <Check className="w-3 h-3" />
+                              Atender
+                            </button>
                           </div>
                         </div>
                       </div>

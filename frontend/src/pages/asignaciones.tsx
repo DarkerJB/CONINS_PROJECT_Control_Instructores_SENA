@@ -420,14 +420,14 @@ export default function AsignacionesPage() {
                   className="px-4 py-2.5 border border-sena text-sena rounded-lg text-sm font-medium hover:bg-sena/5 transition-colors flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
-                  Asignación provisional
+                  Asignación Provisional
                 </button>
                 <button
                   onClick={() => setIsCreateModalOpen(true)}
                   className="bg-sena hover:bg-sena/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
                 >
                   <Plus className="w-4 h-4" />
-                  Asignar competencia
+                  Asignación Regular
                 </button>
               </>
             )}

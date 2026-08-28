@@ -3,10 +3,17 @@ import { InstructorModel } from '../models/instructor.model.js';
 import { FichaModel } from '../models/ficha.model.js';
 import { AmbienteModel } from '../models/ambiente.model.js';
 import { NotFoundError, ValidationError, ConflictError } from '../utils/errors.js';
-import { getLunesSemanaActual } from '../utils/date.js';
+import { getLunesSemanaActual, rangoSemana } from '../utils/date.js';
 import { ROLES, RoleKey } from '../constants/roles.js';
 import { AlertaService, TIPOS_ALERTA } from './alerta.service.js';
 import pool from '../config/db.js';
+
+// Nombre legible de un ambiente o jornada por id (para mensajes de alerta).
+async function nombreDe(tabla: 'ambientes' | 'jornadas', id: number | null | undefined): Promise<string> {
+  if (!id) return '';
+  const [r] = await pool.query(`SELECT nombre FROM ${tabla} WHERE id = ? LIMIT 1`, [id]);
+  return (r as any[])[0]?.nombre ?? String(id);
+}
 
 export const HorarioService = {
   async getAll(userId?: number, roles?: RoleKey[], semana?: string) {
@@ -91,8 +98,10 @@ export const HorarioService = {
         semana,
       );
       if (ambienteOcupado) {
+        const ambNombre = await nombreDe('ambientes', data.ambiente_id);
+        const jorNombre = await nombreDe('jornadas', data.jornada_id);
         conflictos.push({ tipo: TIPOS_ALERTA.AMBIENTE_OCUPADO,
-          mensaje: `El ambiente ya esta ocupado por otro grupo en esa jornada (grupo ${(ficha as any).numero_ficha ?? data.ficha_id}, semana ${semana}). Revisa el cruce de ambiente.` });
+          mensaje: `El ambiente ${ambNombre} que se quiere asignar al grupo ${(ficha as any).numero_ficha ?? data.ficha_id} en la jornada ${jorNombre} ya esta ocupado por otro grupo en esa jornada (semana ${rangoSemana(semana)}). Revisa el cruce de ambiente.` });
       }
     }
 
@@ -108,7 +117,7 @@ export const HorarioService = {
     const nuevasHoras = ((new Date(`2000-01-01T${data.hora_fin}`).getTime() - new Date(`2000-01-01T${data.hora_inicio}`).getTime()) / (1000 * 60 * 60));
     const totalHoras = horasActuales + nuevasHoras;
     if (totalHoras > 40) {
-      conflictos.push({ tipo: TIPOS_ALERTA.HORAS_EXCEDIDAS, mensaje: `La carga del instructor supera las 40 horas en la semana ${semana} (queda en ${totalHoras}h). Revisa su horario.` });
+      conflictos.push({ tipo: TIPOS_ALERTA.HORAS_EXCEDIDAS, mensaje: `La carga del instructor ${instructor.nombre} supera las 40 horas en la semana ${rangoSemana(semana)} (carga actual de la semana: ${totalHoras}h). Revisa su horario.` });
     }
 
     let alertaJornadaRestringida = false;
@@ -136,11 +145,11 @@ export const HorarioService = {
     }
     if (alertaJornadaRestringida) {
       await AlertaService.crear({ instructor_id: data.instructor_id, tipo: TIPOS_ALERTA.JORNADA_RESTRINGIDA, semana, total_horas: totalHoras,
-        mensaje: `Instructor de planta programado en jornada nocturna o fin de semana (grupo ${(ficha as any).numero_ficha ?? data.ficha_id}, semana ${semana}).` });
+        mensaje: `El instructor de planta ${instructor.nombre} quedo programado en jornada nocturna o fin de semana (grupo ${(ficha as any).numero_ficha ?? data.ficha_id}, semana ${rangoSemana(semana)}).` });
     }
     if (totalHoras < 20) {
       await AlertaService.crear({ instructor_id: data.instructor_id, tipo: TIPOS_ALERTA.HORAS_INSUFICIENTES, semana, total_horas: totalHoras,
-        mensaje: `La carga del instructor esta por debajo de 20 horas en la semana ${semana} (queda en ${totalHoras}h).` });
+        mensaje: `La carga del instructor ${instructor.nombre} esta por debajo de 20 horas en la semana ${rangoSemana(semana)} (carga actual de la semana: ${totalHoras}h).` });
     }
 
     return {

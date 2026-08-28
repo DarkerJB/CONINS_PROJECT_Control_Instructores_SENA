@@ -27,6 +27,7 @@ type Alerta = {
   ficha_id?: number | null
   rap_id?: number | null
   atendida: boolean
+  leida: boolean
   created_at: string
 }
 
@@ -39,6 +40,12 @@ function getAlertIcon(tipo: string) {
       return <AlertTriangle className="w-5 h-5 text-orange-500" />
     case "ASIGNACION_PROVISIONAL":
       return <Clock className="w-5 h-5 text-yellow-500" />
+    case "RAP_COMPARTIDO":
+      return <AlertTriangle className="w-5 h-5 text-red-600" />
+    case "HORAS_INSUFICIENTES":
+      return <AlertCircle className="w-5 h-5 text-blue-500" />
+    case "INSTRUCTOR_PLANTA_JORNADA_NOCTURNA":
+      return <AlertCircle className="w-5 h-5 text-purple-500" />
     default:
       return <Bell className="w-5 h-5 text-gray-400" />
   }
@@ -56,6 +63,8 @@ function getAlertBadge(tipo: string) {
       return "bg-blue-100 text-blue-800"
     case "INSTRUCTOR_PLANTA_JORNADA_NOCTURNA":
       return "bg-purple-100 text-purple-800"
+    case "RAP_COMPARTIDO":
+      return "bg-red-100 text-red-800"
     default:
       return "bg-gray-100 text-gray-800"
   }
@@ -73,6 +82,8 @@ function getAlertLabel(tipo: string) {
       return "Horas insuficientes"
     case "INSTRUCTOR_PLANTA_JORNADA_NOCTURNA":
       return "Jornada nocturna"
+    case "RAP_COMPARTIDO":
+      return "RAP compartido"
     default:
       return tipo
   }
@@ -228,6 +239,7 @@ export default function AlertasPage() {
               <option value="ASIGNACION_PROVISIONAL">Asignación provisional</option>
               <option value="HORAS_INSUFICIENTES">Horas insuficientes</option>
               <option value="INSTRUCTOR_PLANTA_JORNADA_NOCTURNA">Jornada nocturna</option>
+              <option value="RAP_COMPARTIDO">RAP compartido</option>
             </select>
 
             <select
@@ -275,26 +287,9 @@ export default function AlertasPage() {
                       </div>
 
                       <div className="flex items-center gap-4 text-xs text-gray-400 mt-2">
-                        {/* En RAP compartido el nombre confunde (parece "firma");
-                            los instructores implicados ya van en el mensaje. */}
-                        {alerta.tipo !== "RAP_COMPARTIDO" && (
-                          <>
-                            <span>{alerta.instructor_nombre}</span>
-                            <span>·</span>
-                          </>
-                        )}
-                        {alerta.semana && (
-                          <>
-                            <span>Semana del {new Date(alerta.semana).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}</span>
-                            <span>·</span>
-                          </>
-                        )}
-                        {alerta.total_horas != null && (
-                          <>
-                            <span>{alerta.total_horas}h</span>
-                            <span>·</span>
-                          </>
-                        )}
+                        {/* Toda la info (instructor, grupo, semana en rango, horas) va
+                            ahora DENTRO del mensaje. La linea inferior solo muestra el
+                            tiempo, para no parecer una "firma" ni duplicar datos. */}
                         <span>{formatTimeAgo(alerta.created_at)}</span>
                       </div>
                     </div>
