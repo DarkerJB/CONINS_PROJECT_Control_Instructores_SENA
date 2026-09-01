@@ -84,7 +84,7 @@ export default function HorariosPage() {
   const [filtroInstructor, setFiltroInstructor] = useState<string[]>([])
   const [filtroJornada, setFiltroJornada] = useState<string[]>([])
   const [filtroEstado, setFiltroEstado] = useState<string[]>([])
-  const [vistaGrilla, setVistaGrilla] = useState(false)
+  const [vistaGrilla, setVistaGrilla] = useState(true)
   const [mostrarInactivos, setMostrarInactivos] = useState(false)
   const [semanaGrilla, setSemanaGrilla] = useState<string | undefined>(undefined)
   const [horariosGrilla, setHorariosGrilla] = useState<Horario[]>([])
@@ -136,11 +136,14 @@ export default function HorariosPage() {
 
   const inactivosCount = horarios.filter((h) => !h.activo).length
 
-  const listaFiltrada = horarios.filter((h) => {
+  // Predicado unico de filtros, para aplicarlo TANTO a la tabla como a la grilla.
+  // Antes la grilla (vista por defecto) ignoraba los filtros: recibia horariosGrilla
+  // sin filtrar, por eso "filtrar por ficha" no hacia nada en la vista de horario.
+  const pasaFiltros = (h: Horario) => {
     if (!mostrarInactivos && !h.activo) return false
 
     const texto = debouncedSearch.toLowerCase()
-    const coincideBusqueda =
+    const coincideBusqueda = !texto ||
       h.ficha_numero.toLowerCase().includes(texto) ||
       h.instructor_nombre.toLowerCase().includes(texto)
 
@@ -150,7 +153,10 @@ export default function HorariosPage() {
     const coincideEstado = filtroEstado.length === 0 || filtroEstado.includes(h.estado)
 
     return coincideBusqueda && coincideFicha && coincideInstructor && coincideJornada && coincideEstado
-  })
+  }
+
+  const listaFiltrada = horarios.filter(pasaFiltros)
+  const grillaFiltrada = horariosGrilla.filter(pasaFiltros)
 
   const totalPaginas = Math.ceil(listaFiltrada.length / porPagina)
   const listaPaginada = listaFiltrada.slice((paginaActual - 1) * porPagina, paginaActual * porPagina)
@@ -362,7 +368,7 @@ export default function HorariosPage() {
         )}
 
         {vistaGrilla ? (
-          <GrillaHorarios horarios={horariosGrilla} onSemanaChange={handleSemanaChange} loading={loadingGrilla} />
+          <GrillaHorarios horarios={grillaFiltrada} onSemanaChange={handleSemanaChange} loading={loadingGrilla} />
         ) : (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           {loading ? (

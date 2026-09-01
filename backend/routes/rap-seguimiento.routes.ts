@@ -52,6 +52,13 @@ router.patch(
   rapSeguimientoController.evaluar,
 );
 
+// PATCH evaluar TODOS los RAPs de una asignacion_competencia (boton "Aprobar todos")
+router.patch(
+  '/asignacion-competencia/:asignacionCompetenciaId/evaluar-todos',
+  requireRole([ROLES.SUBDIRECTOR, ROLES.COORDINADORA_ACADEMICA, ROLES.ASISTENTE_COORDINACION]),
+  rapSeguimientoController.evaluarTodos,
+);
+
 // PATCH toggle activo
 router.patch(
   '/:id/estado',

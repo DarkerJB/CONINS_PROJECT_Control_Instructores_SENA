@@ -23,6 +23,107 @@ SELECT (SELECT COUNT(*) FROM fichas) grupos, (SELECT COUNT(*) FROM horarios) hor
        (SELECT COUNT(*) FROM competencias) competencias;
 
 
+_________________________________________________________________________________________________________
+
+-- 0) Limpiar estructurales previas (no toca las de carga horaria)
+DELETE FROM alertas WHERE tipo IN ('CO_DOCENCIA','RAP_COMPARTIDO','AMBIENTE_OCUPADO');
+
+-- 1) CO_DOCENCIA: 2+ instructores distintos en el MISMO grupo, dia, jornada y semana
+INSERT INTO alertas (instructor_id, tipo, mensaje, semana, ficha_id)
+SELECT
+  MIN(h.instructor_id),
+  'CO_DOCENCIA',
+  LEFT(CONCAT(
+    'Dos o mas instructores (',
+    (SELECT GROUP_CONCAT(DISTINCT u2.nombre SEPARATOR ' y ')
+       FROM horarios h2
+       JOIN instructores i2 ON h2.instructor_id = i2.id
+       JOIN usuarios u2     ON i2.usuario_id = u2.id
+       WHERE h2.ficha_id = h.ficha_id AND h2.dia_semana = h.dia_semana
+         AND h2.jornada_id = h.jornada_id AND h2.semana = h.semana AND h2.activo = TRUE),
+    ') quedaron asignados al mismo grupo ', f.numero_ficha,
+    ' el ', ELT(h.dia_semana,'lunes','martes','miercoles','jueves','viernes','sabado','domingo'),
+    ' en la jornada ', j.nombre,
+    ' (semana ', DATE_FORMAT(h.semana,'%d/%m/%Y'),
+    '). Revisa si es co-docencia intencional o un cruce; la coordinacion decide.'
+  ), 255),
+  h.semana, h.ficha_id
+FROM horarios h
+JOIN fichas f   ON h.ficha_id = f.id
+JOIN jornadas j ON h.jornada_id = j.id
+WHERE h.activo = TRUE
+GROUP BY h.ficha_id, h.dia_semana, h.jornada_id, h.semana
+HAVING COUNT(DISTINCT h.instructor_id) >= 2;
+
+-- 2) RAP_COMPARTIDO (solo si los horarios tienen rap_id; si estan NULL, 0 filas)
+INSERT INTO alertas (instructor_id, tipo, mensaje, ficha_id, rap_id)
+SELECT
+  MIN(h.instructor_id),
+  'RAP_COMPARTIDO',
+  LEFT(CONCAT(
+    'El resultado de aprendizaje "', r.nombre, '" quedo a cargo de ',
+    (SELECT GROUP_CONCAT(DISTINCT u2.nombre SEPARATOR ' y ')
+       FROM horarios h2
+       JOIN instructores i2 ON h2.instructor_id = i2.id
+       JOIN usuarios u2     ON i2.usuario_id = u2.id
+       WHERE h2.ficha_id = h.ficha_id AND h2.rap_id = h.rap_id AND h2.activo = TRUE),
+    ') en el grupo ', f.numero_ficha,
+    '. Debe quedar con un solo instructor para poder evaluarlo.'
+  ), 255),
+  h.ficha_id, h.rap_id
+FROM horarios h
+JOIN fichas f ON h.ficha_id = f.id
+JOIN raps r   ON h.rap_id = r.id
+WHERE h.activo = TRUE AND h.rap_id IS NOT NULL
+GROUP BY h.ficha_id, h.rap_id
+HAVING COUNT(DISTINCT h.instructor_id) >= 2;
+
+-- 3) Ver resultado
+SELECT tipo, COUNT(*) AS n FROM alertas GROUP BY tipo ORDER BY n DESC;
+
+
+
 Verificar validez actual del query de borrado
-Validar las alertas que desaparecieron, analizar porqué no aparecen
+Validar las alertas que desaparecieron, analizar porqué no aparecen (Ambientes duplicados, instructores duplicados, etc)
+Al cargar el Excel, aparece un mensaje de 13 registros omitidos que ya existen, raro porque los existentes son 15 instructores, a menos que sea normal
 Editar la presentación con base en el documento de contexto general, más informativo, más específico, que no sature de información técnica pero que no sea tan general.
+
+Vale, cuando acabes por favor revisa las alertas, sigo preocupado por las alertas que no está mostrando el sistema, actualmente sólo muestra 55 alertas vs las 62 de antes, las que muestra actualmente únicamente son de carga horaria, entonces sería bueno revisarlo porque los datos que no se cargaron fueron los errores en las horas y la competencia que no existe en sofía, eso es aparte y el reporte se genra con normalidad desde le botón, el resto de alertas como ambientes duplicados y otros debería mostrarse, pero no lo hace
+
+Cambié
+Sube el Excel del líder o la plantilla de 4 hojas. Se previsualiza antes de cargar.
+Por
+Suba el Excel de planeación de horarios. Se previsualiza antes de cargar.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Enfocar el proyecto como Apoyo o asistencia a coordinación
+La coordinación es el eje y cliente final, el sistema debe ser su herramienta facilitadora
+Ejemplo: 
+Visualizar la programación de las fichas (XXXXX, qué tiene el lunes, martes, etc...)
+Visualización por día, combinado por filtro - Necesidad de hacer ajustes en tiempo real y visualización de disponibilidades.
+Permitir los ajustes necesarios y que los horarios no son superpuestos
+Generar reportes también en Excel, además de los actuales eportes en pdf
+Filtrar con vista de detalle por grupo, instructor ambiente, etc, para verlo en detalle
+Mostrar los históricos, es decir, cargas anteriormente realizadas
+Marcador de raps para saber si un grupo ya vio determinados raps del programa, para que pueda llevarse control, controlar qué raps se han visto y cuales faltan por evaluar
+Verificar los descargables
+Ajustes estéticos, letra
+Agente ia
+Chat bot o ayuda visual
+Permitir enlaces al blog del sena, a Sofía, zajuna, etc
+Foto del instructor
+
+

@@ -14,5 +14,7 @@ router.get('/carga-horaria', consultaController.getCargaHoraria);
 router.get('/horarios-ficha', consultaController.getHorariosFicha);
 router.get('/ocupacion-ambientes', consultaController.getOcupacionAmbientes);
 router.get('/correcciones', consultaController.getCorrecciones);
+router.get('/calendario', consultaController.getCalendario);
+router.get('/excel', consultaController.getExcel);
 
 export default router;

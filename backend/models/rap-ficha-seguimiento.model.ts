@@ -101,6 +101,40 @@ export const RapFichaSeguimientoModel = {
     return (result as any).insertId;
   },
 
+  // Crea de una vez el seguimiento de TODOS los RAPs activos de una competencia
+  // para una asignacion_competencia. Idempotente: no duplica los que ya existen.
+  // Se usa al asignar (import o UI) para que la coordinacion solo evalue.
+  async crearParaCompetencia(asignacionCompetenciaId: number, competenciaId: number): Promise<number> {
+    const [r] = await pool.query(
+      `INSERT INTO rap_ficha_seguimiento (asignacion_competencia_id, rap_id)
+       SELECT ?, r.id
+       FROM raps r
+       WHERE r.competencia_id = ? AND r.activo = TRUE
+         AND NOT EXISTS (
+           SELECT 1 FROM rap_ficha_seguimiento s
+           WHERE s.asignacion_competencia_id = ? AND s.rap_id = r.id
+         )`,
+      [asignacionCompetenciaId, competenciaId, asignacionCompetenciaId],
+    );
+    return (r as any).affectedRows ?? 0;
+  },
+
+  // Evaluacion masiva: marca TODOS los seguimientos activos de una
+  // asignacion_competencia como evaluados con el mismo estado (aprobar/no aprobar).
+  // Alimenta el boton "Aprobar todos" por competencia.
+  async evaluarTodosPorAsignacionCompetencia(
+    asignacionCompetenciaId: number,
+    estado: 'aprobado' | 'no_aprobado',
+  ): Promise<number> {
+    const [r] = await pool.query(
+      `UPDATE rap_ficha_seguimiento
+       SET estado_evaluacion = 'evaluado', estado_aprobacion = ?
+       WHERE asignacion_competencia_id = ? AND activo = TRUE`,
+      [estado, asignacionCompetenciaId],
+    );
+    return (r as any).affectedRows ?? 0;
+  },
+
   async update(
     id: number,
     data: {

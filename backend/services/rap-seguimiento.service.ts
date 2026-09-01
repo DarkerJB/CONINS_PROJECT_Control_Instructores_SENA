@@ -20,6 +20,21 @@ export const RapSeguimientoService = {
     return RapFichaSeguimientoModel.findByAsignacionCompetencia(asignacionCompetenciaId);
   },
 
+  // Evaluacion masiva por competencia: marca TODOS los RAPs de una
+  // asignacion_competencia como aprobados o no aprobados (boton "Aprobar todos").
+  async evaluarTodos(asignacionCompetenciaId: number, estado: 'aprobado' | 'no_aprobado') {
+    if (estado !== 'aprobado' && estado !== 'no_aprobado') {
+      throw new ValidationError("estado_aprobacion debe ser 'aprobado' o 'no_aprobado'");
+    }
+    const [ac] = await pool.query(
+      'SELECT id FROM asignacion_competencia WHERE id = ? AND activo = TRUE',
+      [asignacionCompetenciaId],
+    );
+    if ((ac as any[]).length === 0) throw new NotFoundError('Asignacion-competencia no encontrada o inactiva');
+    const evaluados = await RapFichaSeguimientoModel.evaluarTodosPorAsignacionCompetencia(asignacionCompetenciaId, estado);
+    return { asignacion_competencia_id: asignacionCompetenciaId, evaluados, estado_aprobacion: estado };
+  },
+
   async getById(id: number) {
     const seguimiento = await RapFichaSeguimientoModel.findById(id);
     if (!seguimiento) throw new NotFoundError('Seguimiento RAP no encontrado');

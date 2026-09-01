@@ -1,6 +1,7 @@
 import { AsignacionModel } from '../models/asignacion.model.js';
 import { AlertaService, TIPOS_ALERTA } from './alerta.service.js';
 import { AsignacionCompetenciaModel } from '../models/asignacion-competencia.model.js';
+import { RapFichaSeguimientoModel } from '../models/rap-ficha-seguimiento.model.js';
 import { InstructorModel } from '../models/instructor.model.js';
 import { FichaModel } from '../models/ficha.model.js';
 import { NotFoundError, ValidationError, ForbiddenError, ConflictError } from '../utils/errors.js';
@@ -78,10 +79,17 @@ export const AsignacionService = {
         es_provisional: data.es_provisional,
         competencia_ids: data.competencia_ids,
       });
+      await AsignacionService.crearSeguimientosRap((existente as any).id);
       return AsignacionModel.findById((existente as any).id);
     }
 
     const id = await AsignacionModel.create(data);
+
+    // Auto-crear el seguimiento de TODOS los RAPs de cada competencia asignada,
+    // para que la coordinacion solo evalue (aprobar/no aprobar) y no registre uno
+    // por uno. Cubre UI e import (el import tambien pasa por aqui). Best-effort e
+    // idempotente: no duplica ni pisa evaluaciones ya hechas.
+    await AsignacionService.crearSeguimientosRap(id);
 
     // Alerta SOFT: asignacion provisional (instructor fuera de su area). Visible
     // hasta que el admin la atienda.
@@ -100,6 +108,19 @@ export const AsignacionService = {
     }
 
     return AsignacionModel.findById(id);
+  },
+
+  // Crea (idempotente) el seguimiento de todos los RAPs de cada competencia de
+  // una asignacion. Best-effort: si falla, no tumba la asignacion.
+  async crearSeguimientosRap(asignacionId: number): Promise<void> {
+    try {
+      const acs = await AsignacionCompetenciaModel.findByAsignacion(asignacionId);
+      for (const ac of acs as any[]) {
+        await RapFichaSeguimientoModel.crearParaCompetencia(ac.id, ac.competencia_id);
+      }
+    } catch (err) {
+      console.error('[asignacion] no se pudieron crear seguimientos de RAP:', err);
+    }
   },
 
   async update(id: number, data: {

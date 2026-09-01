@@ -434,6 +434,30 @@ export const api = {
         getCorrecciones() {
             return apiFetch('/consultas/correcciones')
         },
+        // Calendario parametrizable: tipo = 'grupo' | 'instructor' | 'ambiente'
+        getCalendario(tipo: string, id: number, semana?: string) {
+            const qs = new URLSearchParams({ tipo, id: String(id) })
+            if (semana) qs.set('semana', semana)
+            return apiFetch(`/consultas/calendario?${qs.toString()}`)
+        },
+        // Descarga un reporte en Excel (.xlsx). reporte = 'carga'|'horarios'|'ocupacion'|'correcciones'
+        // Hace fetch autenticado del binario y dispara la descarga en el navegador.
+        async descargarExcel(reporte: string, semana?: string) {
+            const qs = new URLSearchParams({ reporte })
+            if (semana) qs.set('semana', semana)
+            const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+            const resp = await fetch(`${API_BASE_URL}/consultas/excel?${qs.toString()}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            })
+            if (!resp.ok) throw new Error('No se pudo generar el Excel')
+            const blob = await resp.blob()
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `${reporte}-${new Date().toISOString().split('T')[0]}.xlsx`
+            document.body.appendChild(a); a.click(); a.remove()
+            URL.revokeObjectURL(url)
+        },
     },
 
     rapSeguimiento: {
@@ -463,6 +487,13 @@ export const api = {
         },
         evaluar(id: number, estado_aprobacion: string) {
             return apiFetch(`/rap-seguimiento/${id}/evaluar`, {
+                method: 'PATCH',
+                body: JSON.stringify({ estado_aprobacion }),
+            })
+        },
+        // Aprobar/No aprobar TODOS los RAPs de una competencia asignada (boton "Aprobar todos")
+        evaluarTodos(asignacionCompetenciaId: number, estado_aprobacion: 'aprobado' | 'no_aprobado') {
+            return apiFetch(`/rap-seguimiento/asignacion-competencia/${asignacionCompetenciaId}/evaluar-todos`, {
                 method: 'PATCH',
                 body: JSON.stringify({ estado_aprobacion }),
             })

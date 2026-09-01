@@ -38,6 +38,14 @@ export const evaluar = asyncHandler(async (req: Request, res: Response) => {
   ApiResponse.success(res, seguimiento, 'RAP evaluado exitosamente');
 });
 
+export const evaluarTodos = asyncHandler(async (req: Request, res: Response) => {
+  const result = await RapSeguimientoService.evaluarTodos(
+    Number(req.params.asignacionCompetenciaId),
+    req.body.estado_aprobacion,
+  );
+  ApiResponse.success(res, result, 'RAPs evaluados');
+});
+
 export const toggleActivo = asyncHandler(async (req: Request, res: Response) => {
   const result = await RapSeguimientoService.toggleActivo(Number(req.params.id));
   const message = result.activo ? 'Seguimiento activado' : 'Seguimiento desactivado';
