@@ -341,6 +341,10 @@ export const api = {
         getAreas() {
             return apiFetch('/catalogo/areas')
         },
+        // Enlaces externos configurables (Sofia Plus, SENA, Zajuna, ...)
+        getEnlaces() {
+            return apiFetch('/catalogo/enlaces')
+        },
         getCompetenciasByPrograma(programaId: number) {
             return apiFetch(`/catalogo/programas/${programaId}/competencias`)
         },
@@ -434,6 +438,13 @@ export const api = {
         getCorrecciones() {
             return apiFetch('/consultas/correcciones')
         },
+        // Avance de RAPs por grupo (resumen general y detalle por competencia)
+        getRapAvance() {
+            return apiFetch('/consultas/rap-avance')
+        },
+        getRapAvanceFicha(fichaId: number) {
+            return apiFetch(`/consultas/rap-avance/${fichaId}`)
+        },
         // Calendario parametrizable: tipo = 'grupo' | 'instructor' | 'ambiente'
         getCalendario(tipo: string, id: number, semana?: string) {
             const qs = new URLSearchParams({ tipo, id: String(id) })
@@ -517,6 +528,10 @@ export const api = {
                 method: 'POST',
                 body: JSON.stringify({ archivo_base64, crear_ambientes }),
             })
+        },
+        // Historico de cargas anteriores (fecha, usuario, creados/omitidos/errores)
+        getHistorico() {
+            return apiFetch('/importar/historico')
         },
     },
 
