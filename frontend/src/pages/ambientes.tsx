@@ -66,6 +66,7 @@ export default function AmbientesPage() {
   const porPagina = 10
   const [filtroTipo, setFiltroTipo] = useState<string[]>([])
   const [filtroEstado, setFiltroEstado] = useState<string[]>([])
+  const [filtroDisponibilidad, setFiltroDisponibilidad] = useState<string[]>([])
 
   const rol = user?.roles?.[0]?.trim() || ""
   const puedeEditar = !["Instructor", "Subdirector"].includes(rol)
@@ -77,8 +78,47 @@ export default function AmbientesPage() {
   const cargarAmbientes = async () => {
     setLoading(true)
     try {
-      const res = await api.ambientes.getAll()
-      setAmbientes(res.data || [])
+      const [ambRes, horRes] = await Promise.all([
+        api.ambientes.getAll(),
+        api.horarios.getAll(),
+      ])
+      const ambientesRaw: Ambiente[] = ambRes.data || []
+      const horarios = horRes.data || []
+
+      // Determinar dia actual (1=Lun..6=Sab)
+      const hoy = new Date()
+      const diaJS = hoy.getDay() // 0=Dom..6=Sab
+      const diasMap: Record<number, string> = { 1: "Lun", 2: "Mar", 3: "Mie", 4: "Jue", 5: "Vie", 6: "Sab" }
+      const diaHoy = diasMap[diaJS] || ""
+
+      // Hora actual para comparar
+      const horaActual = `${String(hoy.getHours()).padStart(2, "0")}:${String(hoy.getMinutes()).padStart(2, "0")}`
+
+      // Cruzar: para cada ambiente, buscar si hay un horario activo ahora
+      const ambientesConOcupante = ambientesRaw.map((amb) => {
+        if (!diaHoy) return amb
+        const horarioActual = horarios.find((h: any) => {
+          if (h.ambiente !== amb.nombre) return false
+          if (!h.dias?.includes(diaHoy) && !h.dias?.includes("Mié")) return false
+          // Comparar hora: h.horas es "06:00 - 12:00"
+          const partes = (h.horas || "").split(" - ")
+          if (partes.length !== 2) return false
+          return horaActual >= partes[0] && horaActual < partes[1]
+        })
+        if (horarioActual) {
+          return {
+            ...amb,
+            ocupante_actual: {
+              instructor: horarioActual.instructor_nombre,
+              ficha: horarioActual.ficha_numero,
+              competencia: horarioActual.competencia,
+            },
+          }
+        }
+        return amb
+      })
+
+      setAmbientes(ambientesConOcupante)
     } catch (err) {
       console.warn("Error cargando ambientes:", err)
       setAmbientes([])
@@ -92,13 +132,17 @@ export default function AmbientesPage() {
     const coincideBusqueda = amb.nombre.toLowerCase().includes(texto)
     const coincideTipo = filtroTipo.length === 0 || filtroTipo.includes(amb.tipo)
     const coincideEstado = filtroEstado.length === 0 || filtroEstado.some((f) => f === "activo" ? amb.activo : !amb.activo)
-    return coincideBusqueda && coincideTipo && coincideEstado
+    const coincideDisponibilidad = filtroDisponibilidad.length === 0 || filtroDisponibilidad.some((f) =>
+      f === "disponible" ? (!amb.ocupante_actual && amb.activo) :
+      f === "ocupado" ? !!amb.ocupante_actual : true
+    )
+    return coincideBusqueda && coincideTipo && coincideEstado && coincideDisponibilidad
   })
 
   const totalPaginas = Math.ceil(listaFiltrada.length / porPagina)
   const listaPaginada = listaFiltrada.slice((paginaActual - 1) * porPagina, paginaActual * porPagina)
 
-  useEffect(() => { setPaginaActual(1) }, [search, filtroTipo, filtroEstado])
+  useEffect(() => { setPaginaActual(1) }, [search, filtroTipo, filtroEstado, filtroDisponibilidad])
 
   const handleCreate = async (data: any) => {
     if (!(await confirm({ title: "Registrar ambiente", message: "¿Confirmas el registro de este ambiente?" }))) return
@@ -260,6 +304,16 @@ export default function AmbientesPage() {
               ]}
               selected={filtroEstado}
               onChange={setFiltroEstado}
+            />
+            <MultiSelect
+              label="Disponibilidad"
+              allLabel="Todos"
+              options={[
+                { value: "disponible", label: "Disponible" },
+                { value: "ocupado", label: "Ocupado" },
+              ]}
+              selected={filtroDisponibilidad}
+              onChange={setFiltroDisponibilidad}
             />
           </div>
         </div>
