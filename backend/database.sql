@@ -1367,6 +1367,7 @@ CREATE TABLE IF NOT EXISTS import_historico (
     creados        INT NOT NULL DEFAULT 0,
     omitidos       INT NOT NULL DEFAULT 0,
     errores        INT NOT NULL DEFAULT 0,
+    descartados    INT NOT NULL DEFAULT 0 COMMENT 'Filas caidas en el preview (fuera de rango, sin catalogo, ...)',
     created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
