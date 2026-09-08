@@ -1,11 +1,21 @@
 # CONINS — Contexto General
 ### Sistema de Control de Instructores · SENA CDMC
-**Versión:** 9.8 · **Fecha:** 27 de Agosto 2026
-**Basado en:** RF v10.1 · RNF v1.0 · ERS v3.0 · Lógica de Negocio v5.6 · CRONOGRAMA v4.8 · CHANGELOG al 27/08/2026
+**Versión:** 9.9 · **Fecha:** 08 de Septiembre 2026
+**Basado en:** RF v10.1 · RNF v1.0 · ERS v3.0 · Lógica de Negocio v5.6 · CRONOGRAMA v4.8 · CHANGELOG al 08/09/2026
 
 ---
 
 ## ⚡ Estado actual del proyecto
+
+**Hitos cerrados en Septiembre 2026 (pruebas con datos reales + hardening de integridad):**
+- **Cascada de desactivación reversible:** desactivar un grupo, instructor, competencia, RAP o ambiente apaga en cascada sus datos dependientes (asignaciones → competencias → RAPs → seguimientos + horarios + alertas), y reactivarlo los revive de forma precisa (marca `motivo_baja`; guardado por padres activos). Antes, desactivar un grupo lo dejaba visible en la grilla.
+- **Festivos reducen la carga (RN-07):** tabla `festivos` (Colombia 2026-2027); el reporte de carga muestra horas efectivas descontando festivos, sin disparar falsas alertas de "bajo carga".
+- **Importador más claro:** el rechazo por cruce (RN-04) nombra el grupo y la franja en conflicto; el histórico separa `errores` (rechazos del confirm) de `descartados` (filas caídas en el preview).
+- **Automatización BD:** `npm run db:setup` / `db:reset` (schema + seed vía cliente mysql).
+- **Integración del frontend de Laura al repo canónico** conservando la confirmación global (enlaces, ocupante de ambientes, filtro/celdas en horarios, Excel en Reportes, avance de RAPs, selección explícita de RAP, histórico de cargas, co-docencia).
+- **Excel estándar para ADSO:** por indicación del subdirector se solicitará a Carlos Álvarez (líder ADSO), vía el líder técnico Luis Eladio, la planeación en un modelo estándar (una fila = una sesión) para eliminar errores de datos de origen.
+
+
 
 | Fase | Período | Estado |
 |---|---|---|

@@ -1,6 +1,6 @@
 # CRONOGRAMA — CONINS
 **Centro del Diseño y Manufactura del Cuero (CDMC) — SENA**
-*Ultima actualizacion: 06/07/2026*
+*Ultima actualizacion: 08/09/2026 (F4 en curso: pruebas con datos reales ADSO — cascada reversible, festivos, mejoras al importador; F5 despliegue: requerimientos de servidor/subdominio en definicion con el centro)*
 
 ---
 

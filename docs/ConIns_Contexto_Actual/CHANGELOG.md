@@ -1,6 +1,6 @@
 # CONINS — Registro de Contexto y Cambios
 **Centro del Diseño y Manufactura del Cuero (CDMC) — SENA**
-*Última actualización: 2026-08-25 (auditoría profesional backend + BD)*
+*Última actualización: 2026-09-08 (cascada reversible de desactivación, festivos en carga, mejoras al importador, integración frontend Laura)*
 
 ---
 
@@ -21,6 +21,47 @@
 **Repo principal:** `https://github.com/Soywaz/conins`
 **Directorio local Jair:** `D:\2_ConIns\Jair_ConIns`
 **Directorio referencia instructor:** `D:\2_ConIns\WAZ_ConIns`
+
+---
+
+## Cambios recientes (08/09/2026) — cascada reversible, festivos, importador y frontend
+
+- **Cascada de desactivación reversible (BD + servicios):** al desactivar un grupo,
+  instructor, competencia, RAP o ambiente se apagan en cascada sus datos dependientes
+  (asignaciones → competencias → RAPs → seguimientos + horarios, y se marcan atendidas
+  las alertas estructurales), para que dejen de aparecer en la grilla. Es **reversible**:
+  reactivar el actor revive solo lo apagado por esa causa y cuyos demás padres sigan
+  activos. Nueva columna `motivo_baja` en `asignacion`, `asignacion_competencia`,
+  `asignacion_rap`, `rap_ficha_seguimiento`. Lógica centralizada en `models/cascada.model.ts`.
+  Responsabilidad de reactivación: Coordinación Académica.
+- **Festivos reducen la carga (RN-07):** nueva tabla `festivos` (seed festivos nacionales
+  de Colombia 2026-2027, Ley Emiliani + Pascua). `dataCargaHoraria` descuenta los bloques
+  que caen en día festivo (horas efectivas) y evalúa Sobrecarga/Bajo carga contra la
+  plantilla completa para no marcar falso "Bajo carga" en semanas con festivo. Endpoint
+  `GET /catalogo/festivos`.
+- **Importador — mensajes y trazabilidad:** el rechazo por cruce (RN-04) ahora nombra el
+  grupo y la franja en conflicto (`findConflicto`). El histórico de cargas gana la columna
+  `descartados` (filas caídas en el preview: fuera de rango, sin catálogo), aparte de
+  `errores` (rechazos del confirm), para reflejar todo lo que no se cargó.
+- **Automatización de la BD:** `npm run db:setup` / `db:reset` (`scripts/db-setup.mjs`)
+  ejecutan `database.sql` + `seed_maestro.sql` vía cliente `mysql` (respeta los `DELIMITER`
+  de triggers). Flujo: `db:reset` → importar Excel; alertas y seguimientos se recalculan solos.
+- **Frontend — integración del trabajo de Laura al repo canónico** conservando la
+  confirmación global: enlaces externos en sidebar, "ocupante actual" + filtro de
+  disponibilidad en ambientes, filtro de ambiente y celdas clicables en horarios, botón
+  Descargar Excel en Reportes, dashboard "Avance de RAPs", selección explícita de RAP
+  (EditAsignacion + wiring), histórico de importaciones, etiqueta CO_DOCENCIA en alertas.
+- **Catálogo:** tabla `enlaces_externos` (Sofia Plus, SENA, Zajuna).
+- **Migraciones sueltas** (para BD ya montada, en `backend/migrations/`): `enlaces_externos`,
+  `festivos`, `cascada_motivo_baja`, `import_historico_descartados`.
+- **Operativo (indicación del subdirector):** se solicitará a Carlos Álvarez (líder ADSO),
+  vía el líder técnico Luis Eladio, la planeación en un **Excel estándar** (una fila = una
+  sesión, sin celdas multivalor ni días/horas contradictorios) para eliminar los errores de
+  datos de origen. Modelo entregado: `CONINS_Modelo_Excel_Planeacion_ADSO.xlsx`.
+
+> Nota de repos: el CHANGELOG apunta a `github.com/Soywaz/conins`, pero el trabajo de
+> backend + integración se está consolidando en `github.com/DarkerJB/CONINS_PROJECT_Control_Instructores_SENA`.
+> Falta decidir/confirmar el repositorio canónico único con el equipo.
 
 ---
 
