@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { RowDataPacket } from 'mysql2';
+import { HorarioModel } from './horario.model.js';
 
 export interface FichaRecord extends RowDataPacket {
   id: number;
@@ -231,6 +232,22 @@ export const FichaModel = {
     const current = (rows as any[])[0]?.activo ?? true;
     const nuevo = !current;
     await pool.query('UPDATE fichas SET activo = ? WHERE id = ?', [nuevo, id]);
+
+    const MOTIVO = 'Grupo desactivado';
+    if (!nuevo) {
+      // Cascada OFF: apagar los horarios del grupo para que dejen de aparecer en la
+      // grilla, y marcar atendidas las alertas estructurales del grupo.
+      await HorarioModel.desactivarPorActor('ficha_id', id, MOTIVO);
+      await pool.query(
+        'UPDATE alertas SET atendida = TRUE WHERE ficha_id = ? AND atendida = FALSE',
+        [id],
+      );
+    } else {
+      // Reactivacion (por error humano u otra causa; decide coordinacion): revive
+      // solo los horarios que se apagaron por esta cascada y cuyos demas actores
+      // (ambiente/RAP) sigan activos.
+      await HorarioModel.reactivarPorActor('ficha_id', id, MOTIVO);
+    }
     return nuevo;
   },
 

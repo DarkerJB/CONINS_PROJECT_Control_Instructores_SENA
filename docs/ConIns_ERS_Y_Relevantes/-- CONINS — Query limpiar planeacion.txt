@@ -127,3 +127,11 @@ Permitir enlaces al blog del sena, a Sofía, zajuna, etc
 Foto del instructor
 
 
+
+
+Revertir cambios
+que al desactivar grupos, ambientes, raps, se vea reflejado en el horario.
+Tener en cuenta cuando son días festivos ya que reduce la carga horaria.
+
+
+

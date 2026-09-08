@@ -4,6 +4,7 @@ import { ApiResponse } from '../utils/response.js';
 import { NotFoundError, ValidationError, ConflictError } from '../utils/errors.js';
 import pool from '../config/db.js';
 import { AsignacionRapModel } from '../models/asignacion-rap.model.js';
+import { HorarioModel } from '../models/horario.model.js';
 
 // ============================================================
 // COMPETENCIAS — RF-25, RF-26 (RN-25)
@@ -219,6 +220,17 @@ export const toggleRapEstado = asyncHandler(async (req: Request, res: Response) 
   }
 
   await pool.query('UPDATE raps SET activo = ? WHERE id = ?', [nuevoEstado, rapId]);
+
+  // Cascada a horarios: si el RAP se desactiva, se apagan los horarios que lo dictan
+  // (dejan de aparecer en la grilla) y se marcan atendidas sus alertas estructurales;
+  // si se reactiva, se reviven los apagados por esta causa cuyos demas actores sigan activos.
+  const MOTIVO_RAP = 'RAP desactivado';
+  if (!nuevoEstado) {
+    await HorarioModel.desactivarPorActor('rap_id', rapId, MOTIVO_RAP);
+    await pool.query('UPDATE alertas SET atendida = TRUE WHERE rap_id = ? AND atendida = FALSE', [rapId]);
+  } else {
+    await HorarioModel.reactivarPorActor('rap_id', rapId, MOTIVO_RAP);
+  }
 
   const message = nuevoEstado ? 'RAP activado' : 'RAP desactivado';
   ApiResponse.success(res, { id: rapId, activo: nuevoEstado }, message);
