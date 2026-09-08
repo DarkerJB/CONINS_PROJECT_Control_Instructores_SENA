@@ -299,6 +299,7 @@ CREATE TABLE IF NOT EXISTS asignacion (
     motivo_provisional  TEXT NULL,
     fecha_asignacion    DATE NULL,
     activo              BOOLEAN NOT NULL DEFAULT TRUE,
+    motivo_baja         VARCHAR(80) NULL COMMENT 'Causa de la baja en cascada (para reactivar con precision)',
     UNIQUE KEY uq_instructor_ficha (instructor_id, ficha_id),
     FOREIGN KEY (instructor_id)     REFERENCES instructores(id) ON DELETE RESTRICT,
     FOREIGN KEY (ficha_id)          REFERENCES fichas(id)       ON DELETE CASCADE,
@@ -323,6 +324,7 @@ CREATE TABLE IF NOT EXISTS asignacion_competencia (
     ambiente_excepcion_id INT NULL,
     observacion           TEXT NULL,
     activo                BOOLEAN NOT NULL DEFAULT TRUE,
+    motivo_baja           VARCHAR(80) NULL COMMENT 'Causa de la baja en cascada (para reactivar con precision)',
     UNIQUE KEY uq_asignacion_competencia (asignacion_id, competencia_id),
     FOREIGN KEY (asignacion_id)          REFERENCES asignacion(id)   ON DELETE CASCADE,
     FOREIGN KEY (competencia_id)         REFERENCES competencias(id) ON DELETE RESTRICT,
@@ -344,6 +346,7 @@ CREATE TABLE IF NOT EXISTS asignacion_rap (
     instructor_anterior_id    INT NULL COMMENT 'Trazabilidad RN-16 al reasignar el RAP',
     fecha_cambio              DATETIME NULL,
     activo                    BOOLEAN NOT NULL DEFAULT TRUE,
+    motivo_baja               VARCHAR(80) NULL COMMENT 'Causa de la baja en cascada (para reactivar con precision)',
     created_at                TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_asignacion_competencia_rap (asignacion_competencia_id, rap_id),
     FOREIGN KEY (asignacion_competencia_id) REFERENCES asignacion_competencia(id) ON DELETE CASCADE,
@@ -369,6 +372,7 @@ CREATE TABLE IF NOT EXISTS rap_ficha_seguimiento (
     estado_aprobacion         ENUM('aprobado','no_aprobado') NULL
                                 COMMENT 'Solo aplica si estado_evaluacion = evaluado',
     activo                    BOOLEAN NOT NULL DEFAULT TRUE,
+    motivo_baja               VARCHAR(80) NULL COMMENT 'Causa de la baja en cascada (para reactivar con precision)',
     FOREIGN KEY (asignacion_competencia_id)
         REFERENCES asignacion_competencia(id) ON DELETE CASCADE,
     FOREIGN KEY (rap_id)

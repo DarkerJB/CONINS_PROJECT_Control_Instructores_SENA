@@ -4,7 +4,7 @@ import { ApiResponse } from '../utils/response.js';
 import { NotFoundError, ValidationError, ConflictError } from '../utils/errors.js';
 import pool from '../config/db.js';
 import { AsignacionRapModel } from '../models/asignacion-rap.model.js';
-import { HorarioModel } from '../models/horario.model.js';
+import { CascadaModel } from '../models/cascada.model.js';
 
 // ============================================================
 // COMPETENCIAS — RF-25, RF-26 (RN-25)
@@ -118,6 +118,15 @@ export const toggleEstado = asyncHandler(async (req: Request, res: Response) => 
   const nuevoEstado = !(existing as any[])[0].activo;
   await pool.query('UPDATE competencias SET activo = ? WHERE id = ?', [nuevoEstado, id]);
 
+  // Cascada: al desactivar la competencia se apagan sus asignacion_competencia, los RAPs
+  // asignados, seguimientos y horarios de esa competencia; al reactivar se reviven solo
+  // los apagados por esta causa (no toca la asignacion, que puede tener otras competencias).
+  if (!nuevoEstado) {
+    await CascadaModel.competenciaOff(id);
+  } else {
+    await CascadaModel.competenciaOn(id);
+  }
+
   const message = nuevoEstado ? 'Competencia activada' : 'Competencia desactivada';
   ApiResponse.success(res, { id, activo: nuevoEstado }, message);
 });
@@ -221,15 +230,12 @@ export const toggleRapEstado = asyncHandler(async (req: Request, res: Response) 
 
   await pool.query('UPDATE raps SET activo = ? WHERE id = ?', [nuevoEstado, rapId]);
 
-  // Cascada a horarios: si el RAP se desactiva, se apagan los horarios que lo dictan
-  // (dejan de aparecer en la grilla) y se marcan atendidas sus alertas estructurales;
-  // si se reactiva, se reviven los apagados por esta causa cuyos demas actores sigan activos.
-  const MOTIVO_RAP = 'RAP desactivado';
+  // Cascada: al desactivar el RAP se apagan sus asignaciones de RAP, seguimientos y
+  // horarios (+ alertas); al reactivar se reviven solo los apagados por esta causa.
   if (!nuevoEstado) {
-    await HorarioModel.desactivarPorActor('rap_id', rapId, MOTIVO_RAP);
-    await pool.query('UPDATE alertas SET atendida = TRUE WHERE rap_id = ? AND atendida = FALSE', [rapId]);
+    await CascadaModel.rapOff(rapId);
   } else {
-    await HorarioModel.reactivarPorActor('rap_id', rapId, MOTIVO_RAP);
+    await CascadaModel.rapOn(rapId);
   }
 
   const message = nuevoEstado ? 'RAP activado' : 'RAP desactivado';

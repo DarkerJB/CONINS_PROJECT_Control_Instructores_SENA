@@ -298,46 +298,6 @@ export const HorarioModel = {
     );
   },
 
-  // Cascada al desactivar un "actor" (grupo/ambiente/RAP): se apagan sus horarios
-  // activos para que dejen de aparecer en la grilla. Se etiqueta el motivo para
-  // poder revertir con precision (reactivarPorActor). El campo es una union literal
-  // (no viene del request) — no hay riesgo de inyeccion.
-  async desactivarPorActor(
-    campo: 'ficha_id' | 'ambiente_id' | 'rap_id',
-    id: number,
-    motivo: string,
-  ): Promise<number> {
-    const [res] = await pool.query(
-      `UPDATE horarios SET activo = FALSE, motivo_suspension = ?
-       WHERE ${campo} = ? AND activo = TRUE`,
-      [motivo, id],
-    );
-    return (res as any).affectedRows ?? 0;
-  },
-
-  // Reactivacion por error humano: revive SOLO los horarios que se apagaron por esta
-  // cascada (motivo_suspension = marca) y cuyos demas actores sigan activos. Asi no
-  // revive un horario rechazado, suspendido a mano, o cuyo ambiente/RAP siga inactivo.
-  async reactivarPorActor(
-    campo: 'ficha_id' | 'ambiente_id' | 'rap_id',
-    id: number,
-    motivo: string,
-  ): Promise<number> {
-    const [res] = await pool.query(
-      `UPDATE horarios h
-         JOIN fichas f      ON f.id = h.ficha_id
-         LEFT JOIN ambientes ab ON ab.id = h.ambiente_id
-         LEFT JOIN raps r       ON r.id = h.rap_id
-       SET h.activo = TRUE, h.motivo_suspension = NULL
-       WHERE h.${campo} = ? AND h.activo = FALSE AND h.motivo_suspension = ?
-         AND f.activo = TRUE
-         AND (h.ambiente_id IS NULL OR ab.activo = TRUE)
-         AND (h.rap_id IS NULL OR r.activo = TRUE)`,
-      [id, motivo],
-    );
-    return (res as any).affectedRows ?? 0;
-  },
-
   async getHorasPorInstructor(instructorId: number, semana: string): Promise<number> {
     // LEFT JOIN para que los bloques sin tipo asignado (tipo_actividad_id IS NULL)
     // sigan sumando — condición OR IS NULL evita romper horarios pre-01/07/2026.

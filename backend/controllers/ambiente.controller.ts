@@ -3,7 +3,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse } from '../utils/response.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 import pool from '../config/db.js';
-import { HorarioModel } from '../models/horario.model.js';
+import { CascadaModel } from '../models/cascada.model.js';
 
 export const getAll = asyncHandler(async (_req: Request, res: Response) => {
   const [rows] = await pool.query('SELECT id, nombre, tipo, capacidad, area_id, sede_id, activo FROM ambientes WHERE activo = TRUE ORDER BY nombre');
@@ -69,11 +69,10 @@ export const update = asyncHandler(async (req: Request, res: Response) => {
   // aparecer en la grilla); si se reactiva, se reviven los que se apagaron por esta
   // causa y cuyos demas actores sigan activos. Idempotente si activo no cambio.
   if (activo !== undefined) {
-    const MOTIVO = 'Ambiente desactivado';
     if (!activo) {
-      await HorarioModel.desactivarPorActor('ambiente_id', id, MOTIVO);
+      await CascadaModel.ambienteOff(id);
     } else {
-      await HorarioModel.reactivarPorActor('ambiente_id', id, MOTIVO);
+      await CascadaModel.ambienteOn(id);
     }
   }
 
