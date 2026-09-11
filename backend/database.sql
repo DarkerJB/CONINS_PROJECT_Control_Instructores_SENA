@@ -484,7 +484,7 @@ CREATE TABLE IF NOT EXISTS alertas (
     id            INT AUTO_INCREMENT PRIMARY KEY,
     instructor_id INT NOT NULL,
     tipo          VARCHAR(60)  NOT NULL COMMENT 'HORAS_EXCEDIDAS | HORAS_INSUFICIENTES | AMBIENTE_OCUPADO | ASIGNACION_PROVISIONAL | INSTRUCTOR_PLANTA_JORNADA_NOCTURNA | RAP_COMPARTIDO',
-    mensaje       VARCHAR(255) NOT NULL,
+    mensaje       TEXT NOT NULL,
     semana        DATE         NULL COMMENT 'Lunes de la semana afectada (alertas de carga); NULL en alertas estructurales',
     total_horas   DECIMAL(5,2) NULL COMMENT 'Solo alertas de carga',
     ficha_id      INT NULL COMMENT 'Alertas estructurales (p.ej. RAP_COMPARTIDO)',
