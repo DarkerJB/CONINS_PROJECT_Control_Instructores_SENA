@@ -1,6 +1,29 @@
-REQUISITOS FUNCIONALES — CONINS v10.2
+REQUISITOS FUNCIONALES — CONINS v10.3
 Centro del Diseño y Manufactura del Cuero — CDMC SENA
-Actualizado: 19 de Agosto 2026 (62 RF — v10.2)
+Base: 19 de Agosto 2026 (v10.2) · Actualizado: 18 de Septiembre 2026 (64 RF — v10.3)
+
+========================================================================================
+
+CAMBIOS RESPECTO A v10.2 (feedback 08/09 y 16/09, 18/09/2026):
+
+  Se incorporan las decisiones de las sesiones 08/09 y 16/09 sin renumerar
+  los RF existentes. Dos RF nuevos se agregan al final conservando la
+  secuencia (RF-63, RF-64); su modulo se indica en la etiqueta.
+    - RF-63 (Horarios) — Formacion complementaria: bloque de horario sin
+      grupo ni competencia/RAP, atado a un programa complementario, que
+      suma carga. Nueva RN-34.
+    - RF-64 (Alertas) — Atencion de alertas: marcar una alerta como
+      atendida queda restringido a roles administrativos. Nueva RN-35.
+  Ademas se ajustan RF existentes:
+    - RF-12 (Registro de instructores): captura el tipo de vinculacion
+      (contrato/planta). Nueva RN-33.
+    - RF-50 y RF-54 (carga horaria): el maximo depende de la vinculacion
+      (contrato 40 h, planta 32.5 h; minimo 20 h) y las semanas con
+      festivo descuentan carga. RN-32 (festivos) y RN-33 (vinculacion).
+    - RF-16, RF-20, RF-30 y RF-45: la desactivacion es en cascada
+      REVERSIBLE (RN-31): reactivar el actor revive lo apagado por esa causa.
+    - RF-34: acepta el modo de formacion complementaria (ver RF-63, RN-34).
+  Total: 62 -> 64 RF. LN de referencia: v5.7 (rev 18/09, RN-31 a RN-35).
 
 ========================================================================================
 
@@ -133,9 +156,10 @@ MODULO INSTRUCTORES
 RF-12 | Registro de instructores
 Desc:  El sistema debe permitir a los administradores registrar
        instructores indicando el área o áreas (técnica, transversal o
-       ambas) en que pueden impartir formación.
-Reglas: RN-13
-Rel:   Requiere RF-07. Prerequisito de RF-41.
+       ambas) en que pueden impartir formación y su tipo de vinculación
+       (contrato o planta), que define su carga máxima semanal.
+Reglas: RN-13, RN-33
+Rel:   Requiere RF-07. Prerequisito de RF-41. Vinculación afecta RF-50 y RF-54.
 
 RF-13 | Competencias habilitadas
 Desc:  El sistema debe permitir a los administradores definir y mantener
@@ -159,8 +183,9 @@ Rel:   Requiere RF-12.
 RF-16 | Deshabilitar y reactivar instructores
 Desc:  El sistema debe permitir a los administradores deshabilitar y
        reactivar instructores conservando su historial de asignaciones y
-       novedades.
-Reglas: RN-10
+       novedades. Al deshabilitar, sus datos dependientes se apagan en
+       cascada reversible; al reactivar, reviven los apagados por esa causa.
+Reglas: RN-10, RN-31
 Rel:   Requiere RF-12. Notifica: RF-49.
 
 ========================================================================================
@@ -188,8 +213,10 @@ Rel:   Requiere RF-17. Cambio de ambiente valida RF-33 y RN-09.
 
 RF-20 | Finalizar o deshabilitar grupos
 Desc:  El sistema debe permitir a los administradores finalizar o
-       deshabilitar grupos sin eliminarlos, conservando su historial.
-Reglas: RN-10
+       deshabilitar grupos sin eliminarlos, conservando su historial. Al
+       deshabilitar, sus asignaciones y horarios se apagan en cascada
+       reversible; al reactivar el grupo, reviven los apagados por esa causa.
+Reglas: RN-10, RN-31
 Rel:   Requiere RF-17.
 
 RF-21 | Consulta de grupos
@@ -263,8 +290,10 @@ Rel:   Prerequisito de RF-17 y RF-31.
 
 RF-30 | Deshabilitar y reactivar ambientes
 Desc:  El sistema debe permitir a los administradores deshabilitar y
-       reactivar ambientes conservando su historial.
-Reglas: RN-10
+       reactivar ambientes conservando su historial. Al deshabilitar, los
+       horarios que lo usan se apagan en cascada reversible; al reactivar,
+       reviven los apagados por esa causa.
+Reglas: RN-10, RN-31
 Rel:   Requiere RF-29.
 
 RF-31 | Consulta de ambientes
@@ -292,8 +321,10 @@ MODULO HORARIOS
 RF-34 | Registro de horario
 Desc:  El sistema debe permitir a los administradores registrar un bloque
        de horario asignando grupo, instructor, ambiente, RAP y jornada.
-Reglas: RN-03, RN-04, RN-05, RN-08, RN-09, RN-26, RN-27
-Rel:   Requiere RF-17, RF-41, RF-42. Aprobación: RF-37.
+       Admite también el modo de formación complementaria (sin grupo ni
+       competencia/RAP, atado a un programa — ver RF-63).
+Reglas: RN-03, RN-04, RN-05, RN-08, RN-09, RN-26, RN-27, RN-34
+Rel:   Requiere RF-17, RF-41, RF-42. Aprobación: RF-37. Complementaria: RF-63.
 
 RF-35 | Edición de horario
 Desc:  El sistema debe permitir a los administradores editar un bloque de
@@ -366,9 +397,10 @@ Rel:   Requiere RF-41.
 
 RF-45 | Desactivar asignación
 Desc:  El sistema debe permitir a los administradores desactivar una
-       asignación en cascada, registrando el motivo y conservando el
-       historial.
-Reglas: RN-10, RN-16
+       asignación en cascada REVERSIBLE, registrando el motivo y
+       conservando el historial. Reactivar la asignación revive lo apagado
+       por esa causa cuyos demás padres sigan activos.
+Reglas: RN-10, RN-16, RN-31
 Rel:   Requiere RF-41. Afecta RF-34. Desactiva horarios asociados: RF-36.
 
 RF-46 | Consulta de asignaciones
@@ -401,10 +433,12 @@ Rel:   Desde RF-50, RF-43, RF-32, RF-09, RF-16.
 
 RF-50 | Alerta de carga horaria
 Desc:  El sistema debe alertar cuando la carga horaria semanal de un
-       instructor quede por debajo de 20 o por encima de 40 horas, sin
-       bloquear el registro.
-Reglas: RN-07
-Rel:   Desde RF-34, RF-37. Visible en RF-54.
+       instructor quede por debajo del mínimo (20 h) o por encima del
+       máximo según su tipo de vinculación (contrato 40 h, planta 32.5 h),
+       sin bloquear el registro. Las semanas con festivo descuentan las
+       horas de los bloques que caen en festivo.
+Reglas: RN-07, RN-32, RN-33
+Rel:   Desde RF-34, RF-37. Usa RF-12 (vinculación). Visible en RF-54.
 
 RF-51 | Alerta de jornada restringida
 Desc:  El sistema debe alertar al registrar un horario en jornada nocturna
@@ -430,9 +464,11 @@ MODULO CONSULTA Y REPORTES
 
 RF-54 | Panel de carga horaria
 Desc:  El sistema debe mostrar la carga horaria semanal de cada instructor
-       comparada con el rango permitido de 20 a 40 horas.
-Reglas: RN-07
-Rel:   Desde RF-34, RF-37, RF-40. Alcance: RF-58.
+       comparada con su rango permitido (mínimo 20 h; máximo según
+       vinculación: 40 h contrato, 32.5 h planta), descontando los festivos
+       de la semana.
+Reglas: RN-07, RN-32, RN-33
+Rel:   Desde RF-34, RF-37, RF-40. Usa RF-12 (vinculación). Alcance: RF-58.
 
 RF-55 | Consulta global
 Desc:  El sistema debe permitir a los administradores consultar y filtrar
@@ -493,8 +529,32 @@ Rel:   Requiere RF-61. Registro en RF-59.
 
 ========================================================================================
 
+ADICIONES v10.3 (18/09/2026)
+Se agregan al final para no renumerar; la etiqueta indica su módulo.
+
+RF-63 | Formación complementaria         [Módulo Horarios]
+Desc:  El sistema debe permitir a los administradores registrar formación
+       complementaria como un bloque de horario SIN grupo ni competencia/
+       RAP, atado a un programa de tipo complementario, indicando programa,
+       modalidad (presencial/virtual), día, jornada, hora inicio/fin y
+       observaciones. Suma a la carga horaria del instructor y se muestra
+       agrupada bajo su programa (no bajo un grupo). Se valida el solape del
+       instructor igual que un horario normal.
+Reglas: RN-04, RN-34, RN-07
+Rel:   Es un modo de RF-34. Alimenta RF-50 y RF-54. Visible en RF-38.
+
+RF-64 | Atención de alertas              [Módulo Alertas y Notificaciones]
+Desc:  El sistema debe permitir marcar una alerta como atendida únicamente a
+       los roles administrativos (Subdirector, Coordinadora Académica,
+       Asistente Coordinación, Administrador). El rol Instructor no puede
+       atender alertas; el sistema se lo impide.
+Reglas: RN-35, RN-18
+Rel:   Aplica sobre RF-50, RF-51, RF-52. Alcance: RF-58.
+
+========================================================================================
+
 RESUMEN
-Total de requisitos funcionales: 62 (RF-01 a RF-62, secuencia continua)
+Total de requisitos funcionales: 64 (RF-01 a RF-64, secuencia continua)
 
 Modulo AUTH:                            11  (RF-01 al RF-11)
 Modulo Instructores:                     5  (RF-12 al RF-16)
@@ -502,14 +562,14 @@ Modulo Grupos:                           6  (RF-17 al RF-22)
 Modulo Programas:                        2  (RF-23 al RF-24)
 Modulo Competencias y RAPs:              4  (RF-25 al RF-28)
 Modulo Ambientes:                        5  (RF-29 al RF-33)
-Modulo Horarios:                         7  (RF-34 al RF-40)
+Modulo Horarios:                         8  (RF-34 al RF-40, RF-63)
 Modulo Asignaciones:                     6  (RF-41 al RF-46)
-Modulo Alertas y Notificaciones:         7  (RF-47 al RF-53)
+Modulo Alertas y Notificaciones:         8  (RF-47 al RF-53, RF-64)
 Modulo Consulta y Reportes:              4  (RF-54 al RF-57)
 Modulo Seguridad y Trazabilidad:         3  (RF-58 al RF-60)
 Modulo Seguimiento de RAPs:              2  (RF-61 al RF-62)
                                         ───
-                                         62
+                                         64
 
 ========================================================================================
 

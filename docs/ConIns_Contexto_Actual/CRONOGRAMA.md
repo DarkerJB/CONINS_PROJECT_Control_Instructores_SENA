@@ -1,6 +1,6 @@
 # CRONOGRAMA — CONINS
 **Centro del Diseño y Manufactura del Cuero (CDMC) — SENA**
-*Ultima actualizacion: 08/09/2026 (F4 en curso: pruebas con datos reales ADSO — cascada reversible, festivos, mejoras al importador; F5 despliegue: requerimientos de servidor/subdominio en definicion con el centro)*
+*Ultima actualizacion: 18/09/2026 (feedback 16/09 aplicado en backend: instructor no atiende alertas, tipo de vinculacion 40/32.5, formacion complementaria; F5 despliegue definido como INTRANET del CDMC con documento de requerimientos de servidor listo; inicia fase de documentacion completa — ERS, manuales)*
 
 ---
 
@@ -153,19 +153,33 @@
 ---
 
 ### FASE 5 — Documentación y despliegue
-**Semanas 22–24 | 31/08/2026 – 18/09/2026**
+**Semanas 22–24 | 31/08/2026 – 18/09/2026** (en ejecución, con ajuste de alcance de despliegue a intranet)
 **Responsable:** Jair y Laura (conjunta)
-**Estado:** ⬜ PENDIENTE
+**Estado:** 🔄 EN CURSO
 
 | # | Actividad | Responsable | Fecha inicio | Fecha fin | Estado |
 |---|---|---|---|---|---|
-| 18 | Elaborar manual técnico, de usuario y de despliegue | Jair + Laura | 31/08/2026 | 11/09/2026 | ⬜ |
-| 19 | Despliegue en entorno de producción del CDMC | Jair | 14/09/2026 | 16/09/2026 | ⬜ |
-| 20 | Entrega formal con acta y socialización a usuarios | Jair + Laura | 17/09/2026 | 18/09/2026 | ⬜ |
+| 18 | Elaborar documentación completa (ERS, manual de usuario, manual técnico y de despliegue, diccionario de datos) | Jair + Laura | 31/08/2026 | 25/09/2026 | 🔄 |
+| 19 | Despliegue en **intranet del CDMC** (VM del centro + subdominio interno) | Jair | 22/09/2026 | 30/09/2026 | ⬜ |
+| 20 | Entrega formal con acta y socialización a usuarios | Jair + Laura | 01/10/2026 | 03/10/2026 | ⬜ |
+
+**Ajuste de alcance (18/09/2026):** el despliegue se define como **intranet** (uso interno del
+centro, sin exposición a Internet). Documento de descripción + requerimientos técnicos de
+servidor entregado a coordinación para la solicitud a TI:
+`D:\2_ConIns\Servidor\CONINS_Descripcion_y_Requerimientos_Servidor` (.md/.docx/.pdf). A la
+espera de que TI provea la VM y el nombre en el DNS interno.
+
+**Plan de documentación completa (en preparación):** ver el índice
+`docs/ConIns_Contexto_Actual/PLAN_DOCUMENTACION.md`, que lista cada entregable (ERS, manuales,
+diccionario de datos, etc.), su estado y las fuentes ya existentes reutilizables.
 
 **Evidencias a generar:**
-- ⬜ Manual técnico, manual de usuario y manual de despliegue del sistema CONINS
-- ⬜ Sistema CONINS desplegado en producción con URL documentada
+- 🔄 ERS consolidada (a partir de RF v10.3 (64 RF) + RNF v1.1 + Lógica de Negocio v5.7)
+- ⬜ Manual de usuario (por rol) del sistema CONINS
+- ⬜ Manual técnico / de instalación y despliegue (intranet CDMC)
+- ⬜ Diccionario de datos (35 tablas)
+- ✅ Documento de requerimientos de servidor/despliegue (18/09/2026)
+- ⬜ Sistema CONINS desplegado en la intranet con dirección interna documentada
 - ⬜ Acta de entrega formal firmada por coordinador e instructor líder
 
 ---
@@ -194,9 +208,9 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 |---|---|---|---|---|
 | F1 — Análisis y requisitos | 1–4 | 09/04 – 30/04/2026 | 4 semanas | ✅ Completada |
 | F2 — Modelado y diseño | 5–6 | 04/05 – 15/05/2026 | 2 semanas | ✅ Completada (sem. 5) |
-| F3 — Construcción | 7–18 | 19/05 – 06/08/2026 | 12 semanas | 🔄 En curso |
-| F4 — Pruebas y ajustes | 19–21 | 10/08 – 28/08/2026 | 3 semanas | ⬜ Pendiente |
-| F5 — Documentación y despliegue | 22–24 | 31/08 – 18/09/2026 | 3 semanas | ⬜ Pendiente |
+| F3 — Construcción | 7–18 | 19/05 – 06/08/2026 | 12 semanas | ✅ Completada |
+| F4 — Pruebas y ajustes | 19–21 | 10/08 – 28/08/2026 | 3 semanas | ✅ Completada (simulacros con datos reales ADSO) |
+| F5 — Documentación y despliegue | 22–24 | 31/08 – 30/09/2026 | 4 semanas | 🔄 En curso (doc completa + despliegue intranet) |
 | Buffer / Cierre | 25–27 | 21/09 – 07/10/2026 | 3 semanas | ⬜ Reservado |
 
 ---
@@ -372,6 +386,8 @@ S1 S2 S3 S4 | S5 S6 S7 S8 | S9 S10 S11 S12 | S13 S14 S15 S16 | S17 S18 S19 S20 S
 
 | Fecha | Cambio |
 |---|---|
+| 18/09/2026 | v4.9 — Feedback 16/09 aplicado en backend: R1 (Instructor no atiende alertas — 403 + boton oculto), R2 (`tipo_vinculacion` contrato 40h / planta 32.5h), R3 (formacion complementaria: horario sin grupo/competencia atado a programa, suma carga). Schema 31 → 35 tablas (festivos, enlaces_externos, import_historico, import_correcciones). F3/F4 cerradas; F5 en curso: despliegue definido como INTRANET del CDMC con documento de requerimientos de servidor entregado; inicia documentacion completa (ERS, manuales, diccionario de datos) — ver PLAN_DOCUMENTACION.md. Docs: contexto v9.10, Logica v5.7 rev 18/09, CHANGELOG 16-18/09. |
+| 08/09/2026 | v4.8b — Cascada reversible de desactivacion (motivo_baja), festivos descuentan carga (RN-07), mejoras al importador (mensaje RN-04 con grupo/franja, descartados), integracion frontend Laura, db:setup/db:reset. |
 | 28/07/2026 | v4.8 — Feedback 2 del lider + integracion frontend Laura. Sedes (tabla + modulo, 24/07). Historico de instructores (tabla + baja, 24/07). Auditoria de normalizacion 29 tablas. Fixes 28/07: instructores_count (subconsulta), instructores en GET /fichas/:id, jornada_id en asignacion. Migracion frontend Laura (wizard, sidebar, selectores RAP). Docs: contexto v9.7, Logica v5.6 rev 28/07 (31 tablas). Nuevos pendientes P37 (jornada vs RN-20), P38 (consolidaciones auditoria), P39/P40 (Excel, correo). |
 | 21/07/2026 | v4.7 — Rework por feedback lider tecnico. RF v10.1 (62 RF, 12 modulos). RNF v1.0 (24 RNF). Logica de Negocio v5.6 (RN-15 redefinida, RN-25/26/27, tabla asignacion_rap). Contexto General v9.6. IMPLEMENTADO mismo dia: P34 (CRUD competencias/RAPs), RF-24/RF-44 (referentes), migracion frontend Laura, P29b+P35+P36 (modelo RAP directo: asignacion_rap, RF-42 con RN-06, RF-34 con RN-27). Pendientes: P30/P31, P33, P35b. |
 | 15/07/2026 | v4.6 — database.sql + seed_data.sql: tipo_contrato eliminado (DDL, 3 triggers, sp_crear_instructor, 2 views, seed INSERT). RF v8.0: 53 RF en 11 modulos, numeracion secuencial. Logica de Negocio v5.4. Contexto General v9.5. CHANGELOG entradas 14/07 y 15/07. |

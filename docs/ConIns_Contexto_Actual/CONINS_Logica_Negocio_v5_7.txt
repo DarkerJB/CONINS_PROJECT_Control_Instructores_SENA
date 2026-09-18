@@ -1,7 +1,7 @@
-LÓGICA DE NEGOCIO — CONINS v5.7
+LÓGICA DE NEGOCIO — CONINS v5.7 (rev 18/09/2026)
 Centro del Diseño y Manufactura del Cuero — CDMC SENA
-Versión: 5.7 · Fecha: 19 de Agosto 2026
-Basado en: RF v10.2 · sesiones 23/04 a 21/07, 24/07, 28/07, 29/07, 31/07 y 05/08/2026
+Versión: 5.7 · Fecha base: 19 de Agosto 2026 · Última revisión: 18 de Septiembre 2026
+Basado en: RF v10.3 (64 RF) · RNF v1.1 · sesiones 23/04 a 21/07, 24/07, 28/07, 29/07, 31/07, 05/08, 08/09 y 16/09/2026
 
 NOTA DE VIGENCIA (21/07/2026): documento actualizado a v5.6 para alinearlo
 con Requisitos Funcionales v10.1. La versión previa (v5.5) quedó basada en
@@ -28,6 +28,22 @@ inconsistencias del 18/08/2026. Cambios respecto a v5.6:
   - Sección 5: se agregan las entidades SEDE e INSTRUCTOR HISTÓRICO.
   - Sección 1: se reconoce la gestión de sedes y de bajas de instructor.
   - Sección 8: conteo de tablas unificado en 31.
+
+NOTA DE VIGENCIA (18/09/2026): revisión tras sesiones 08/09 y feedback 16/09.
+Cambios respecto a la v5.7 base:
+  - RN-31 NUEVA: cascada de desactivación REVERSIBLE (generaliza RN-29 a
+    grupo/instructor/competencia/RAP/ambiente; marca `motivo_baja`;
+    reactivación por Coordinación Académica).
+  - RN-32 NUEVA: los festivos descuentan carga (tabla `festivos`).
+  - RN-33 NUEVA + RN-07 ACTUALIZADA: la carga máxima depende del tipo de
+    vinculación — contrato 40 h, planta 32.5 h (mínimo 20 h ambos).
+  - RN-34 NUEVA: formación complementaria (horario sin grupo/competencia,
+    atado a programa, suma carga).
+  - RN-35 NUEVA: atender alertas queda restringido a roles administrativos
+    (el Instructor recibe 403).
+  - Sección 5: el INSTRUCTOR incorpora `tipo_vinculacion`.
+  - Sección 8: conteo de tablas actualizado a 35 (festivos, enlaces_externos,
+    import_historico, import_correcciones).
   - Sección 11: pendientes depurados (los del rework 21/07 quedaron
     resueltos); Sección 12: historial extendido a 05/08.
   - RF de referencia: v10.2 (referencias cruzadas corregidas; RF-37
@@ -140,7 +156,12 @@ INSTRUCTOR:
    - Se le asignan: competencias, RAPs específicos, ambientes (vía
      horarios) y grupos.
    - Puede pertenecer al área técnica (medular), transversal o ambas.
-   - Su carga horaria semanal debe mantenerse entre 20 y 40 horas.
+   - Tiene un TIPO DE VINCULACIÓN (16/09/2026): "contrato" o "planta".
+     Define su carga máxima semanal: contrato = 40 h, planta = 32.5 h
+     (mínimo 20 h en ambos casos). Columna `instructores.tipo_vinculacion`,
+     default "contrato".
+   - Su carga horaria semanal debe mantenerse entre el mínimo (20 h) y el
+     máximo según su vinculación (ver RN-07).
 
 GRUPO (ficha):
    - Tiene UN SOLO programa de formación.
@@ -225,10 +246,16 @@ RN-06 · Unicidad de RAP por grupo (reforzada 21/07/2026)
    RAP directo, esta unicidad se valida al asignar el RAP (RF-42) y al
    registrar el horario que lo dicta (RF-34).
 
-RN-07 · Rango de carga horaria semanal
-   Entre 20 y 40 horas semanales para todos los instructores. Fuera del
-   rango se genera un aviso (no se bloquea). Solo suman carga los bloques
-   aprobados cuyo tipo de actividad así lo determine.
+RN-07 · Rango de carga horaria semanal (actualizada 16/09/2026 — por vinculación)
+   El mínimo es 20 h para todos. El MÁXIMO depende del tipo de vinculación
+   del instructor: CONTRATO = 40 h, PLANTA = 32.5 h. Fuera del rango se
+   genera un aviso (no se bloquea): "Sobrecarga" si supera el máximo,
+   "Bajo carga" si no alcanza el mínimo. El cálculo usa los límites según
+   `instructores.tipo_vinculacion` (backend: `LIMITES_HORAS` +
+   `limitesDe(vinculacion)` en `constants/horario.ts`). Solo suman carga
+   los bloques cuyo tipo de actividad así lo determine, incluida la
+   FORMACIÓN COMPLEMENTARIA (ver RN-34). Las semanas con día festivo
+   descuentan las horas de los bloques que caen en festivo (ver RN-32).
 
 RN-08 · Novedad administrativa del instructor
    Con novedad vigente (fecha de inicio ≤ hoy ≤ fecha de regreso), el
@@ -357,6 +384,45 @@ RN-30 · Carga parcial en importación masiva (NUEVA 05/08/2026)
    con su número de fila y motivo, sin abortar el lote. El resultado
    informa, por hoja, cuántos registros se crearon y qué filas fallaron.
 
+RN-31 · Cascada de desactivación REVERSIBLE (NUEVA 08/09/2026)
+   Generaliza RN-29. Al desactivar un GRUPO, INSTRUCTOR, COMPETENCIA, RAP
+   o AMBIENTE, el sistema apaga en cascada sus datos dependientes
+   (asignaciones → competencias → RAPs → seguimientos + horarios) y marca
+   atendidas las alertas estructurales, para que dejen de aparecer en la
+   grilla. Cada baja en cascada se marca con `motivo_baja` (columna en
+   asignacion, asignacion_competencia, asignacion_rap, rap_ficha_seguimiento;
+   NULL cuando la desactivación fue manual). Es REVERSIBLE: reactivar el
+   actor revive únicamente lo apagado por esa causa y solo si sus demás
+   padres siguen activos. La reactivación es responsabilidad de la
+   Coordinación Académica (por error humano o cualquier otra causa). Lógica
+   centralizada en `models/cascada.model.ts`.
+
+RN-32 · Festivos descuentan carga (NUEVA 08/09/2026)
+   Los días festivos nacionales (tabla `festivos`, Colombia 2026-2027, Ley
+   Emiliani + Pascua) no se laboran. En semanas con festivo, el reporte de
+   carga descuenta las horas de los bloques que caen en festivo (horas
+   efectivas) y evalúa Sobrecarga/Bajo carga contra la plantilla completa,
+   para no marcar un falso "Bajo carga".
+
+RN-33 · Tipo de vinculación define la carga máxima (NUEVA 16/09/2026)
+   Cada instructor tiene `tipo_vinculacion`: CONTRATO (máx 40 h/semana) o
+   PLANTA (máx 32.5 h/semana); mínimo 20 h ambos. Es el insumo de RN-07
+   para decidir Sobrecarga/Bajo carga. Default "contrato".
+
+RN-34 · Formación complementaria (NUEVA 16/09/2026)
+   Bloque de horario SIN grupo ni competencia/RAP, atado a un PROGRAMA
+   complementario (`programas.tipo_formacion='complementaria'`). Sirve para
+   llenar carga baja y SÍ suma a la carga (RN-07). Requiere programa +
+   modalidad (presencial|virtual); `ficha_id`/`competencia_id`/`rap_id`
+   quedan NULL. Se valida el solape del instructor (RN-04) igual que un
+   horario normal. Se agrupa y muestra bajo su programa, no bajo un grupo.
+
+RN-35 · Atención de alertas restringida a administración (NUEVA 16/09/2026)
+   Marcar una alerta como atendida es una acción de coordinación/
+   administración. El rol INSTRUCTOR no puede atender alertas: el endpoint
+   `PATCH /api/alertas/:id/atendida` exige rol administrativo (ROLES_ADMIN)
+   y responde 403 al Instructor; el frontend oculta el botón para ese rol.
+
 ========================================================================================
 
 7. STACK TECNOLÓGICO
@@ -375,7 +441,12 @@ CONINS_Requisitos_No_Funcionales_v1_1.txt.
 
 ========================================================================================
 
-8. MODELO DE DATOS — schema v5.3 (31 tablas al 28/07/2026)
+8. MODELO DE DATOS — schema v5 (35 tablas al 18/09/2026; 31 al 28/07/2026)
+   Tablas añadidas 08-16/09: festivos, enlaces_externos, import_historico,
+   import_correcciones. Columnas nuevas: instructores.tipo_vinculacion;
+   horarios.programa_id / modalidad / observaciones (ficha_id y competencia_id
+   pasan a NULL para formación complementaria); motivo_baja en la cadena de
+   asignación (cascada reversible).
 
 Jerarquía central (modelo RAP directo v10.x):
 
@@ -434,25 +505,28 @@ ESTADO DE LOS CAMBIOS DE SCHEMA DEL REWORK 21/07/2026:
 
 ========================================================================================
 
-9. RESUMEN DE RF v10.2 — 62 RF EN 12 MÓDULOS
+9. RESUMEN DE RF v10.3 — 64 RF EN 12 MÓDULOS
 
-   Módulo                                  Rango            Total
-   AUTH                                    RF-01 a RF-11    11
-   Instructores                            RF-12 a RF-16     5
-   Grupos                                  RF-17 a RF-22     6
-   Programas                               RF-23 a RF-24     2
-   Competencias y RAPs                     RF-25 a RF-28     4
-   Ambientes                               RF-29 a RF-33     5
-   Horarios                                RF-34 a RF-40     7
-   Asignaciones                            RF-41 a RF-46     6
-   Alertas y Notificaciones                RF-47 a RF-53     7
-   Consulta y Reportes                     RF-54 a RF-57     4
-   Seguridad y Trazabilidad                RF-58 a RF-60     3
-   Seguimiento de RAPs                     RF-61 a RF-62     2
-   Total                                                    62
+   Módulo                                  Rango                Total
+   AUTH                                    RF-01 a RF-11        11
+   Instructores                            RF-12 a RF-16         5
+   Grupos                                  RF-17 a RF-22         6
+   Programas                               RF-23 a RF-24         2
+   Competencias y RAPs                     RF-25 a RF-28         4
+   Ambientes                               RF-29 a RF-33         5
+   Horarios                                RF-34 a RF-40, RF-63  8
+   Asignaciones                            RF-41 a RF-46         6
+   Alertas y Notificaciones                RF-47 a RF-53, RF-64  8
+   Consulta y Reportes                     RF-54 a RF-57         4
+   Seguridad y Trazabilidad                RF-58 a RF-60         3
+   Seguimiento de RAPs                     RF-61 a RF-62         2
+   Total                                                        64
 
-Ver CONINS_Requisitos_Funcionales_v10_2.txt para el texto completo y el
-mapa de decisiones del feedback del líder técnico.
+   Adiciones v10.3 (18/09): RF-63 Formación complementaria (RN-34) y
+   RF-64 Atención de alertas restringida a administración (RN-35).
+
+Ver CONINS_Requisitos_Funcionales_v10_2.txt (interno v10.3) para el texto
+completo y el mapa de decisiones del feedback del líder técnico.
 
 ========================================================================================
 
@@ -571,8 +645,18 @@ PRINCIPIO GENERAL:
                          como aprobación automática). RN-28/29/30 nuevas.
                          Guard RN-26 implementado. Alineación con reporte
                          de inconsistencias del 18/08/2026.
+   v5.7 rev 08/09/2026   Cascada de desactivación REVERSIBLE (RN-31, motivo_baja),
+                         festivos descuentan carga (RN-32), mejoras al importador.
+                         Schema 31 → 33 tablas (festivos, enlaces_externos).
+   v5.7 rev 18/09/2026   Feedback 16/09: tipo de vinculación define carga máx
+                         (RN-33 + RN-07: contrato 40 / planta 32.5), formación
+                         complementaria (RN-34), atender alertas solo roles
+                         administrativos (RN-35). Schema 33 → 35 tablas
+                         (import_historico, import_correcciones). Columnas
+                         instructores.tipo_vinculacion y horarios.programa_id/
+                         modalidad/observaciones.
 
 ========================================================================================
 
-CONINS · SENA CDMC · Lógica de Negocio v5.7 (rev 21/08/2026) · 19 de Agosto 2026
+CONINS · SENA CDMC · Lógica de Negocio v5.7 (rev 18/09/2026) · base 19 de Agosto 2026
 Autores: Jair Enrique González Buelvas · Laura Sofía Posada

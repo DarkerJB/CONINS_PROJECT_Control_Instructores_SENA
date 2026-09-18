@@ -1,6 +1,62 @@
 # CONINS — Registro de Contexto y Cambios
 **Centro del Diseño y Manufactura del Cuero (CDMC) — SENA**
-*Última actualización: 2026-09-08 (cascada reversible de desactivación, festivos en carga, mejoras al importador, integración frontend Laura)*
+*Última actualización: 2026-09-18 (feedback 16/09: instructor no atiende alertas, tipo de vinculación 40/32.5, formación complementaria; preparación de despliegue en intranet)*
+
+---
+
+## Cambios recientes (16-18/09/2026) — feedback 16/09 (R1/R2/R3) y despliegue en intranet
+
+**Feedback de coordinación del 16/09 (implementado en backend, `tsc` limpio):**
+
+- **R1 — El rol Instructor no puede atender alertas.** `PATCH /api/alertas/:id/atendida` ahora
+  exige rol administrativo (`ROLES_ADMIN`: Subdirector / Coordinadora Academica / Asistente
+  Coordinacion / Administrador). Un Instructor recibe **403**. En frontend, el botón "Marcar como
+  atendida" se oculta cuando el rol es `Instructor` (`esAdmin = rol !== "Instructor"`). Atender
+  alertas es responsabilidad de coordinación/administración.
+- **R2 — Tipo de vinculación del instructor (define su carga máxima).** Nueva columna
+  `instructores.tipo_vinculacion ENUM('contrato','planta') DEFAULT 'contrato'`. Límites de carga
+  semanal por tipo: **Contrato = 40 h**, **Planta = 32.5 h**, mínimo 20 h ambos
+  (`constants/horario.ts`: `LIMITES_HORAS = { contrato:{20,40}, planta:{20,32.5} }`,
+  `limitesDe(vinculacion)`). `GET /api/instructores` y `/:id` devuelven el campo; `POST` y
+  `PATCH /:id` lo aceptan (opcional, default `contrato`). La alerta de carga (Sobrecarga / Bajo
+  carga) usa el máximo/mínimo según el tipo. `isInstructorDePlanta` consulta `tipo_vinculacion='planta'`.
+- **R3 — Formación complementaria.** Bloque de horario **sin grupo ni competencia/RAP**, atado a
+  un **programa complementario**, que llena carga baja y **suma a la carga**. Mismo endpoint
+  `POST /api/horarios` con dos modos (validados por `refine` del schema):
+  - Normal: requiere `ficha_id` + `competencia_id`.
+  - Complementaria: `es_complementaria: true` + `programa_id` + `modalidad`
+    (`'presencial'|'virtual'`) + `observaciones?`; **sin** `ficha_id`/`competencia_id`/`rap_id`.
+  Valida solape del instructor (RN-04) igual que un horario normal; dispara `HORAS_INSUFICIENTES`
+  si queda bajo el mínimo. `GET /api/horarios` (y `findById`) traen `es_complementaria`,
+  `programa_codigo`, `programa`, `modalidad`; en complementaria `ficha_numero = "Compl. <código>"`
+  y `competencia = <nombre del programa>` para que agrupe bajo su programa.
+- **Columnas nuevas:** `instructores.tipo_vinculacion`; `horarios.programa_id` (FK programas
+  RESTRICT), `horarios.modalidad ENUM('presencial','virtual')`, `horarios.observaciones TEXT`;
+  `horarios.ficha_id` y `horarios.competencia_id` pasan a **NULL** para el modo complementaria.
+- **Migraciones** (`backend/migrations/`): `2026-09-16_instructor_tipo_vinculacion.sql`,
+  `2026-09-16_horarios_formacion_complementaria.sql`. (Ya vienen en `database.sql` para `db:reset`.)
+- **Reporte a Laura** con los contratos de frontend: `Reportes_Cambios_Y_Otros/Reporte_Laura_Feedback_16-09.md`.
+
+**Despliegue en intranet del CDMC (F5, 18/09):**
+
+- Documento formal de **descripción + requerimientos técnicos de servidor** para la solicitud a
+  TI: `D:\2_ConIns\Servidor\CONINS_Descripcion_y_Requerimientos_Servidor` (.md/.docx/.pdf).
+- Despliegue definido como **intranet** (uso interno, sin exposición a Internet): VM Linux
+  (recomendado) o Windows Server; DNS interno `conins.<dominio-interno>` o IP fija; certificado
+  del **CA institucional** (no aplica Let's Encrypt por no haber exposición pública); puertos
+  80/443 abiertos **solo en la red interna**; BD y puertos internos (3000/5000/3306) no expuestos.
+- Incluye justificación por especificación (CPU/RAM/disco con desglose), sección de preguntas
+  anticipadas de TI, seguridad y tratamiento de datos, y checklist de lo que se solicita.
+
+**Pendientes tras esta sesión:**
+
+- **R3 backend (seguimiento):** que el calendario parametrizable por instructor/ambiente
+  (`/consultas/calendario`) incluya la formación complementaria (hoy ya sale en la grilla principal).
+- **R3 frontend (Laura):** formulario de complementaria (ocultar competencia/RAP; mostrar
+  programa/modalidad/fechas/jornada/horario/observaciones) + visualización y filtro por tipo de formación.
+- **Unificación de repos:** consolidar a `DarkerJB/CONINS_PROJECT` (archivar Soywaz y Laura0513).
+- **Despliegue LAN/ethernet:** `api.ts` con `API_BASE_URL` configurable, CORS `FRONTEND_URL` a IP
+  de LAN, firewall 3000/5000, IP estática.
 
 ---
 

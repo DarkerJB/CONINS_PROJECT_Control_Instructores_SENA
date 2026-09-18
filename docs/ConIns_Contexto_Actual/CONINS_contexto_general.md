@@ -1,11 +1,32 @@
 # CONINS — Contexto General
 ### Sistema de Control de Instructores · SENA CDMC
-**Versión:** 9.9 · **Fecha:** 08 de Septiembre 2026
-**Basado en:** RF v10.1 · RNF v1.0 · ERS v3.0 · Lógica de Negocio v5.6 · CRONOGRAMA v4.8 · CHANGELOG al 08/09/2026
+**Versión:** 9.10 · **Fecha:** 18 de Septiembre 2026
+**Basado en:** RF v10.3 (64 RF) · RNF v1.1 · ERS v3.0 · Lógica de Negocio v5.7 (rev 18/09) · CRONOGRAMA v4.9 · CHANGELOG al 18/09/2026
 
 ---
 
 ## ⚡ Estado actual del proyecto
+
+**Hitos cerrados en Septiembre 2026 — parte 2 (feedback 16/09 + preparación de despliegue):**
+- **El rol Instructor no puede atender alertas (R1):** `PATCH /api/alertas/:id/atendida` exige rol
+  administrativo (Subdirector / Coordinadora / Asistente / Administrador); un Instructor recibe
+  403 y en el frontend el botón "Marcar como atendida" queda oculto para ese rol. Atender alertas
+  es responsabilidad de coordinación/administración.
+- **Tipo de vinculación del instructor (R2):** nueva columna `instructores.tipo_vinculacion`
+  (`contrato` | `planta`) que define la carga máxima semanal — **Contrato = 40 h**, **Planta =
+  32.5 h** (mínimo 20 h ambos). La alerta de carga (Sobrecarga / Bajo carga) usa el máximo/mínimo
+  según el tipo. Expuesto en `GET /instructores` y `:id`, y aceptado en crear/editar.
+- **Formación complementaria (R3):** un bloque de horario **sin grupo ni competencia/RAP**, atado
+  a un **programa complementario**, que sirve para llenar carga baja y **sí suma a la carga**.
+  Mismo endpoint `POST /api/horarios` con `es_complementaria: true` + `programa_id` + `modalidad`
+  (`presencial`|`virtual`) + `observaciones`; valida solape del instructor (RN-04) igual que un
+  horario normal. En la grilla/detalle aparece agrupado bajo su programa (`es_complementaria`,
+  `programa`, `modalidad`). Columnas nuevas en `horarios`: `programa_id`, `modalidad`,
+  `observaciones`; `ficha_id`/`competencia_id` pasan a NULL para permitir este modo.
+- **Preparación de despliegue en intranet del CDMC:** documento de descripción + requerimientos
+  técnicos de servidor listo para la solicitud a TI (`Servidor/CONINS_Descripcion_y_Requerimientos_Servidor`).
+  Despliegue definido como **intranet** (uso interno, sin exposición a Internet): VM Linux/Windows,
+  DNS interno o IP fija, certificado del CA institucional, puertos 80/443 solo en red interna.
 
 **Hitos cerrados en Septiembre 2026 (pruebas con datos reales + hardening de integridad):**
 - **Cascada de desactivación reversible:** desactivar un grupo, instructor, competencia, RAP o ambiente apaga en cascada sus datos dependientes (asignaciones → competencias → RAPs → seguimientos + horarios + alertas), y reactivarlo los revive de forma precisa (marca `motivo_baja`; guardado por padres activos). Antes, desactivar un grupo lo dejaba visible en la grilla.
@@ -22,8 +43,8 @@
 | F1 — Análisis y requisitos | 09/04 – 30/04/2026 | ✅ Completada |
 | F2 — Modelado y diseño | 04/05 – 15/05/2026 | ✅ Completada anticipadamente |
 | F3 — Construcción | 19/05 – 06/08/2026 | ✅ Completada |
-| F4 — Pruebas y ajustes | 10/08 – 28/08/2026 | 🔄 En curso — simulacros y ajustes con datos reales ADSO |
-| F5 — Documentación y despliegue | 31/08 – 18/09/2026 | ⬜ Pendiente |
+| F4 — Pruebas y ajustes | 10/08 – 28/08/2026 | ✅ Completada — simulacros con datos reales ADSO |
+| F5 — Documentación y despliegue | 31/08 – 30/09/2026 | 🔄 En curso — doc completa (ERS, manuales) + despliegue intranet |
 
 **Hitos cerrados en Agosto 2026 (simulacros + preparación de exposición):**
 - **Importador de datos vía Excel (P39):** el líder envía su Excel crudo tal cual; el sistema lo normaliza en una **vista previa revisable** (empareja instructores por correo, competencias/RAPs contra el catálogo, ambientes y jornadas por nombre) y solo escribe al confirmar. Import **idempotente** (re-cargar un Excel corregido no duplica: cuenta "omitidos"), mensajes de error **ubicables** (nombre del instructor · grupo · día · horas + hoja y fila de origen), validación de horas/fechas imposibles, y botón de "Generar reporte" de correcciones. Canonización de ambientes ("202"/"Aula 202"/"Ambiente 202" → un mismo salón) para que las alertas de ambiente ocupado detecten los cruces reales.
@@ -303,9 +324,9 @@ Paso 3 en adelante: login normal con correo + contraseña
 
 ---
 
-## 11. Modelo de datos — schema v5 (31 tablas — verificado 24/07/2026)
+## 11. Modelo de datos — schema v5 (35 tablas — verificado 18/09/2026)
 
-> **Historial de conteo:** 25 (30/06) → 27 (06/07) → 28 (15/07, +password_reset_tokens) → 29 (21/07, +asignacion_rap) → 31 (24/07, +sedes +instructor_historico). Columnas nuevas: `horarios.rap_id` (21/07), `ambientes.sede_id` y `fichas.sede_id` (24/07), `asignacion.jornada_id` (28/07 — jornada preferente, informativa). Lista completa de las 31: `sedes, jornadas, roles, areas, usuarios, usuario_roles, instructores, instructor_historico, programas, competencias, raps, ambientes, fichas, asignacion, asignacion_competencia, asignacion_rap, lider_programa, instructor_competencias_habilitadas, horarios, alertas, tipos_novedad_instructor, instructor_novedades, ambiente_bloqueos, tipos_novedad_ambiente, tipos_novedad_ficha, ficha_novedades, notificaciones, auditoria, tipos_actividad, rap_ficha_seguimiento, password_reset_tokens`.
+> **Historial de conteo:** 25 (30/06) → 27 (06/07) → 28 (15/07, +password_reset_tokens) → 29 (21/07, +asignacion_rap) → 31 (24/07, +sedes +instructor_historico) → 35 (08-16/09, +festivos +enlaces_externos +import_historico +import_correcciones). Columnas nuevas: `horarios.rap_id` (21/07), `ambientes.sede_id` y `fichas.sede_id` (24/07), `asignacion.jornada_id` (28/07 — jornada preferente, informativa), `motivo_baja` en `asignacion`/`asignacion_competencia`/`asignacion_rap`/`rap_ficha_seguimiento` (08/09 — cascada reversible), `instructores.tipo_vinculacion` y `horarios.programa_id`/`modalidad`/`observaciones` (16/09 — R2 y R3); `horarios.ficha_id`/`competencia_id` pasan a NULL (16/09, para formación complementaria). Lista completa de las 35: `sedes, jornadas, roles, areas, usuarios, usuario_roles, instructores, instructor_historico, programas, competencias, raps, ambientes, fichas, asignacion, asignacion_competencia, asignacion_rap, lider_programa, instructor_competencias_habilitadas, horarios, alertas, tipos_novedad_instructor, instructor_novedades, ambiente_bloqueos, tipos_novedad_ambiente, tipos_novedad_ficha, ficha_novedades, notificaciones, auditoria, tipos_actividad, rap_ficha_seguimiento, password_reset_tokens, festivos, enlaces_externos, import_historico, import_correcciones`.
 
 ```
 instructor
@@ -352,15 +373,33 @@ asignacion_competencia (asignacion_id, competencia_id, instructor_anterior_id,
 
 **Horarios, alertas y notificaciones:**
 ```sql
-horarios       (instructor_id, ficha_id, competencia_id, ambiente_id, jornada_id, fecha,
-                 hora_inicio, hora_fin, estado, motivo_rechazo, motivo_suspension, activo)
-alertas        (instructor_id, tipo, mensaje, leida, generada_en)
+horarios       (instructor_id, ficha_id?, competencia_id?, rap_id?, ambiente_id, jornada_id, fecha,
+                 hora_inicio, hora_fin, estado, motivo_rechazo, motivo_suspension,
+                 programa_id?, modalidad?, observaciones?, activo)
+               -- ficha_id/competencia_id NULL en formación complementaria (R3);
+               -- en ese modo se llenan programa_id + modalidad('presencial'|'virtual')
+alertas        (instructor_id, tipo, mensaje TEXT, leida, generada_en)
 notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
+```
+
+**Instructores (extracto relevante):**
+```sql
+instructores (id, usuario_id, tipo_area ENUM('tecnica','transversal'),
+              tipo_vinculacion ENUM('contrato','planta') DEFAULT 'contrato',  -- R2: define carga máx (40 / 32.5)
+              foto_url, activo)
+```
+
+**Calendario y catálogos operativos (nuevos 08-16/09):**
+```sql
+festivos           (id, fecha, nombre)                    -- RN-07: descuenta carga en semanas con festivo
+enlaces_externos   (id, nombre, url, activo)              -- Sofia Plus, SENA, Zajuna
+import_historico   (id, usuario_id, archivo, insertados, omitidos, errores, descartados, creado_en)
+import_correcciones(id, ...)                              -- filas a corregir del preview
 ```
 
 ---
 
-## 12. Requisitos Funcionales v10.1 — 62 RF en 12 módulos
+## 12. Requisitos Funcionales v10.3 — 64 RF en 12 módulos
 
 | Módulo | Rango | Total |
 |---|---|---|
@@ -370,15 +409,20 @@ notificaciones (usuario_id, tipo, mensaje, leida, generada_en)
 | Programas | RF-23 al RF-24 | 2 |
 | Competencias y RAPs | RF-25 al RF-28 | 4 |
 | Ambientes | RF-29 al RF-33 | 5 |
-| Horarios | RF-34 al RF-40 | 7 |
+| Horarios | RF-34 al RF-40, RF-63 | 8 |
 | Asignaciones | RF-41 al RF-46 | 6 |
-| Alertas y Notificaciones | RF-47 al RF-53 | 7 |
+| Alertas y Notificaciones | RF-47 al RF-53, RF-64 | 8 |
 | Consulta y Reportes | RF-54 al RF-57 | 4 |
 | Seguridad y Trazabilidad | RF-58 al RF-60 | 3 |
 | Seguimiento de RAPs | RF-61 al RF-62 | 2 |
-| **Total** | | **62** |
+| **Total** | | **64** |
 
-Ver `CONINS_Requisitos_Funcionales_v10_1.txt` para el texto completo y el mapa de decisiones del feedback del líder técnico. Requisitos no funcionales en `CONINS_Requisitos_No_Funcionales_v1_0.txt` (24 RNF). Los archivos v8_0.txt y v7_0.txt se conservan como historial.
+> Adiciones v10.3 (18/09): **RF-63** Formación complementaria (Horarios, RN-34) y **RF-64**
+> Atención de alertas restringida a administración (Alertas, RN-35). RF-12 captura el tipo de
+> vinculación (RN-33); RF-50/RF-54 usan el máximo por vinculación (40/32.5) y descuentan
+> festivos (RN-32/RN-33); RF-16/RF-20/RF-30/RF-45 reflejan la cascada reversible (RN-31).
+
+Ver `CONINS_Requisitos_Funcionales_v10_2.txt` (interno v10.3) para el texto completo y el mapa de decisiones del feedback del líder técnico. Requisitos no funcionales en `CONINS_Requisitos_No_Funcionales_v1_1.txt` (24 RNF). Los archivos v8_0.txt y v7_0.txt se conservan como historial.
 
 ---
 
