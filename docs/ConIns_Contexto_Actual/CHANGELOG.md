@@ -1,6 +1,57 @@
 # CONINS — Registro de Contexto y Cambios
 **Centro del Diseño y Manufactura del Cuero (CDMC) — SENA**
-*Última actualización: 2026-09-18 (feedback 16/09: instructor no atiende alertas, tipo de vinculación 40/32.5, formación complementaria; preparación de despliegue en intranet)*
+*Última actualización: 2026-09-22 (calendario parametrizable incluye formación complementaria; reporte a Laura)*
+
+---
+
+## Cambios recientes (22/09/2026) — calendario incluye formación complementaria
+
+- **`GET /consultas/calendario` ahora incluye la formación complementaria.** El calendario hacía
+  `JOIN fichas` (INNER), por lo que descartaba los bloques de complementaria (`ficha_id` NULL).
+  Se cambió a `LEFT JOIN fichas` + `LEFT JOIN programas`, y se exponen `es_complementaria`,
+  `programa_codigo`, `programa`, `modalidad`, con rótulo `grupo = "Compl. <código>"` y
+  `competencia = <nombre del programa>` (igual que la grilla principal). La complementaria
+  aparece en las vistas por **instructor** y por **ambiente**; **no** bajo `grupo` (no tiene
+  grupo). `tsc` limpio. Cierra el pendiente de R3-backend.
+- **Reporte a Laura** con el enfoque "sin RAPs" y el contrato completo (crear, campos de lectura,
+  calendario y tareas de frontend): `Reportes_Cambios_Y_Otros/Reporte_Laura_Complementaria_22-09.md`.
+- **Pendiente (Laura):** frontend de complementaria — modo del formulario (ocultar competencia/RAP;
+  pedir programa/modalidad/fecha/jornada/día/hora/observaciones), visualización en grilla y
+  calendario, y filtro por tipo de formación.
+
+---
+
+## Cambios recientes (21/09/2026) — seguridad, organización de skills y metodología
+
+**Revisión de seguridad pre-despliegue intranet (focalizada).** Base confirmada sólida
+(SQL parametrizado, bcrypt, JWT sin secreto por defecto, requireRole en escrituras,
+filtrado por rol en listados). Fixes de código aplicados (`tsc` limpio):
+- IDOR acotado al dueño en `PATCH /notificaciones/:id/leida` (`AND usuario_id = ?`) y en
+  alertas (`marcarLeida`/`marcarTodasLeidas`: admin todas, instructor solo las suyas).
+- Detalle de instructor gateado a rol administrativo (`GET /instructores/:id`, `/:id/detalle`,
+  `/:id/competencias`) — cierra un gap de RN-18 (el instructor consulta lo suyo por `/perfil`).
+Hallazgos de **configuración de despliegue** (no de código) en
+`Servidor/CONINS_Checklist_Despliegue_Seguro.md`: JWT_SECRET fuerte, `NODE_ENV=production`,
+cambio de la clave del Administrador, usuario de BD dedicado, salida SMTP.
+Detalle en `REVISION_SEGURIDAD.md` (sección 5, 21/09).
+
+**Organización de skills (carpeta `.claude/skills/`, local — `.claude` está gitignorado).**
+- Consolidación en la única ubicación que la herramienta lee, `.claude/skills/`. Se descartó
+  `.agents/skills/` (no es ruta de descubrimiento de Claude); `frontend-design` se movió a
+  `.claude/skills/frontend-design/`.
+- `conins-core` actualizada a la realidad del código (rev 18/09): límites por vinculación
+  (40/32.5), formación complementaria, festivos, RN-31 a RN-35, cascada reversible, sin
+  `permisoService` (eliminado), rol `Administrador` en `requireRole`.
+- Nota de estructura: las skills auto-descubribles requieren `.claude/skills/<nombre>/SKILL.md`;
+  `conins-core` (dos niveles + `SKILL_<x>.md`) funciona como **bundle de referencia** ligado a
+  `CLAUDE.md`, no como skills invocables por nombre.
+
+**Metodología de desarrollo — plugin Superpowers (obra/superpowers).** Instalado en Cowork
+(Customize → Plugins) como capa de proceso: brainstorming → writing-plans → TDD →
+requesting-code-review → systematic-debugging → verification-before-completion, etc. Complementa
+(no reemplaza) las skills de dominio de `conins-core`. Se retiran los 3 duplicados sueltos
+(`systematic-debugging`, `verification-before-completion`, `writing-plans`) para que los provea
+el plugin (namespaced). Aplicará plenamente cuando exista infraestructura de pruebas (P16).
 
 ---
 

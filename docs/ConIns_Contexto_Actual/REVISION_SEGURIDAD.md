@@ -98,3 +98,45 @@ acumular paquetes, sino: entradas validadas, secretos fuertes, consultas
 parametrizadas (ya está), rate limiting activo en producción, y no exponer
 información en errores (ya está). Este documento se irá actualizando conforme se
 cierren los huecos.
+
+---
+
+## 5. Revisión pre-despliegue intranet (21/09/2026)
+
+Segunda pasada focalizada antes de la aprobación del despliegue en intranet.
+Se confirmó lo ya protegido (SQL parametrizado en TODOS los modelos, incluidos
+los `UPDATE` dinámicos que solo interpolan nombres de columna en whitelist;
+bcrypt; JWT sin secreto por defecto en código; `requireRole` en todas las
+escrituras; filtrado por rol en los listados —RN-18—; body limitado; errores sin
+fuga de stack). Hallazgos nuevos y su estado:
+
+### Corregidos en código (21/09, `tsc` limpio)
+
+- **IDOR — marcar notificación/alerta como leída (Baja).** `PATCH
+  /notificaciones/:id/leida` y `/alertas/:id/leida` actualizaban por `id` sin
+  acotar al dueño. Fix: `marcarLeida` de notificaciones ahora exige
+  `usuario_id = req.user.id`; en alertas, admin marca cualquiera y el instructor
+  solo las suyas (`instructor_id`). `marcarTodasLeidas` de alertas también quedó
+  acotado (admin: todas; instructor: solo las suyas).
+- **Lectura de datos de otros instructores (Media, gap RN-18).** `GET
+  /instructores/:id`, `/:id/detalle` y `/:id/competencias` solo tenían
+  `verifyToken`: un rol Instructor podía leer PII de colegas (documento, correo,
+  novedades). Fix: los tres GET ahora exigen rol administrativo. El instructor
+  consulta lo suyo por `/instructores/perfil` (sin cambios).
+
+### Pendientes de configuración de despliegue (no son de código)
+
+- 🔴 **Contraseña de admin conocida.** `SUPER_USER_PASSWORD=Admin2026!` está en
+  `.env.example` y en el seed. Debe cambiarse en el primer login o generarse
+  aleatoria y entregarse fuera de banda. No dejar el default en producción.
+- 🔴 **JWT_SECRET fuerte** (32+ bytes aleatorios) en el `.env` real; no el
+  placeholder. (Ya estaba en el roadmap.)
+- 🟡 **`NODE_ENV=production`** obligatorio para que el rate limiter (incl. login)
+  se active.
+- 🟡 **Usuario de BD dedicado** (no `root`/clave vacía) con permisos solo sobre
+  `conIns`.
+- 🟢 **SMTP saliente** (si se activa correo): abrir salida a 587/465 hacia el
+  relay institucional; ver `Servidor/CONINS_Checklist_Despliegue_Seguro.md`.
+
+Checklist operativo completo en
+`Servidor/CONINS_Checklist_Despliegue_Seguro.md`.
