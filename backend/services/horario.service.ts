@@ -55,6 +55,8 @@ export const HorarioService = {
     programa_id?: number | null;
     modalidad?: 'presencial' | 'virtual' | null;
     observaciones?: string | null;
+    fecha_inicio?: string | null;
+    fecha_fin?: string | null;
   }, origin: 'import' | 'ui' = 'ui') {
     if (data.es_complementaria) {
       return crearComplementaria(data);
@@ -442,6 +444,15 @@ export const HorarioService = {
 // Formacion complementaria: bloque de horario SIN grupo ni competencia/RAP, atado a un
 // programa complementario. Llena carga baja; suma a la carga y respeta el solape (RN-04),
 // pero no valida competencia/RAP/ambiente-ocupado/co-docencia (no aplica sin grupo).
+// Lunes (YYYY-MM-DD) de la semana que contiene la fecha dada. UTC-safe.
+function lunesDe(fechaISO: string): string {
+  const d = new Date(`${fechaISO}T00:00:00Z`);
+  const dow = d.getUTCDay();               // 0=Dom ... 6=Sab
+  const offset = dow === 0 ? -6 : 1 - dow; // retrocede al lunes
+  d.setUTCDate(d.getUTCDate() + offset);
+  return d.toISOString().slice(0, 10);
+}
+
 async function crearComplementaria(data: {
   instructor_id: number;
   programa_id?: number | null;
@@ -453,56 +464,87 @@ async function crearComplementaria(data: {
   hora_fin: string;
   jornada_id: number;
   semana?: string;
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
 }) {
   const instructor = await InstructorModel.findById(data.instructor_id);
   if (!instructor) throw new NotFoundError('Instructor no encontrado');
   if (!data.programa_id) throw new ValidationError('La formacion complementaria requiere un programa');
   if (!data.modalidad) throw new ValidationError('La formacion complementaria requiere modalidad (presencial/virtual)');
+  if (!data.fecha_inicio) throw new ValidationError('La formacion complementaria requiere fecha de inicio');
+  if (data.fecha_fin && data.fecha_fin < data.fecha_inicio) {
+    throw new ValidationError('La fecha de fin no puede ser anterior a la fecha de inicio');
+  }
   if (new Date(`2000-01-01T${data.hora_fin}`).getTime() <= new Date(`2000-01-01T${data.hora_inicio}`).getTime()) {
     throw new ValidationError('La hora de fin debe ser posterior a la hora de inicio');
   }
 
-  const semana = data.semana ?? getLunesSemanaActual();
+  const fechaInicio = data.fecha_inicio;
+  const fechaFin = data.fecha_fin ?? data.fecha_inicio; // sin fin = evento de una sola semana
+  const diaNombre = DIA_ES[data.dia_semana] ?? `dia ${data.dia_semana}`;
 
-  const conflicto = await HorarioModel.findConflicto(
-    data.instructor_id, data.dia_semana, data.hora_inicio, data.hora_fin, semana,
-  );
-  if (conflicto) {
-    const diaNombre = DIA_ES[data.dia_semana] ?? `dia ${data.dia_semana}`;
-    throw new ConflictError(
-      `El instructor ya tiene otra clase el ${diaNombre} a esa hora (se cruza con el grupo ${conflicto.grupo}, ${conflicto.hora_inicio}-${conflicto.hora_fin}).`,
+  // Una fila por semana dentro del rango (modelo por semana, como el resto de
+  // horarios). Cada semana valida RN-04 por separado; el fin (mid-week) se incluye
+  // porque su lunes <= fechaFin.
+  const semanas: string[] = [];
+  for (let lunes = lunesDe(fechaInicio); lunes <= fechaFin; ) {
+    semanas.push(lunes);
+    const next = new Date(`${lunes}T00:00:00Z`);
+    next.setUTCDate(next.getUTCDate() + 7);
+    lunes = next.toISOString().slice(0, 10);
+  }
+
+  // 1) Validar RN-04 en TODAS las semanas antes de insertar (atomico: si alguna
+  //    se cruza, no se crea nada).
+  for (const semana of semanas) {
+    const conflicto = await HorarioModel.findConflicto(
+      data.instructor_id, data.dia_semana, data.hora_inicio, data.hora_fin, semana,
     );
+    if (conflicto) {
+      throw new ConflictError(
+        `El instructor ya tiene otra clase el ${diaNombre} a esa hora en la semana del ${semana} (se cruza con ${conflicto.grupo}, ${conflicto.hora_inicio}-${conflicto.hora_fin}).`,
+      );
+    }
   }
 
   // tipo_actividad Complementaria: suma carga y permite filtrar por tipo de formacion.
   const [taRows] = await pool.query("SELECT id FROM tipos_actividad WHERE nombre = 'Complementaria' AND activo = TRUE LIMIT 1");
   const tipoActividadId = (taRows as any[])[0]?.id ?? null;
-
-  const id = await HorarioModel.create({
-    ficha_id: null,
-    instructor_id: data.instructor_id,
-    competencia_id: null,
-    programa_id: data.programa_id,
-    modalidad: data.modalidad,
-    observaciones: data.observaciones ?? null,
-    ambiente_id: data.ambiente_id ?? null,
-    dia_semana: data.dia_semana,
-    hora_inicio: data.hora_inicio,
-    hora_fin: data.hora_fin,
-    tipo_actividad_id: tipoActividadId,
-    jornada_id: data.jornada_id,
-    semana,
-  });
-
-  // Alerta de carga baja (usa el minimo segun vinculacion). La complementaria suma.
   const { min: minHoras } = limitesDe((instructor as any).tipo_vinculacion);
-  const horas = await HorarioModel.getHorasPorInstructor(data.instructor_id, semana);
-  if (horas < minHoras) {
-    await AlertaService.crear({
-      instructor_id: data.instructor_id, tipo: TIPOS_ALERTA.HORAS_INSUFICIENTES, semana, total_horas: horas,
-      mensaje: `La carga del instructor ${instructor.nombre} esta por debajo de ${minHoras} horas en la semana ${rangoSemana(semana)} (carga actual: ${horas}h).`,
+
+  // 2) Insertar una fila por semana; cada fila lleva el rango completo para que la
+  //    UI pueda agrupar el "curso" complementario.
+  let primerId = 0;
+  for (const semana of semanas) {
+    const id = await HorarioModel.create({
+      ficha_id: null,
+      instructor_id: data.instructor_id,
+      competencia_id: null,
+      programa_id: data.programa_id,
+      modalidad: data.modalidad,
+      observaciones: data.observaciones ?? null,
+      ambiente_id: data.ambiente_id ?? null,
+      dia_semana: data.dia_semana,
+      hora_inicio: data.hora_inicio,
+      hora_fin: data.hora_fin,
+      tipo_actividad_id: tipoActividadId,
+      jornada_id: data.jornada_id,
+      semana,
+      fecha_inicio: fechaInicio,
+      fecha_fin: data.fecha_fin ?? null,
     });
+    if (!primerId) primerId = id;
+
+    // Alerta de carga baja por semana (la complementaria suma).
+    const horas = await HorarioModel.getHorasPorInstructor(data.instructor_id, semana);
+    if (horas < minHoras) {
+      await AlertaService.crear({
+        instructor_id: data.instructor_id, tipo: TIPOS_ALERTA.HORAS_INSUFICIENTES, semana, total_horas: horas,
+        mensaje: `La carga del instructor ${instructor.nombre} esta por debajo de ${minHoras} horas en la semana ${rangoSemana(semana)} (carga actual: ${horas}h).`,
+      });
+    }
   }
 
-  return (await HorarioModel.findById(id))!;
+  // Devuelve la primera fila (contrato de retorno de una sola creacion).
+  return (await HorarioModel.findById(primerId))!;
 }

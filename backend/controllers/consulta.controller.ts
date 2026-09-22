@@ -156,6 +156,7 @@ export const getCalendario = asyncHandler(async (req: Request, res: Response) =>
             a.nombre AS ambiente,
             (h.programa_id IS NOT NULL) AS es_complementaria,
             pr.codigo AS programa_codigo, pr.nombre AS programa, h.modalidad,
+            DATE_FORMAT(h.fecha_inicio, '%Y-%m-%d') AS fecha_inicio, DATE_FORMAT(h.fecha_fin, '%Y-%m-%d') AS fecha_fin,
             TIME_FORMAT(h.hora_inicio,'%H:%i') AS hora_inicio,
             TIME_FORMAT(h.hora_fin,'%H:%i')    AS hora_fin,
             h.estado

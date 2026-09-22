@@ -13,15 +13,31 @@ export const crearHorarioSchema = z.object({
   hora_fin:          z.string().regex(/^\d{2}:\d{2}$/, 'Formato HH:MM'),
   tipo_actividad_id: z.number().int().positive().nullable().optional(),
   jornada_id:        z.number().int().positive(),
-  semana:            z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato YYYY-MM-DD'),
-  // Formacion complementaria (RF feedback 16/09)
+  // semana: obligatoria en horario normal; en complementaria se deriva de fecha_inicio
+  // (ver refine al final), por eso aqui es opcional.
+  semana:            z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato YYYY-MM-DD').optional(),
+  // Formacion complementaria (RF feedback 16/09; fechas 22/09)
   es_complementaria: z.boolean().optional(),
   programa_id:       z.number().int().positive().nullable().optional(),
   modalidad:         z.enum(['presencial', 'virtual']).nullable().optional(),
   observaciones:     z.string().max(500).nullable().optional(),
+  fecha_inicio:      z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato YYYY-MM-DD').optional(),
+  fecha_fin:         z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato YYYY-MM-DD').nullable().optional(),
 }).refine(
   (d) => d.es_complementaria ? Boolean(d.programa_id && d.modalidad) : Boolean(d.ficha_id && d.competencia_id),
   { message: 'Complementaria requiere programa y modalidad; un horario normal requiere grupo y competencia' },
+).refine(
+  // La complementaria requiere fecha_inicio (evento o rango).
+  (d) => d.es_complementaria ? Boolean(d.fecha_inicio) : true,
+  { message: 'La formacion complementaria requiere fecha de inicio', path: ['fecha_inicio'] },
+).refine(
+  // Si hay rango, el fin no puede ser anterior al inicio.
+  (d) => !(d.fecha_inicio && d.fecha_fin) || d.fecha_fin >= d.fecha_inicio,
+  { message: 'La fecha de fin no puede ser anterior a la fecha de inicio', path: ['fecha_fin'] },
+).refine(
+  // El horario normal requiere semana; la complementaria la deriva de fecha_inicio.
+  (d) => d.es_complementaria ? true : Boolean(d.semana),
+  { message: 'El horario normal requiere la semana (lunes YYYY-MM-DD)', path: ['semana'] },
 );
 
 export const actualizarHorarioSchema = z.object({

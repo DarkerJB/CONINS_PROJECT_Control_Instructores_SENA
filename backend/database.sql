@@ -453,6 +453,8 @@ CREATE TABLE IF NOT EXISTS horarios (
     programa_id   INT NULL COMMENT 'Programa de la formacion complementaria (se muestra en su lugar cuando no hay grupo)',
     modalidad     ENUM('presencial','virtual') NULL COMMENT 'Modalidad, usado por formacion complementaria',
     observaciones TEXT NULL COMMENT 'Observaciones, usado por formacion complementaria',
+    fecha_inicio  DATE NULL COMMENT 'Formacion complementaria: inicio del periodo (evento o rango)',
+    fecha_fin     DATE NULL COMMENT 'Formacion complementaria: fin del periodo; NULL = evento de una sola semana',
     rap_id            INT NULL COMMENT 'RF-34 — RAP que se dicta en el bloque; valida RN-27 (RAP dentro del programa del grupo)',
     ambiente_id       INT NULL COMMENT 'NULL para fichas virtuales (RN-14)',
     dia_semana        TINYINT UNSIGNED NOT NULL COMMENT '1=Lunes ... 7=Domingo',

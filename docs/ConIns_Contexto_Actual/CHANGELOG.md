@@ -4,6 +4,38 @@
 
 ---
 
+## Cambios recientes (22/09/2026) — vigencia por fechas (Fase 1)
+
+Modelo temporal por capas: el **grupo** es el contenedor y siempre figura dentro de sus fechas
+de etapa (lectiva/productiva); lo que expira y deja de figurar es el nivel corto
+(instructor+competencia+RAP y la complementaria). Fase 1 implementada (backend, `tsc` = 0):
+
+- **Complementaria con fecha_inicio/fecha_fin (configurable).** Nueva migración
+  `2026-09-22_horarios_complementaria_fechas.sql` (`horarios ADD fecha_inicio DATE NULL,
+  fecha_fin DATE NULL`) + `database.sql`. Schema Zod: `fecha_inicio` requerida en complementaria,
+  `fecha_fin` opcional (vacío = una semana), `fin >= inicio`. `crearComplementaria` **genera una
+  fila por semana** dentro del rango y valida RN-04 por semana (atómico: si alguna se cruza, no
+  crea nada). Respuestas de horarios y calendario exponen `fecha_inicio`/`fecha_fin`.
+- **RN-04 ahora incluye la complementaria.** `findConflicto` hacía `INNER JOIN fichas`, por lo que
+  los bloques de complementaria (`ficha_id` NULL) se escapaban del control de solape. Se cambió a
+  `LEFT JOIN` (+ `LEFT JOIN programas`, rótulo "Compl. <código>"). Bug de validación corregido.
+- **Finalizar grupo cierra en cascada.** `FichaModel.finalizar` ahora llama `CascadaModel.grupoOff`:
+  un grupo finalizado deja de mostrar asignaciones/horarios activos (conserva historial como
+  Finalizada). Antes solo marcaba estado sin cerrar la cadena.
+- **Vigencia de RAP:** se reutiliza `rap_ficha_seguimiento` (`fecha_inicio`, `fecha_fin_programada`,
+  `estado_evaluacion`) — ya expuesto; el frontend lo usa para mostrar/ocultar RAP cumplido/vencido.
+  Sin cambio de backend ni de RN-06.
+- **Reporte a Laura:** `Reportes_Cambios_Y_Otros/Reporte_Laura_Vigencia_Complementaria_22-09.md`.
+- **Fix de contrato (`semana` opcional).** El schema de horarios exigía `semana`, pero la
+  formación complementaria no la envía (se deriva de `fecha_inicio`). Se hizo `semana` opcional,
+  obligatoria solo en horario normal (refine). Sin esto, la complementaria desde el frontend
+  daba 400. Revisado contra el frontend real de Laura (repo `Laura0513/conins-frontend`): el
+  payload de complementaria llega plano por día, sin `semana` ni `rap_id` — coincide con el contrato.
+- **Pendiente Fase 2:** vigencia del **ambiente** por período (semestre/año) — nueva relación
+  grupo↔ambiente con fechas y ajuste del "ambiente efectivo". Se abordará aislada por tocar esa lógica.
+
+---
+
 ## Cambios recientes (22/09/2026) — calendario incluye formación complementaria
 
 - **`GET /consultas/calendario` ahora incluye la formación complementaria.** El calendario hacía

@@ -48,6 +48,7 @@ export const HorarioModel = {
       SELECT MIN(h.id) AS id, COALESCE(f.numero_ficha, CONCAT('Compl. ', COALESCE(pr.codigo, ''))) AS ficha_numero, u.nombre AS instructor_nombre,
              COALESCE(c.nombre, pr.nombre, 'Formacion complementaria') AS competencia,
              (h.programa_id IS NOT NULL) AS es_complementaria, pr.codigo AS programa_codigo, pr.nombre AS programa, h.modalidad,
+             DATE_FORMAT(h.fecha_inicio, '%Y-%m-%d') AS fecha_inicio, DATE_FORMAT(h.fecha_fin, '%Y-%m-%d') AS fecha_fin,
              COALESCE(ab.nombre, 'Sin asignar') AS ambiente,
              j.nombre AS jornada,
              ta.nombre AS tipo_actividad,
@@ -72,6 +73,7 @@ export const HorarioModel = {
       LEFT JOIN tipos_actividad ta ON h.tipo_actividad_id = ta.id
       ${semana ? 'WHERE h.semana = ?' : ''}
       GROUP BY h.ficha_id, h.instructor_id, h.competencia_id, h.programa_id, h.modalidad,
+               h.fecha_inicio, h.fecha_fin,
                pr.codigo, pr.nombre, h.ambiente_id, h.jornada_id,
                h.tipo_actividad_id, h.hora_inicio, h.hora_fin, h.estado, h.motivo_rechazo, h.activo
       ORDER BY MIN(h.id)
@@ -90,6 +92,7 @@ export const HorarioModel = {
       SELECT MIN(h.id) AS id, COALESCE(f.numero_ficha, CONCAT('Compl. ', COALESCE(pr.codigo, ''))) AS ficha_numero, u.nombre AS instructor_nombre,
              COALESCE(c.nombre, pr.nombre, 'Formacion complementaria') AS competencia,
              (h.programa_id IS NOT NULL) AS es_complementaria, pr.codigo AS programa_codigo, pr.nombre AS programa, h.modalidad,
+             DATE_FORMAT(h.fecha_inicio, '%Y-%m-%d') AS fecha_inicio, DATE_FORMAT(h.fecha_fin, '%Y-%m-%d') AS fecha_fin,
              COALESCE(ab.nombre, 'Sin asignar') AS ambiente,
              j.nombre AS jornada,
              ta.nombre AS tipo_actividad,
@@ -114,6 +117,7 @@ export const HorarioModel = {
       LEFT JOIN tipos_actividad ta ON h.tipo_actividad_id = ta.id
       WHERE h.instructor_id = ? ${semana ? 'AND h.semana = ?' : ''}
       GROUP BY h.ficha_id, h.instructor_id, h.competencia_id, h.programa_id, h.modalidad,
+               h.fecha_inicio, h.fecha_fin,
                pr.codigo, pr.nombre, h.ambiente_id, h.jornada_id,
                h.tipo_actividad_id, h.hora_inicio, h.hora_fin, h.estado, h.motivo_rechazo, h.activo
       ORDER BY MIN(h.id)
@@ -132,6 +136,7 @@ export const HorarioModel = {
       SELECT h.id, COALESCE(f.numero_ficha, CONCAT('Compl. ', COALESCE(pr.codigo, ''))) AS ficha_numero, u.nombre AS instructor_nombre,
              COALESCE(c.nombre, pr.nombre, 'Formacion complementaria') AS competencia,
              (h.programa_id IS NOT NULL) AS es_complementaria, pr.codigo AS programa_codigo, pr.nombre AS programa, h.modalidad,
+             DATE_FORMAT(h.fecha_inicio, '%Y-%m-%d') AS fecha_inicio, DATE_FORMAT(h.fecha_fin, '%Y-%m-%d') AS fecha_fin,
              h.rap_id, r.codigo AS rap_codigo, r.nombre AS rap_descripcion,
              COALESCE(ab.nombre, 'Sin asignar') AS ambiente,
              j.nombre AS jornada,
@@ -178,15 +183,18 @@ export const HorarioModel = {
     tipo_actividad_id?: number | null;
     jornada_id: number;
     semana: string;
+    fecha_inicio?: string | null;
+    fecha_fin?: string | null;
   }): Promise<number> {
     // estado 'aprobado' por defecto: Leidy eliminó el flujo de aprobacion manual
     // de horarios (feedback 31/07/2026). Se crean ya aprobados.
     // ficha_id/competencia_id van NULL en formacion complementaria (sin grupo).
+    // fecha_inicio/fecha_fin solo aplican a complementaria (evento o rango).
     const [result] = await pool.query(
       `INSERT INTO horarios (ficha_id, instructor_id, competencia_id, programa_id, modalidad,
-        observaciones, rap_id, ambiente_id, dia_semana, hora_inicio, hora_fin,
+        observaciones, fecha_inicio, fecha_fin, rap_id, ambiente_id, dia_semana, hora_inicio, hora_fin,
         tipo_actividad_id, jornada_id, semana, estado)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aprobado')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aprobado')`,
       [
         data.ficha_id ?? null,
         data.instructor_id,
@@ -194,6 +202,8 @@ export const HorarioModel = {
         data.programa_id ?? null,
         data.modalidad ?? null,
         data.observaciones ?? null,
+        data.fecha_inicio ?? null,
+        data.fecha_fin ?? null,
         data.rap_id ?? null,
         data.ambiente_id ?? null,
         data.dia_semana,
@@ -361,11 +371,16 @@ export const HorarioModel = {
     semana: string,
     excludeId?: number,
   ): Promise<{ grupo: string; hora_inicio: string; hora_fin: string } | null> {
+    // LEFT JOIN: la formacion complementaria no tiene grupo (ficha_id NULL). Con
+    // INNER JOIN esos bloques se escapaban del control de solape (RN-04); con LEFT
+    // JOIN el solapamiento del instructor los detecta igual (grupo rotulado "Compl.").
     const query = `
-      SELECT f.numero_ficha AS grupo,
+      SELECT COALESCE(f.numero_ficha, CONCAT('Compl. ', COALESCE(pr.codigo, ''))) AS grupo,
              TIME_FORMAT(h.hora_inicio, '%H:%i') AS hora_inicio,
              TIME_FORMAT(h.hora_fin, '%H:%i') AS hora_fin
-      FROM horarios h JOIN fichas f ON f.id = h.ficha_id
+      FROM horarios h
+      LEFT JOIN fichas f    ON f.id = h.ficha_id
+      LEFT JOIN programas pr ON pr.id = h.programa_id
       WHERE h.instructor_id = ? AND h.dia_semana = ? AND h.semana = ? AND h.activo = TRUE
         AND h.hora_inicio < ? AND h.hora_fin > ?
       ${excludeId ? 'AND h.id != ?' : ''}

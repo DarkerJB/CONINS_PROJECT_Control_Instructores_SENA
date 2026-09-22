@@ -225,6 +225,10 @@ export const FichaModel = {
       'UPDATE fichas SET estado = "Finalizada", fecha_fin_ficha = CURDATE() WHERE id = ?',
       [id],
     );
+    // Al finalizar el grupo, cerrar en cascada sus asignaciones/horarios: un grupo
+    // terminado no debe seguir mostrando asignaciones activas. El grupo conserva su
+    // historial (estado 'Finalizada'); lo que se apaga es la cadena dependiente.
+    await CascadaModel.grupoOff(id);
   },
 
   async toggleActivo(id: number): Promise<boolean> {
