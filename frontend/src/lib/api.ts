@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:5000/api'
+// Despliegue en intranet: mismo origen. Nginx enruta /api al backend.
+// En desarrollo se puede sobreescribir con NEXT_PUBLIC_API_BASE_URL (p. ej. http://localhost:5000/api).
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api'
 
 function getAuthHeaders(includeAuth = true): HeadersInit {
     const headers: HeadersInit = {
