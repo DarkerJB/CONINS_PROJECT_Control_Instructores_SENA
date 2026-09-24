@@ -31,3 +31,6 @@ Thumbs.db
 
 # Reportes/notas de trabajo: se guardan FUERA del repo (D:\2_ConIns\Reportes_Cambios_Y_Otros)
 Reportes_Cambios_Y_Otros/
+
+# Documentacion: se mantiene local (respaldo en D:\2_ConIns\Respaldo_Local_conIns). No se versiona.
+docs/

@@ -22,4 +22,6 @@ npm-debug.log*
 
 # Claude Code
 .claude
-seed_maestro.sql
+
+# Nota: seed_maestro.sql (catalogos base + admin, NO datos reales) SI se versiona:
+# lo necesita `npm run db:setup` en el despliegue. Los datos reales van en seed_data.sql (ignorado).
