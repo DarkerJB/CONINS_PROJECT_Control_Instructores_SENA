@@ -11,6 +11,12 @@ type Horario = {
   jornada: string
   dias: string[]
   horas: string
+  es_complementaria?: number | boolean
+  programa?: string
+  programa_codigo?: string
+  modalidad?: string
+  fecha_inicio?: string
+  fecha_fin?: string | null
 }
 
 const DIAS = ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab"]
@@ -58,9 +64,13 @@ type GrillaHorariosProps = {
   horarios: Horario[]
   onSemanaChange?: (semana: string | undefined) => void
   loading?: boolean
+  onClickHorario?: (horario: Horario) => void
+  onClickEntidad?: (tipo: "instructor" | "grupo" | "ambiente", valor: string) => void
+  onClickEmpty?: (dia: string, jornadaKey: string) => void
+  filterDia?: string | null
 }
 
-export default function GrillaHorarios({ horarios, onSemanaChange, loading }: GrillaHorariosProps) {
+export default function GrillaHorarios({ horarios, onSemanaChange, loading, onClickHorario, onClickEntidad, onClickEmpty, filterDia }: GrillaHorariosProps) {
   const [semanaOffset, setSemanaOffset] = useState(0)
   const lunes = getLunes(semanaOffset)
 
@@ -97,13 +107,18 @@ export default function GrillaHorarios({ horarios, onSemanaChange, loading }: Gr
     return map
   }, [horarios])
 
+  const diasVisibles = filterDia ? DIAS.filter(d => d === filterDia) : DIAS
+
   const navegarSemana = (dir: number) => {
     setSemanaOffset((o) => o + dir)
   }
 
+  const hideNav = !!filterDia
+
   return (
     <div className="space-y-4">
       {/* Navegación semanal */}
+      {!hideNav && (
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 flex items-center justify-between">
         <button
           onClick={() => navegarSemana(-1)}
@@ -128,6 +143,7 @@ export default function GrillaHorarios({ horarios, onSemanaChange, loading }: Gr
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
+      )}
 
       {/* Grilla por jornadas */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -144,7 +160,7 @@ export default function GrillaHorarios({ horarios, onSemanaChange, loading }: Gr
                   <th className="px-3 py-3 font-medium text-gray-500 w-32 border-r border-gray-100 text-center">
                     Jornada
                   </th>
-                  {DIAS.map((dia) => (
+                  {diasVisibles.map((dia) => (
                     <th key={dia} className="px-3 py-3 font-medium text-gray-500 text-center min-w-[150px]">
                       {DIAS_LABEL[dia]}
                     </th>
@@ -160,13 +176,21 @@ export default function GrillaHorarios({ horarios, onSemanaChange, loading }: Gr
                         <p className="text-xs text-gray-400">{jornada.horario}</p>
                       </div>
                     </td>
-                    {DIAS.map((dia) => {
+                    {diasVisibles.map((dia) => {
                       const entries = grilla[jornada.key]?.[dia] || []
 
                       if (entries.length === 0) {
                         return (
-                          <td key={dia} className="px-1 py-2 border-r border-gray-50 last:border-r-0 align-top min-h-[80px]">
-                            <div className="h-20" />
+                          <td
+                            key={dia}
+                            className={`px-1 py-2 border-r border-gray-50 last:border-r-0 align-top min-h-[80px] ${onClickEmpty ? "cursor-pointer group/cell" : ""}`}
+                            onClick={() => onClickEmpty?.(dia, jornada.key)}
+                          >
+                            <div className={`h-20 rounded-lg flex items-center justify-center transition-colors ${onClickEmpty ? "group-hover/cell:bg-gray-50 group-hover/cell:border group-hover/cell:border-dashed group-hover/cell:border-gray-300" : ""}`}>
+                              {onClickEmpty && (
+                                <span className="text-gray-300 text-lg opacity-0 group-hover/cell:opacity-100 transition-opacity">+</span>
+                              )}
+                            </div>
                           </td>
                         )
                       }
@@ -174,21 +198,53 @@ export default function GrillaHorarios({ horarios, onSemanaChange, loading }: Gr
                       return (
                         <td key={dia} className="px-1 py-2 border-r border-gray-50 last:border-r-0 align-top">
                           <div className="flex flex-col gap-1">
-                            {entries.map((h) => (
+                            {entries.map((h) => {
+                              const esCompl = h.es_complementaria === 1 || h.es_complementaria === true
+                              return (
                               <div
                                 key={h.id}
-                                className={`${jornada.bg} ${jornada.border} border-l-2 rounded-r px-2 py-1.5 min-h-[60px]`}
+                                onClick={() => onClickHorario?.(h)}
+                                className={`${esCompl ? "bg-emerald-50 border-emerald-300" : `${jornada.bg} ${jornada.border}`} border-l-2 rounded-r px-2 py-1.5 min-h-[60px] ${onClickHorario ? "cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all" : ""}`}
                               >
-                                <div className={`${jornada.text} text-xs space-y-0.5`}>
-                                  <p className="font-bold truncate">{h.ficha_numero}</p>
-                                  <p className="truncate">{h.instructor_nombre.split(" ").slice(0, 2).join(" ")}</p>
-                                  {h.ambiente && (
-                                    <p className="truncate text-gray-500">{h.ambiente}</p>
+                                <div className={`${esCompl ? "text-emerald-800" : jornada.text} text-xs space-y-0.5`}>
+                                  {esCompl && (
+                                    <span className="inline-block px-1.5 py-0.5 bg-emerald-200 text-emerald-700 rounded text-[10px] font-bold uppercase tracking-wide mb-0.5">
+                                      Complementaria
+                                    </span>
                                   )}
-                                  <p className="text-gray-400">{h.horas}</p>
+                                  <p
+                                    className={`font-bold truncate ${onClickEntidad ? "cursor-pointer hover:underline" : ""}`}
+                                    onClick={(e) => { e.stopPropagation(); if (!esCompl) onClickEntidad?.("grupo", h.ficha_numero) }}
+                                  >
+                                    {esCompl ? (h.programa || h.ficha_numero) : h.ficha_numero}
+                                  </p>
+                                  <p
+                                    className={`truncate ${onClickEntidad ? "cursor-pointer hover:underline" : ""}`}
+                                    onClick={(e) => { e.stopPropagation(); onClickEntidad?.("instructor", h.instructor_nombre) }}
+                                  >
+                                    {h.instructor_nombre.split(" ").slice(0, 2).join(" ")}
+                                  </p>
+                                  {esCompl && h.modalidad && (
+                                    <p className="truncate text-emerald-600 capitalize">{h.modalidad}</p>
+                                  )}
+                                  {esCompl && h.fecha_inicio && (
+                                    <p className="truncate text-emerald-500 text-[10px]">
+                                      {h.fecha_inicio}{h.fecha_fin ? ` → ${h.fecha_fin}` : ""}
+                                    </p>
+                                  )}
+                                  {h.ambiente && (
+                                    <p
+                                      className={`truncate ${esCompl ? "text-emerald-500" : "text-gray-500"} ${onClickEntidad ? "cursor-pointer hover:underline" : ""}`}
+                                      onClick={(e) => { e.stopPropagation(); onClickEntidad?.("ambiente", h.ambiente) }}
+                                    >
+                                      {h.ambiente}
+                                    </p>
+                                  )}
+                                  <p className={esCompl ? "text-emerald-500" : "text-gray-400"}>{h.horas}</p>
                                 </div>
                               </div>
-                            ))}
+                              )
+                            })}
                           </div>
                         </td>
                       )
@@ -202,14 +258,20 @@ export default function GrillaHorarios({ horarios, onSemanaChange, loading }: Gr
       </div>
 
       {/* Leyenda */}
-      <div className="flex flex-wrap gap-4 px-2">
-        {JORNADAS.map((j) => (
-          <div key={j.key} className="flex items-center gap-2">
-            <div className={`w-3 h-3 rounded ${j.bg} ${j.border} border`} />
-            <span className="text-xs text-gray-500">{j.label}</span>
+      {!hideNav && (
+        <div className="flex flex-wrap gap-4 px-2">
+          {JORNADAS.map((j) => (
+            <div key={j.key} className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded ${j.bg} ${j.border} border`} />
+              <span className="text-xs text-gray-500">{j.label}</span>
+            </div>
+          ))}
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded bg-emerald-50 border-emerald-300 border" />
+            <span className="text-xs text-gray-500">Complementaria</span>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react"
+import { useRouter } from "next/router"
 import { useDebounce } from "@/lib/useDebounce"
 import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
-import { useConfirm } from "@/lib/ConfirmContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
 import CrearCompetenciaModal from "@/components/competencias/CrearCompetenciaModal"
 import EditarCompetenciaModal from "@/components/competencias/EditarCompetenciaModal"
@@ -39,9 +39,9 @@ type Programa = {
 }
 
 export default function GestionCompetenciasPage() {
+  const router = useRouter()
   const { user, loading: authLoading } = useProtectedRoute()
   const { showToast } = useToast()
-  const confirm = useConfirm()
   const [competencias, setCompetencias] = useState<Competencia[]>([])
   const [programas, setProgramas] = useState<Programa[]>([])
   const [loading, setLoading] = useState(true)
@@ -68,6 +68,13 @@ export default function GestionCompetenciasPage() {
   const rol = user?.roles?.[0]?.trim() || ""
   const puedeEditar = !["Instructor", "Subdirector"].includes(rol)
 
+  // Instructor no tiene acceso a gestión de competencias — redirigir a su vista propia
+  useEffect(() => {
+    if (rol === "Instructor") {
+      router.replace("/competencias")
+    }
+  }, [rol])
+
   useEffect(() => {
     cargarDatos()
   }, [])
@@ -90,7 +97,6 @@ export default function GestionCompetenciasPage() {
   }
 
   const handleCreate = async (data: any) => {
-    if (!(await confirm({ title: "Registrar competencia", message: "¿Confirmas el registro de esta competencia?" }))) return
     try {
       await api.competencias.create(data)
       showToast("Competencia registrada exitosamente", "success")
@@ -103,7 +109,6 @@ export default function GestionCompetenciasPage() {
 
   const handleEdit = async (data: any) => {
     if (!selectedCompetencia) return
-    if (!(await confirm({ title: "Guardar cambios", message: `¿Confirmas los cambios en la competencia ${selectedCompetencia.nombre}?` }))) return
     try {
       await api.competencias.update(selectedCompetencia.id, data)
       showToast("Competencia actualizada exitosamente", "success")

@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  output: "export",              // genera archivos estaticos en /out (despliegue intranet)
-  images: { unoptimized: true }, // requerido para export estatico (sin optimizador de servidor)
+  output: "export",              // genera archivos estáticos en /out
+  images: { unoptimized: true }, // requerido para export estático
 };
 
 export default nextConfig;

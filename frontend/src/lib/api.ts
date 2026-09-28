@@ -1,5 +1,3 @@
-// Despliegue en intranet: mismo origen. Nginx enruta /api al backend.
-// En desarrollo se puede sobreescribir con NEXT_PUBLIC_API_BASE_URL (p. ej. http://localhost:5000/api).
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api'
 
 function getAuthHeaders(includeAuth = true): HeadersInit {
@@ -343,10 +341,6 @@ export const api = {
         getAreas() {
             return apiFetch('/catalogo/areas')
         },
-        // Enlaces externos configurables (Sofia Plus, SENA, Zajuna, ...)
-        getEnlaces() {
-            return apiFetch('/catalogo/enlaces')
-        },
         getCompetenciasByPrograma(programaId: number) {
             return apiFetch(`/catalogo/programas/${programaId}/competencias`)
         },
@@ -361,6 +355,9 @@ export const api = {
         },
         getTiposActividad() {
             return apiFetch('/catalogo/tipos-actividad')
+        },
+        getEnlaces() {
+            return apiFetch('/catalogo/enlaces')
         },
     },
 
@@ -392,9 +389,6 @@ export const api = {
         getAll(soloNoAtendidas = false) {
             return apiFetch(`/alertas${soloNoAtendidas ? '?solo_no_atendidas=true' : ''}`)
         },
-        getNoAtendidasCount() {
-            return apiFetch('/alertas/no-atendidas/count')
-        },
         marcarAtendida(id: number) {
             return apiFetch(`/alertas/${id}/atendida`, {
                 method: 'PATCH',
@@ -409,6 +403,9 @@ export const api = {
             return apiFetch('/alertas/marcar-todas', {
                 method: 'PATCH',
             })
+        },
+        getNoAtendidasCount() {
+            return apiFetch('/alertas/no-atendidas/count')
         },
     },
 
@@ -440,35 +437,27 @@ export const api = {
         getCorrecciones() {
             return apiFetch('/consultas/correcciones')
         },
-        // Avance de RAPs por grupo (resumen general y detalle por competencia)
-        getRapAvance() {
-            return apiFetch('/consultas/rap-avance')
-        },
-        getRapAvanceFicha(fichaId: number) {
-            return apiFetch(`/consultas/rap-avance/${fichaId}`)
-        },
-        // Calendario parametrizable: tipo = 'grupo' | 'instructor' | 'ambiente'
         getCalendario(tipo: string, id: number, semana?: string) {
-            const qs = new URLSearchParams({ tipo, id: String(id) })
-            if (semana) qs.set('semana', semana)
-            return apiFetch(`/consultas/calendario?${qs.toString()}`)
+            const params = new URLSearchParams({ tipo, id: String(id) })
+            if (semana) params.append('semana', semana)
+            return apiFetch(`/consultas/calendario?${params}`)
         },
-        // Descarga un reporte en Excel (.xlsx). reporte = 'carga'|'horarios'|'ocupacion'|'correcciones'
-        // Hace fetch autenticado del binario y dispara la descarga en el navegador.
         async descargarExcel(reporte: string, semana?: string) {
-            const qs = new URLSearchParams({ reporte })
-            if (semana) qs.set('semana', semana)
-            const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-            const resp = await fetch(`${API_BASE_URL}/consultas/excel?${qs.toString()}`, {
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            const params = new URLSearchParams({ reporte })
+            if (semana) params.append('semana', semana)
+            const token = localStorage.getItem('auth_token')
+            const res = await fetch(`${API_BASE_URL}/consultas/excel?${params}`, {
+                headers: { Authorization: `Bearer ${token || ''}` },
             })
-            if (!resp.ok) throw new Error('No se pudo generar el Excel')
-            const blob = await resp.blob()
+            if (!res.ok) throw new Error('Error al descargar Excel')
+            const blob = await res.blob()
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a')
             a.href = url
-            a.download = `${reporte}-${new Date().toISOString().split('T')[0]}.xlsx`
-            document.body.appendChild(a); a.click(); a.remove()
+            a.download = `${reporte}.xlsx`
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
             URL.revokeObjectURL(url)
         },
     },
@@ -477,48 +466,18 @@ export const api = {
         getByFicha(fichaId: number) {
             return apiFetch(`/rap-seguimiento/ficha/${fichaId}`)
         },
-        getDisponibles(fichaId: number) {
-            return apiFetch(`/rap-seguimiento/ficha/${fichaId}/disponibles`)
-        },
-        getByAsignacionCompetencia(acId: number) {
-            return apiFetch(`/rap-seguimiento/asignacion-competencia/${acId}`)
-        },
-        getById(id: number) {
-            return apiFetch(`/rap-seguimiento/${id}`)
-        },
-        create(data: any) {
-            return apiFetch('/rap-seguimiento', {
-                method: 'POST',
-                body: JSON.stringify(data),
-            })
-        },
-        update(id: number, data: any) {
-            return apiFetch(`/rap-seguimiento/${id}`, {
+        evaluar(seguimientoId: number, estado: string) {
+            return apiFetch(`/rap-seguimiento/${seguimientoId}/evaluar`, {
                 method: 'PATCH',
-                body: JSON.stringify(data),
-            })
-        },
-        evaluar(id: number, estado_aprobacion: string) {
-            return apiFetch(`/rap-seguimiento/${id}/evaluar`, {
-                method: 'PATCH',
-                body: JSON.stringify({ estado_aprobacion }),
-            })
-        },
-        // Aprobar/No aprobar TODOS los RAPs de una competencia asignada (boton "Aprobar todos")
-        evaluarTodos(asignacionCompetenciaId: number, estado_aprobacion: 'aprobado' | 'no_aprobado') {
-            return apiFetch(`/rap-seguimiento/asignacion-competencia/${asignacionCompetenciaId}/evaluar-todos`, {
-                method: 'PATCH',
-                body: JSON.stringify({ estado_aprobacion }),
-            })
-        },
-        toggleActivo(id: number) {
-            return apiFetch(`/rap-seguimiento/${id}/estado`, {
-                method: 'PATCH',
+                body: JSON.stringify({ estado }),
             })
         },
     },
 
     importar: {
+        getHistorico() {
+            return apiFetch('/importar/historico')
+        },
         preview(archivo_base64: string, programa_codigo?: string) {
             return apiFetch('/importar/preview', {
                 method: 'POST',
@@ -530,10 +489,6 @@ export const api = {
                 method: 'POST',
                 body: JSON.stringify({ archivo_base64, crear_ambientes }),
             })
-        },
-        // Historico de cargas anteriores (fecha, usuario, creados/omitidos/errores)
-        getHistorico() {
-            return apiFetch('/importar/historico')
         },
     },
 

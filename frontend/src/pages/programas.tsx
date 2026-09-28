@@ -3,7 +3,6 @@ import { useDebounce } from "@/lib/useDebounce"
 import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
-import { useConfirm } from "@/lib/ConfirmContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
 import { TableSkeleton, PageSkeleton } from "@/components/ui/Skeleton"
 import EmptyState from "@/components/ui/EmptyState"
@@ -35,7 +34,6 @@ type Instructor = {
 export default function ProgramasPage() {
   const { user, loading: authLoading } = useProtectedRoute()
   const { showToast } = useToast()
-  const confirm = useConfirm()
   const [programas, setProgramas] = useState<Programa[]>([])
   const [instructores, setInstructores] = useState<Instructor[]>([])
   const [loading, setLoading] = useState(true)
@@ -72,7 +70,6 @@ export default function ProgramasPage() {
 
   const handleReferenteChange = async (programaId: number, instructorId: string) => {
     const value = instructorId ? Number(instructorId) : null
-    if (!(await confirm({ title: "Cambiar referente", message: "¿Confirmas el cambio de referente de este programa?" }))) return
     setSavingId(programaId)
     try {
       await api.programs.setReferente(programaId, value)

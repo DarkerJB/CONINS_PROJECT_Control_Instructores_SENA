@@ -3,7 +3,6 @@ import { useDebounce } from "@/lib/useDebounce"
 import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
-import { useConfirm } from "@/lib/ConfirmContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
 import { TableSkeleton, PageSkeleton } from "@/components/ui/Skeleton"
 import EmptyState from "@/components/ui/EmptyState"
@@ -113,7 +112,6 @@ function formatTimeAgo(dateStr: string) {
 export default function AlertasPage() {
   const { user, loading: authLoading } = useProtectedRoute()
   const { showToast } = useToast()
-  const confirm = useConfirm()
   const [alertas, setAlertas] = useState<Alerta[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -148,7 +146,6 @@ export default function AlertasPage() {
   ]
 
   const handleMarcarAtendida = async (alerta: Alerta) => {
-    if (!(await confirm({ title: "Marcar como atendida", message: "¿Confirmas que esta alerta ya fue atendida? Dejará de aparecer como pendiente." }))) return
     try {
       await api.alertas.marcarAtendida(alerta.id)
       showToast("Alerta marcada como atendida", "success")
@@ -297,15 +294,12 @@ export default function AlertasPage() {
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-4 text-xs text-gray-400 mt-2">
-                        {/* Toda la info (instructor, grupo, semana en rango, horas) va
-                            ahora DENTRO del mensaje. La linea inferior solo muestra el
-                            tiempo, para no parecer una "firma" ni duplicar datos. */}
+                      <div className="text-xs text-gray-400 mt-2">
                         <span>{formatTimeAgo(alerta.created_at)}</span>
                       </div>
                     </div>
 
-                    {esAdmin && !alerta.atendida && (
+                    {!alerta.atendida && esAdmin && (
                       <button
                         onClick={() => handleMarcarAtendida(alerta)}
                         className="shrink-0 p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"

@@ -13,7 +13,6 @@ import {
   Bell,
   Building2,
   ArrowRight,
-  Clock,
   Plus,
   FileUp,
   Search,
@@ -25,6 +24,8 @@ type CargaHoraria = {
   instructor_id: number
   instructor_nombre: string
   total_horas: number
+  total_horas_plantilla?: number
+  festivos?: { fecha: string; descripcion: string }[]
   fichas_count: number
   competencias_count: number
   estado: "Normal" | "Sobrecarga" | "Bajo carga"
@@ -48,19 +49,6 @@ type OcupacionAmbiente = {
   porcentaje: number
 }
 
-type HorarioItem = {
-  id: number
-  instructor_nombre?: string
-  ficha_numero?: string
-  competencia_nombre?: string
-  ambiente_nombre?: string
-  dia_semana?: string
-  hora_inicio?: string
-  hora_fin?: string
-  jornada?: string
-  activo?: boolean
-}
-
 type HorarioInstructor = {
   id: number
   ficha_numero: string
@@ -72,24 +60,7 @@ type HorarioInstructor = {
   activo: boolean
 }
 
-type RapAvance = {
-  ficha_id: number
-  ficha_numero: string
-  programa: string
-  total_raps: number
-  aprobados: number
-  pendientes: number
-  no_aprobados: number
-  porcentaje: number
-}
-
 // --- Helpers ---
-const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]
-
-function getDiaHoy() {
-  return DIAS_SEMANA[new Date().getDay()]
-}
-
 function getProgressColor(horas: number, limite: number) {
   if (horas > limite) return "bg-red-500"
   if (horas >= limite * 0.85) return "bg-yellow-500"
@@ -151,8 +122,6 @@ export default function Home() {
   const [alertas, setAlertas] = useState<Alerta[]>([])
   const [cargaHoraria, setCargaHoraria] = useState<CargaHoraria[]>([])
   const [ocupacion, setOcupacion] = useState<OcupacionAmbiente[]>([])
-  const [horariosHoy, setHorariosHoy] = useState<HorarioItem[]>([])
-  const [rapAvance, setRapAvance] = useState<RapAvance[]>([])
 
   // Instructor stats
   const [misHorarios, setMisHorarios] = useState<HorarioInstructor[]>([])
@@ -160,6 +129,7 @@ export default function Home() {
   const [notifCount, setNotifCount] = useState(0)
 
   const [dataLoading, setDataLoading] = useState(true)
+
 
   const rol = user?.roles?.[0]?.trim() || "admin"
   const esAdmin = rol !== "Instructor"
@@ -184,9 +154,8 @@ export default function Home() {
       api.alertas.getAll(),
       api.consultas.getCargaHoraria(),
       api.consultas.getOcupacionAmbientes(),
-      api.horarios.getAll(),
-      api.consultas.getRapAvance(),
-    ]).then(([instRes, fichasRes, asigRes, alertasRes, cargaRes, ocupRes, horariosRes, rapRes]) => {
+    ]).then(([instRes, fichasRes, asigRes, alertasRes, cargaRes, ocupRes]) => {
+
       if (instRes.status === "fulfilled") {
         const activos = (instRes.value.data || []).filter((i: any) => i.activo !== false)
         setInstructorCount(activos.length)
@@ -212,18 +181,6 @@ export default function Home() {
         const datos = (ocupRes.value.data || []) as OcupacionAmbiente[]
         setOcupacion(datos.sort((a, b) => b.porcentaje - a.porcentaje).slice(0, 5))
       }
-      if (horariosRes.status === "fulfilled") {
-        const todos = (horariosRes.value.data || []) as HorarioItem[]
-        const diaHoy = getDiaHoy()
-        const hoy = todos.filter(
-          (h) => h.activo !== false && h.dia_semana === diaHoy
-        )
-        setHorariosHoy(hoy)
-      }
-      if (rapRes.status === "fulfilled") {
-        setRapAvance((rapRes.value.data || []) as RapAvance[])
-      }
-
       setDataLoading(false)
     })
   }, [user, esAdmin])
@@ -454,66 +411,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Horarios de hoy */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-sena" />
-              <h2 className="text-base font-bold text-gray-900">Horarios de hoy — {getDiaHoy()}</h2>
-            </div>
-            <span className="text-sm text-gray-400">
-              {dataLoading ? "..." : `${horariosHoy.length} clases`}
-            </span>
-          </div>
-          <div className="p-6">
-            {dataLoading ? (
-              <div className="py-6 flex items-center justify-center text-gray-400">
-                <Loader2 className="w-6 h-6 animate-spin" />
-              </div>
-            ) : horariosHoy.length === 0 ? (
-              <p className="text-sm text-gray-500 py-4 text-center">No hay clases programadas para hoy.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-200 text-gray-500">
-                      <th className="text-left py-2 font-medium">Hora</th>
-                      <th className="text-left py-2 font-medium">Instructor</th>
-                      <th className="text-left py-2 font-medium">Grupo</th>
-                      <th className="text-left py-2 font-medium">Competencia</th>
-                      <th className="text-left py-2 font-medium">Ambiente</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {horariosHoy
-                      .sort((a, b) => (a.hora_inicio || "").localeCompare(b.hora_inicio || ""))
-                      .slice(0, 10)
-                      .map((h) => (
-                        <tr key={h.id} className="border-b border-gray-50 last:border-0">
-                          <td className="py-2.5 font-mono text-xs text-sena font-medium whitespace-nowrap">
-                            {h.hora_inicio?.slice(0, 5)} - {h.hora_fin?.slice(0, 5)}
-                          </td>
-                          <td className="py-2.5 text-gray-900">{h.instructor_nombre || "—"}</td>
-                          <td className="py-2.5 text-gray-700">{h.ficha_numero || "—"}</td>
-                          <td className="py-2.5 text-gray-600 max-w-[200px] truncate">{h.competencia_nombre || "—"}</td>
-                          <td className="py-2.5 text-gray-600">{h.ambiente_nombre || "—"}</td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-                {horariosHoy.length > 10 && (
-                  <button
-                    onClick={() => router.push("/horarios")}
-                    className="mt-3 text-sm text-sena font-medium hover:underline"
-                  >
-                    Ver los {horariosHoy.length} horarios →
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Contenido inferior: Carga horaria + Ocupación + Alertas */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Tabla de carga horaria */}
@@ -558,7 +455,13 @@ export default function Home() {
                             {row.instructor_nombre}
                           </td>
                           <td className="py-3 text-center text-gray-700">
-                            {Number(row.total_horas).toFixed(0)}
+                            <span>{Number(row.total_horas).toFixed(0)} h</span>
+                            {row.total_horas_plantilla && row.total_horas_plantilla !== row.total_horas && (
+                              <span className="block text-[10px] text-gray-400">
+                                plantilla {Number(row.total_horas_plantilla).toFixed(0)} h
+                                {row.festivos && row.festivos.length > 0 && ` · ${row.festivos.length} festivo${row.festivos.length > 1 ? "s" : ""}`}
+                              </span>
+                            )}
                           </td>
                           <td className="py-3 text-center text-gray-500">40</td>
                           <td className="py-3">
@@ -675,58 +578,6 @@ export default function Home() {
                     <p className="text-[10px] text-gray-400">{amb.tipo}</p>
                   </div>
                 ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Avance de RAPs por grupo */}
-        {rapAvance.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-sena" />
-                <h2 className="text-base font-bold text-gray-900">Avance de RAPs por grupo</h2>
-              </div>
-              <button
-                onClick={() => router.push("/fichas")}
-                className="text-sm text-sena font-medium hover:underline"
-              >
-                Ver grupos
-              </button>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {rapAvance
-                  .sort((a, b) => (b.porcentaje ?? 0) - (a.porcentaje ?? 0))
-                  .slice(0, 8)
-                  .map((g) => {
-                    const pct = g.total_raps > 0 ? Math.round((g.aprobados / g.total_raps) * 100) : 0
-                    return (
-                      <div key={g.ficha_id} className="flex items-center gap-4">
-                        <div className="w-28 shrink-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{g.ficha_numero}</p>
-                          <p className="text-[10px] text-gray-400 truncate">{g.programa}</p>
-                        </div>
-                        <div className="flex-1">
-                          <div className="w-full bg-gray-200 rounded-full h-2.5">
-                            <div
-                              className={`h-2.5 rounded-full transition-all ${
-                                pct === 100 ? "bg-green-500" : pct >= 50 ? "bg-sena" : "bg-yellow-500"
-                              }`}
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                        </div>
-                        <div className="w-20 text-right shrink-0">
-                          <span className="text-sm font-semibold text-gray-900">{pct}%</span>
-                          <span className="text-[10px] text-gray-400 ml-1">
-                            ({g.aprobados}/{g.total_raps})
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  })}
               </div>
             </div>
           </div>

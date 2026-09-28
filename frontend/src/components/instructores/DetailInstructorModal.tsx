@@ -16,14 +16,13 @@ import {
 import { api } from "@/lib/api"
 import { formatJornada } from "@/lib/terminology"
 import { useToast } from "@/lib/ToastContext"
-import ConfirmDialog from "@/components/ui/ConfirmDialog"
-import { useConfirm } from "@/lib/ConfirmContext"
 
 type Instructor = {
   id: number
   nombre: string
   email: string
   tipo_area: string
+  tipo_vinculacion?: string
   activo: boolean
   roles: string
   horas_semana?: number
@@ -31,13 +30,11 @@ type Instructor = {
 }
 
 type Asignacion = {
-  numero_ficha: string
+  ficha_numero: string
   programa: string
-  competencia: string
   jornada: string
-  ambiente?: string
-  es_lider_ficha: boolean
-  es_provisional?: boolean
+  horas_asignadas: number
+  es_lider: boolean
 }
 
 type Novedad = {
@@ -72,8 +69,6 @@ export default function DetailInstructorModal({ isOpen, onClose, instructor, pue
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([])
   const [novedades, setNovedades] = useState<Novedad[]>([])
   const [loading, setLoading] = useState(false)
-  const [confirmRemoveComp, setConfirmRemoveComp] = useState<{ id: number; nombre: string } | null>(null)
-  const confirm = useConfirm()
 
   // Competencias
   const [competenciasInstructor, setCompetenciasInstructor] = useState<CompetenciaInst[]>([])
@@ -125,7 +120,6 @@ export default function DetailInstructorModal({ isOpen, onClose, instructor, pue
 
   const handleAddCompetencia = async (competenciaId: number) => {
     if (!instructor) return
-    if (!(await confirm({ title: "Agregar competencia", message: "¿Confirmas agregar esta competencia al instructor?" }))) return
     setAddingCompId(competenciaId)
     try {
       await api.instructors.addCompetencia(instructor.id, { competencia_id: competenciaId })
@@ -162,7 +156,7 @@ export default function DetailInstructorModal({ isOpen, onClose, instructor, pue
   )
 
   const horas = instructor.horas_semana ?? 0
-  const limite = 40
+  const limite = instructor.tipo_vinculacion === "planta" ? 32.5 : 40
   const porcentaje = Math.min((horas / limite) * 100, 100)
   let colorBarra = "bg-sena"
   let colorTexto = "text-sena"
@@ -211,6 +205,13 @@ export default function DetailInstructorModal({ isOpen, onClose, instructor, pue
               <div>
                 <p className="text-xs text-gray-500">Área</p>
                 <p className="text-sm text-gray-900 capitalize">{instructor.tipo_area}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Layers className="w-5 h-5 text-gray-400 mt-0.5" />
+              <div>
+                <p className="text-xs text-gray-500">Vinculación</p>
+                <p className="text-sm text-gray-900 capitalize">{instructor.tipo_vinculacion || "contrato"}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -300,7 +301,7 @@ export default function DetailInstructorModal({ isOpen, onClose, instructor, pue
                           {puedeEditar && (
                             <button
                               type="button"
-                              onClick={() => setConfirmRemoveComp({ id: compId, nombre: comp.nombre })}
+                              onClick={() => handleRemoveCompetencia(compId)}
                               disabled={removingCompId === compId}
                               className="ml-2 shrink-0 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50"
                               title="Quitar competencia"
@@ -335,24 +336,19 @@ export default function DetailInstructorModal({ isOpen, onClose, instructor, pue
                 {asignaciones.length > 0 ? (
                   <div className="space-y-2">
                     {asignaciones.map((asig, i) => (
-                      <div key={i} className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-sm font-medium text-gray-900">
-                          Grupo {asig.numero_ficha}
-                          {asig.es_lider_ficha && (
-                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-sena/10 text-sena">
-                              Líder
-                            </span>
-                          )}
-                          {asig.es_provisional && (
-                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                              Provisional
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-sm text-gray-700 mt-0.5">{asig.competencia}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          {asig.programa} · {formatJornada(asig.jornada)}{asig.ambiente ? ` · ${asig.ambiente}` : ""}
-                        </p>
+                      <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            Grupo {asig.ficha_numero}
+                            {asig.es_lider && (
+                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-sena/10 text-sena">
+                                Líder
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-gray-500">{asig.programa} - {formatJornada(asig.jornada)}</p>
+                        </div>
+                        <span className="text-sm font-medium text-gray-700">{asig.horas_asignadas}h</span>
                       </div>
                     ))}
                   </div>
@@ -399,18 +395,6 @@ export default function DetailInstructorModal({ isOpen, onClose, instructor, pue
           </button>
         </div>
       </div>
-
-      {confirmRemoveComp && (
-        <ConfirmDialog
-          title="Quitar competencia"
-          message={`¿Seguro que deseas quitar la competencia "${confirmRemoveComp.nombre}" de este instructor? Ya no podra dictarla.`}
-          onConfirm={() => {
-            handleRemoveCompetencia(confirmRemoveComp.id)
-            setConfirmRemoveComp(null)
-          }}
-          onCancel={() => setConfirmRemoveComp(null)}
-        />
-      )}
     </div>
   )
 }

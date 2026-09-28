@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react"
 import { api } from "@/lib/api"
-import { useConfirm } from "@/lib/ConfirmContext"
 import {
   X,
   Loader2,
@@ -73,7 +72,6 @@ export default function RapSeguimientoModal({
   const [loading, setLoading] = useState(true)
   const [expandedComps, setExpandedComps] = useState<Set<string>>(new Set())
   const [aprobandoTodos, setAprobandoTodos] = useState<string | null>(null)
-  const confirm = useConfirm()
 
   useEffect(() => {
     if (isOpen && fichaId) {
@@ -110,7 +108,6 @@ export default function RapSeguimientoModal({
   }
 
   const handleEvaluar = async (segId: number, estado: "aprobado" | "no_aprobado") => {
-    if (!(await confirm({ title: "Evaluar RAP", message: `¿Confirmas marcar el RAP como ${estado === "aprobado" ? "aprobado" : "no aprobado"}?` }))) return
     try {
       await api.rapSeguimiento.evaluar(segId, estado)
       onToast(`RAP marcado como ${estado === "aprobado" ? "aprobado" : "no aprobado"}`, "success")
@@ -125,7 +122,6 @@ export default function RapSeguimientoModal({
       (s) => s.competencia === competencia && s.estado_evaluacion === "pendiente_por_evaluar" && s.activo
     )
     if (pendientes.length === 0) return
-    if (!(await confirm({ title: "Aprobar todos", message: `¿Confirmas aprobar los ${pendientes.length} RAPs pendientes de ${competencia}?` }))) return
 
     setAprobandoTodos(competencia)
     try {

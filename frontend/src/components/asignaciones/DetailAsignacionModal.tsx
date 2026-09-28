@@ -3,7 +3,6 @@ import { X, User, BookOpen, MapPin, Clock, Star, FileText, Calendar, Loader2, Ch
 import { formatJornada } from "@/lib/terminology"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
-import { useConfirm } from "@/lib/ConfirmContext"
 
 type Asignacion = {
   id: number
@@ -76,7 +75,6 @@ const DIAS_NOMBRES: Record<string, string> = {
 
 export default function DetailAsignacionModal({ isOpen, onClose, asignacion }: DetailAsignacionModalProps) {
   const { showToast } = useToast()
-  const confirm = useConfirm()
   const [raps, setRaps] = useState<Rap[]>([])
   const [horarios, setHorarios] = useState<HorarioRap[]>([])
   const [tiposActividad, setTiposActividad] = useState<TipoActividad[]>([])
@@ -181,7 +179,6 @@ export default function DetailAsignacionModal({ isOpen, onClose, asignacion }: D
       return
     }
 
-    if (!(await confirm({ title: "Registrar horario", message: "¿Confirmas el registro de este horario?" }))) return
     setSubmitting(true)
     try {
       const now = new Date()

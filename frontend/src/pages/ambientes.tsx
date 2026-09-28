@@ -3,7 +3,6 @@ import { useDebounce } from "@/lib/useDebounce"
 import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
-import { useConfirm } from "@/lib/ConfirmContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
 import CrearAmbienteModal from "@/components/ambientes/CrearAmbienteModal"
 import EditarAmbienteModal from "@/components/ambientes/EditarAmbienteModal"
@@ -47,7 +46,6 @@ type Ambiente = {
 export default function AmbientesPage() {
   const { user, loading: authLoading } = useProtectedRoute()
   const { showToast } = useToast()
-  const confirm = useConfirm()
   const [ambientes, setAmbientes] = useState<Ambiente[]>([])
   const [loading, setLoading] = useState(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -85,7 +83,7 @@ export default function AmbientesPage() {
       const ambientesRaw: Ambiente[] = ambRes.data || []
       const horarios = horRes.data || []
 
-      // Determinar dia actual (1=Lun..6=Sab)
+      // Determinar día actual (1=Lun..6=Sab)
       const hoy = new Date()
       const diaJS = hoy.getDay() // 0=Dom..6=Sab
       const diasMap: Record<number, string> = { 1: "Lun", 2: "Mar", 3: "Mie", 4: "Jue", 5: "Vie", 6: "Sab" }
@@ -99,7 +97,7 @@ export default function AmbientesPage() {
         if (!diaHoy) return amb
         const horarioActual = horarios.find((h: any) => {
           if (h.ambiente !== amb.nombre) return false
-          if (!h.dias?.includes(diaHoy) && !h.dias?.includes("Mié")) return false
+          if (!h.dias?.includes(diaHoy) && !h.dias?.includes("Mié" /* alt */)) return false
           // Comparar hora: h.horas es "06:00 - 12:00"
           const partes = (h.horas || "").split(" - ")
           if (partes.length !== 2) return false
@@ -145,7 +143,6 @@ export default function AmbientesPage() {
   useEffect(() => { setPaginaActual(1) }, [search, filtroTipo, filtroEstado, filtroDisponibilidad])
 
   const handleCreate = async (data: any) => {
-    if (!(await confirm({ title: "Registrar ambiente", message: "¿Confirmas el registro de este ambiente?" }))) return
     try {
       await api.ambientes.create(data)
       showToast("Ambiente registrado exitosamente", "success")
@@ -214,7 +211,6 @@ export default function AmbientesPage() {
 
   const handleBloqueo = async (data: any) => {
     if (!selectedAmbiente) return
-    if (!(await confirm({ title: "Bloquear ambiente", message: `¿Confirmas el bloqueo del ambiente ${selectedAmbiente.nombre}?` }))) return
     try {
       await api.ambientes.bloquear(selectedAmbiente.id, data)
       showToast("Bloqueo registrado exitosamente", "success")
@@ -227,7 +223,6 @@ export default function AmbientesPage() {
 
   const handleEdit = async (data: any) => {
     if (!selectedAmbiente) return
-    if (!(await confirm({ title: "Guardar cambios", message: `¿Confirmas los cambios en el ambiente ${selectedAmbiente.nombre}?` }))) return
     try {
       await api.ambientes.update(selectedAmbiente.id, data)
       showToast("Ambiente actualizado exitosamente", "success")
@@ -296,16 +291,6 @@ export default function AmbientesPage() {
               onChange={setFiltroTipo}
             />
             <MultiSelect
-              label="Estado"
-              allLabel="Todos"
-              options={[
-                { value: "activo", label: "Activo" },
-                { value: "inactivo", label: "Inactivo" },
-              ]}
-              selected={filtroEstado}
-              onChange={setFiltroEstado}
-            />
-            <MultiSelect
               label="Disponibilidad"
               allLabel="Todos"
               options={[
@@ -314,6 +299,16 @@ export default function AmbientesPage() {
               ]}
               selected={filtroDisponibilidad}
               onChange={setFiltroDisponibilidad}
+            />
+            <MultiSelect
+              label="Estado"
+              allLabel="Todos"
+              options={[
+                { value: "activo", label: "Activo" },
+                { value: "inactivo", label: "Inactivo" },
+              ]}
+              selected={filtroEstado}
+              onChange={setFiltroEstado}
             />
           </div>
         </div>

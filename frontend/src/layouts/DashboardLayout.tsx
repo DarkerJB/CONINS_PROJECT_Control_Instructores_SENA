@@ -4,7 +4,6 @@ import Sidebar from "@/components/layout/Sidebar"
 import Header from "@/components/layout/Header"
 import Footer from "@/components/layout/Footer"
 import { useAuth } from "@/lib/AuthContext"
-import { ConfirmProvider } from "@/lib/ConfirmContext"
 
 export default function DashboardLayout({
   children,
@@ -14,10 +13,10 @@ export default function DashboardLayout({
   const router = useRouter()
   const { user } = useAuth()
   const rol = user?.roles?.[0] || "Admin"
-  
+
   // State for mobile sidebar
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  
+
   // Inicializar estado desde localStorage para que persista entre cambios de página
   const [alertasViewed, setAlertasViewed] = useState(() => {
     if (typeof window !== "undefined") {
@@ -42,23 +41,22 @@ export default function DashboardLayout({
   const closeSidebar = () => setIsSidebarOpen(false)
 
   return (
-    <ConfirmProvider>
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-30 md:hidden"
           onClick={closeSidebar}
         />
       )}
-      
-      <Sidebar 
-        alertasViewed={alertasViewed} 
-        isOpen={isSidebarOpen} 
+
+      <Sidebar
+        alertasViewed={alertasViewed}
+        isOpen={isSidebarOpen}
         onClose={closeSidebar}
         rol={rol}
       />
-      
+
       <div className="flex flex-col flex-1 md:ml-64">
         <Header
           alertasViewed={alertasViewed}
@@ -69,6 +67,5 @@ export default function DashboardLayout({
         <Footer />
       </div>
     </div>
-    </ConfirmProvider>
   )
 }

@@ -15,12 +15,11 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
-  Download,
   History,
 } from "lucide-react"
 
 type ErrorFila = { fila: number; mensaje: string }
-type ResumenHoja = { hoja: string; filas: number; creados: number; omitidos: number; errores: ErrorFila[] }
+type ResumenHoja = { hoja: string; filas: number; creados: number; errores: ErrorFila[] }
 type ResultadoImportacion = { resumen: ResumenHoja[] }
 
 type ErrorPreview = { hoja: string; fila: number; entidad: string; valor: string; motivo: string }
@@ -43,6 +42,7 @@ type HistoricoItem = {
   usuario_nombre: string | null
   creados: number
   omitidos: number
+  descartados: number
   errores: number
   created_at: string
 }
@@ -68,9 +68,6 @@ export default function ImportarPage() {
   // Checkboxes para ambientes nuevos
   const [ambientesAprobados, setAmbientesAprobados] = useState<string[]>([])
 
-  // Historico de cargas
-  const [historico, setHistorico] = useState<HistoricoItem[]>([])
-
   // Secciones colapsables
   const [seccionAbierta, setSeccionAbierta] = useState<Record<string, boolean>>({
     creara: true,
@@ -78,6 +75,8 @@ export default function ImportarPage() {
     errores: true,
     baja: true,
   })
+
+  const [historico, setHistorico] = useState<HistoricoItem[]>([])
 
   const rol = user?.roles?.[0]?.trim() || ""
   const esAdmin = ["Administrador", "Coordinadora Academica", "Asistente Coordinacion"].includes(rol)
@@ -139,32 +138,6 @@ export default function ImportarPage() {
     }
   }
 
-  // Genera y descarga un CSV con los errores de la previsualización, para
-  // enviarlo a quien deba corregir el Excel (trazabilidad de la correccion).
-  const generarReporteErrores = () => {
-    if (!preview || preview.errores.length === 0) return
-    const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`
-    const sep = ";"
-    const lineas: string[] = []
-    lineas.push("Reporte de errores de carga - CONINS")
-    lineas.push(`Fecha:;${esc(new Date().toLocaleString("es-CO"))}`)
-    if (programaCodigo) lineas.push(`Programa:;${esc(programaCodigo)}`)
-    lineas.push(`Filas con error:;${preview.errores.length}`)
-    lineas.push("")
-    lineas.push(["Hoja", "Fila", "Entidad", "Valor", "Motivo"].map(esc).join(sep))
-    for (const e of preview.errores) {
-      lineas.push([e.hoja, e.fila, e.entidad, e.valor, e.motivo].map(esc).join(sep))
-    }
-    const csv = "﻿" + lineas.join("\r\n") // BOM para que Excel muestre acentos
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `CONINS_errores_carga_${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
   const handleConfirmar = async () => {
     if (!preview?.plantilla_base64) return
     setCargando(true)
@@ -175,13 +148,17 @@ export default function ImportarPage() {
       setResultado(res.data)
 
       const totalCreados = (res.data.resumen || []).reduce((s: number, h: ResumenHoja) => s + h.creados, 0)
-      const totalOmitidos = (res.data.resumen || []).reduce((s: number, h: ResumenHoja) => s + (h.omitidos || 0), 0)
       const totalErrores = (res.data.resumen || []).reduce((s: number, h: ResumenHoja) => s + h.errores.length, 0)
 
+      // Refrescar histórico
+      api.importar.getHistorico()
+        .then((res) => setHistorico(res.data || []))
+        .catch(() => {})
+
       if (totalErrores === 0) {
-        showToast(`Importación exitosa: ${totalCreados} creados, ${totalOmitidos} omitidos (ya existían)`, "success")
+        showToast(`Importación exitosa: ${totalCreados} registros creados`, "success")
       } else {
-        showToast(`${totalCreados} creados, ${totalOmitidos} omitidos, ${totalErrores} con errores — revisa el detalle`, "info")
+        showToast(`${totalCreados} creados, ${totalErrores} con errores — revisa el detalle`, "info")
       }
     } catch (err: any) {
       showToast(err.message || "Error al importar archivo", "error")
@@ -231,7 +208,7 @@ export default function ImportarPage() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Importar datos</h1>
-          <p className="text-gray-500 text-sm">Suba el Excel de planeación de horarios. Se previsualiza antes de cargar.</p>
+          <p className="text-gray-500 text-sm">Sube el Excel del líder o la plantilla de 4 hojas. Se previsualiza antes de cargar.</p>
         </div>
 
         {/* Paso 1: Subir archivo + programa */}
@@ -464,18 +441,7 @@ export default function ImportarPage() {
             )}
 
             {/* Botón confirmar */}
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                {preview.errores.length > 0 && (
-                  <button
-                    onClick={generarReporteErrores}
-                    className="px-4 py-2.5 border border-red-300 text-red-700 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors flex items-center gap-2"
-                  >
-                    <Download className="w-4 h-4" /> Generar reporte de errores
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-end gap-3">
               <button onClick={limpiar} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                 Cancelar
               </button>
@@ -490,7 +456,6 @@ export default function ImportarPage() {
                   <><Upload className="w-4 h-4" /> Confirmar e importar</>
                 )}
               </button>
-              </div>
             </div>
           </div>
         )}
@@ -503,7 +468,7 @@ export default function ImportarPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {resultado.resumen.map((hoja) => {
                 const tieneErrores = hoja.errores.length > 0
-                const todoBien = hoja.errores.length === 0 && (hoja.creados > 0 || hoja.omitidos > 0)
+                const todoBien = hoja.errores.length === 0 && hoja.creados > 0
                 return (
                   <div
                     key={hoja.hoja}
@@ -518,9 +483,6 @@ export default function ImportarPage() {
                     <div className="space-y-1 text-sm">
                       <p className="text-gray-500">Filas procesadas: <span className="font-medium text-gray-900">{hoja.filas}</span></p>
                       <p className="text-gray-500">Creados: <span className="font-medium text-green-600">{hoja.creados}</span></p>
-                      {hoja.omitidos > 0 && (
-                        <p className="text-gray-500">Omitidos (ya existían): <span className="font-medium text-gray-600">{hoja.omitidos}</span></p>
-                      )}
                       {hoja.errores.length > 0 && (
                         <p className="text-gray-500">Errores: <span className="font-medium text-red-600">{hoja.errores.length}</span></p>
                       )}
@@ -565,10 +527,9 @@ export default function ImportarPage() {
             </div>
           </div>
         )}
-
         {/* Histórico de cargas */}
         {historico.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mt-6">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
               <History className="w-5 h-5 text-sena" />
               <h2 className="text-base font-bold text-gray-900">Histórico de importaciones</h2>
@@ -581,6 +542,7 @@ export default function ImportarPage() {
                     <th className="text-left px-6 py-3 font-medium">Usuario</th>
                     <th className="text-center px-6 py-3 font-medium">Creados</th>
                     <th className="text-center px-6 py-3 font-medium">Omitidos</th>
+                    <th className="text-center px-6 py-3 font-medium">Descartados</th>
                     <th className="text-center px-6 py-3 font-medium">Errores</th>
                   </tr>
                 </thead>
@@ -600,6 +562,15 @@ export default function ImportarPage() {
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                           {h.omitidos}
                         </span>
+                      </td>
+                      <td className="px-6 py-3 text-center">
+                        {h.descartados > 0 ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                            {h.descartados}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">0</span>
+                        )}
                       </td>
                       <td className="px-6 py-3 text-center">
                         {h.errores > 0 ? (

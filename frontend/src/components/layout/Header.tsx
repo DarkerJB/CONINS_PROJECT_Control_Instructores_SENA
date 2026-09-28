@@ -1,16 +1,15 @@
 import { Bell, LogOut, Menu, Check, Loader2 } from "lucide-react"
 import { useRouter } from "next/router"
 import { useAuth } from "@/lib/AuthContext"
-import { useConfirm } from "@/lib/ConfirmContext"
 import { api } from "@/lib/api"
 import { useState, useRef, useEffect, useCallback } from "react"
 import GlobalSearch from "./GlobalSearch"
 
-type Notificacion = {
+type AlertaCampanita = {
   id: number
   mensaje: string
   tipo: string
-  leida: boolean
+  atendida: boolean
   created_at: string
 }
 
@@ -36,12 +35,11 @@ type HeaderProps = {
 
 export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }: HeaderProps) {
   const { user, logout } = useAuth()
-  const confirm = useConfirm()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
-  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
-  const [noLeidasCount, setNoLeidasCount] = useState(0)
-  const [loadingNotifs, setLoadingNotifs] = useState(false)
+  const [alertas, setAlertas] = useState<AlertaCampanita[]>([])
+  const [sinAtenderCount, setSinAtenderCount] = useState(0)
+  const [loadingAlertas, setLoadingAlertas] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Cerrar dropdown al hacer clic afuera
@@ -55,14 +53,13 @@ export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  // Cargar conteo de no leídas al montar y cada 30s
+  // Cargar conteo de no atendidas al montar y cada 30s
   const cargarConteo = useCallback(async () => {
     try {
-      // La campanita refleja las ALERTAS no atendidas (no notificaciones).
       const res = await api.alertas.getNoAtendidasCount()
-      setNoLeidasCount(res.data?.count ?? 0)
+      setSinAtenderCount(res.data?.count ?? 0)
     } catch {
-      // Silencioso — si falla no rompe nada
+      // Silencioso
     }
   }, [])
 
@@ -74,17 +71,16 @@ export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }
     }
   }, [user, cargarConteo])
 
-  // Cargar notificaciones al abrir el dropdown
-  const cargarNotificaciones = async () => {
-    setLoadingNotifs(true)
+  // Cargar alertas no atendidas al abrir el dropdown
+  const cargarAlertas = async () => {
+    setLoadingAlertas(true)
     try {
-      // Lista las alertas NO atendidas (las que hay que revisar).
       const res = await api.alertas.getAll(true)
-      setNotificaciones((res.data || []).slice(0, 8))
+      setAlertas((res.data || []).slice(0, 8))
     } catch {
-      setNotificaciones([])
+      setAlertas([])
     } finally {
-      setLoadingNotifs(false)
+      setLoadingAlertas(false)
     }
   }
 
@@ -92,18 +88,16 @@ export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }
     const abriendo = !isOpen
     setIsOpen(abriendo)
     if (abriendo) {
-      cargarNotificaciones()
+      cargarAlertas()
       onViewAlertas()
     }
   }
 
   const handleAtender = async (id: number) => {
-    if (!(await confirm({ title: "Marcar como atendida", message: "¿Confirmas que esta alerta ya fue atendida? Dejará de aparecer como pendiente." }))) return
     try {
-      // Atender una alerta la saca del pendiente y baja el contador.
       await api.alertas.marcarAtendida(id)
-      setNotificaciones((prev) => prev.filter((n) => n.id !== id))
-      setNoLeidasCount((prev) => Math.max(0, prev - 1))
+      setAlertas((prev) => prev.filter((a) => a.id !== id))
+      setSinAtenderCount((prev) => Math.max(0, prev - 1))
     } catch {
       // Silencioso
     }
@@ -146,16 +140,16 @@ export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }
         {/* Búsqueda global */}
         <GlobalSearch />
 
-        {/* Notificaciones */}
+        {/* Alertas */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={handleToggle}
             className="relative text-gray-500 hover:text-sena transition-colors"
           >
             <Bell className="w-5 h-5" />
-            {noLeidasCount > 0 && (
+            {sinAtenderCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-sena text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
-                {noLeidasCount > 99 ? "99+" : noLeidasCount}
+                {sinAtenderCount > 99 ? "99+" : sinAtenderCount}
               </span>
             )}
           </button>
@@ -166,9 +160,9 @@ export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }
               <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h3 className="text-sm font-bold text-gray-900">
                   Alertas
-                  {noLeidasCount > 0 && (
+                  {sinAtenderCount > 0 && (
                     <span className="ml-2 text-xs font-normal text-gray-500">
-                      {noLeidasCount} sin atender
+                      {sinAtenderCount} sin atender
                     </span>
                   )}
                 </h3>
@@ -176,37 +170,37 @@ export default function Header({ alertasViewed, onViewAlertas, onToggleSidebar }
 
               {/* Lista */}
               <div className="max-h-80 overflow-y-auto">
-                {loadingNotifs ? (
+                {loadingAlertas ? (
                   <div className="py-8 flex items-center justify-center text-gray-400">
                     <Loader2 className="w-5 h-5 animate-spin" />
                   </div>
-                ) : notificaciones.length === 0 ? (
+                ) : alertas.length === 0 ? (
                   <div className="py-8 text-center text-sm text-gray-400">
                     No hay alertas pendientes
                   </div>
                 ) : (
-                  notificaciones.map((notif) => (
+                  alertas.map((alerta) => (
                     <div
-                      key={notif.id}
+                      key={alerta.id}
                       className="px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex items-start gap-3">
                         <span className="mt-1.5 w-2 h-2 rounded-full shrink-0 bg-sena" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-700">{notif.mensaje}</p>
+                          <p className="text-sm text-gray-700">{alerta.mensaje}</p>
                           <div className="flex items-center justify-between mt-1">
                             <p className="text-xs text-gray-400">
-                              {notif.created_at ? tiempoRelativo(notif.created_at) : ""}
+                              {alerta.created_at ? tiempoRelativo(alerta.created_at) : ""}
                             </p>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                handleAtender(notif.id)
+                                handleAtender(alerta.id)
                               }}
                               className="text-xs text-sena hover:underline flex items-center gap-1"
                             >
                               <Check className="w-3 h-3" />
-                              Marcar como atendida
+                              Atender
                             </button>
                           </div>
                         </div>

@@ -4,13 +4,11 @@ import { useDebounce } from "@/lib/useDebounce"
 import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
-import { useConfirm } from "@/lib/ConfirmContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
 import { formatJornada } from "@/lib/terminology"
 import CrearFichaModal from "@/components/fichas/CrearFichaModal"
 import DetailFichaModal from "@/components/fichas/DetailFichaModal"
 import EditFichaModal from "@/components/fichas/EditFichaModal"
-import RapSeguimientoModal from "@/components/fichas/RapSeguimientoModal"
 import NovedadFichaModal from "@/components/fichas/NovedadFichaModal"
 import DetailInstructorModal from "@/components/instructores/DetailInstructorModal"
 import {
@@ -23,7 +21,7 @@ import {
   ChevronRight,
   Loader2,
   AlertTriangle,
-  ClipboardList,
+
   FileWarning,
   BookOpen,
   FileDown,
@@ -51,13 +49,11 @@ export default function FichasPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useProtectedRoute()
   const { showToast } = useToast()
-  const confirm = useConfirm()
   const [fichas, setFichas] = useState<Ficha[]>([])
   const [loading, setLoading] = useState(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [isRapModalOpen, setIsRapModalOpen] = useState(false)
   const [isNovedadModalOpen, setIsNovedadModalOpen] = useState(false)
   const [selectedFicha, setSelectedFicha] = useState<Ficha | null>(null)
   const [isInstructorModalOpen, setIsInstructorModalOpen] = useState(false)
@@ -182,11 +178,6 @@ export default function FichasPage() {
     setIsEditModalOpen(true)
   }
 
-  const openRapModal = (ficha: Ficha) => {
-    setSelectedFicha(ficha)
-    setIsRapModalOpen(true)
-  }
-
   const openNovedadModal = (ficha: Ficha) => {
     setSelectedFicha(ficha)
     setIsNovedadModalOpen(true)
@@ -212,7 +203,6 @@ export default function FichasPage() {
 
   const handleEditFicha = async (data: Partial<Ficha>) => {
     if (!selectedFicha) return
-    if (!(await confirm({ title: "Guardar cambios", message: `¿Confirmas los cambios en el grupo ${selectedFicha.numero_ficha}?` }))) return
     try {
       await api.fichas.update(selectedFicha.id, data)
       showToast("Grupo actualizado exitosamente", "success")
@@ -422,13 +412,6 @@ export default function FichasPage() {
                               <FileDown className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => openRapModal(ficha)}
-                              className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
-                              title="Seguimiento RAPs"
-                            >
-                              <ClipboardList className="w-4 h-4" />
-                            </button>
-                            <button
                               onClick={() => openNovedadModal(ficha)}
                               className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded transition-colors"
                               title="Novedades"
@@ -465,13 +448,6 @@ export default function FichasPage() {
                               title="Descargar PDF"
                             >
                               <FileDown className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => openRapModal(ficha)}
-                              className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
-                              title="Seguimiento RAPs"
-                            >
-                              <ClipboardList className="w-4 h-4" />
                             </button>
                           </div>
                         )}
@@ -520,7 +496,6 @@ export default function FichasPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={async (data) => {
-          if (!(await confirm({ title: "Registrar grupo", message: data.numero_ficha ? `¿Confirmas el registro del grupo ${data.numero_ficha}?` : "¿Confirmas el registro de este grupo?" }))) return
           try {
             await api.fichas.create(data)
             showToast("Grupo registrado exitosamente", "success")
@@ -554,14 +529,6 @@ export default function FichasPage() {
         onSubmit={handleEditFicha}
       />
 
-      <RapSeguimientoModal
-        isOpen={isRapModalOpen}
-        onClose={() => setIsRapModalOpen(false)}
-        fichaId={selectedFicha?.id ?? null}
-        fichaNumero={selectedFicha?.numero_ficha ?? ""}
-        puedeEditar={puedeEditar}
-        onToast={showToast}
-      />
 
       <NovedadFichaModal
         isOpen={isNovedadModalOpen}

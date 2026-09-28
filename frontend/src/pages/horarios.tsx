@@ -5,13 +5,13 @@ import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
-import { useConfirm } from "@/lib/ConfirmContext"
 import { formatJornada } from "@/lib/terminology"
 import { exportarHorariosPDF, exportarHorarioIndividualPDF } from "@/lib/exportPDF"
 import CrearHorarioModal from "@/components/horarios/CrearHorarioModal"
 import CrearBloqueHorarioModal from "@/components/horarios/CrearBloqueHorarioModal"
 import EditarHorarioModal from "@/components/horarios/EditarHorarioModal"
 import GrillaHorarios from "@/components/horarios/GrillaHorarios"
+import VistaRapidaHorarioModal from "@/components/horarios/VistaRapidaHorarioModal"
 import DetailInstructorModal from "@/components/instructores/DetailInstructorModal"
 import DetailFichaModal from "@/components/fichas/DetailFichaModal"
 import VerAgendaAmbienteModal from "@/components/ambientes/VerAgendaAmbienteModal"
@@ -59,6 +59,12 @@ type Horario = {
   rap_id?: number | null
   rap_codigo?: string | null
   rap_descripcion?: string | null
+  es_complementaria?: number | boolean
+  programa?: string
+  programa_codigo?: string
+  modalidad?: string
+  fecha_inicio?: string
+  fecha_fin?: string | null
 }
 
 
@@ -66,12 +72,12 @@ export default function HorariosPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useProtectedRoute()
   const { showToast } = useToast()
-  const confirm = useConfirm()
   const [horarios, setHorarios] = useState<Horario[]>([])
   const [loading, setLoading] = useState(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [selectedHorario, setSelectedHorario] = useState<Horario | null>(null)
+  const [createPrefill, setCreatePrefill] = useState<{ jornadaKey?: string; dia?: number } | undefined>(undefined)
 
   // Accesos directos — modales de detalle
   const [isInstructorModalOpen, setIsInstructorModalOpen] = useState(false)
@@ -80,6 +86,11 @@ export default function HorariosPage() {
   const [selectedFicha, setSelectedFicha] = useState<any>(null)
   const [isAmbienteModalOpen, setIsAmbienteModalOpen] = useState(false)
   const [selectedAmbiente, setSelectedAmbiente] = useState<any>(null)
+
+  // Vista rápida de horarios
+  const [vistaRapida, setVistaRapida] = useState<{ isOpen: boolean; tipo: "instructor" | "grupo" | "ambiente"; valor: string; semana?: string; vista?: "dia" | "semana" }>({
+    isOpen: false, tipo: "instructor", valor: "",
+  })
 
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean
@@ -98,11 +109,73 @@ export default function HorariosPage() {
   const [filtroJornada, setFiltroJornada] = useState<string[]>([])
   const [filtroAmbiente, setFiltroAmbiente] = useState<string[]>([])
   const [filtroEstado, setFiltroEstado] = useState<string[]>([])
+  const [filtroFormacion, setFiltroFormacion] = useState<"todas" | "regular" | "complementaria">("todas")
   const [vistaGrilla, setVistaGrilla] = useState(true)
   const [mostrarInactivos, setMostrarInactivos] = useState(false)
-  const [semanaGrilla, setSemanaGrilla] = useState<string | undefined>(undefined)
+  const [filtroVista, setFiltroVista] = useState<"semana" | "dia" | "mes">("semana")
+  const [exportandoMes, setExportandoMes] = useState(false)
+
+  // Semana actual por defecto (lunes de esta semana en formato ISO)
+  const getLunesActual = () => {
+    const now = new Date()
+    const day = now.getDay()
+    const diff = day === 0 ? -6 : 1 - day
+    const lunes = new Date(now)
+    lunes.setDate(now.getDate() + diff)
+    return lunes.toISOString().split("T")[0]
+  }
+  const [semanaGrilla, setSemanaGrilla] = useState<string | undefined>(getLunesActual)
   const [horariosGrilla, setHorariosGrilla] = useState<Horario[]>([])
   const [loadingGrilla, setLoadingGrilla] = useState(false)
+
+  const DIAS_ABREV_HOY = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"]
+  const diaHoyAbrev = DIAS_ABREV_HOY[new Date().getDay()]
+
+  // Obtener todos los lunes del mes actual
+  const getLunesDelMes = () => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = now.getMonth()
+    const lunes: string[] = []
+    const d = new Date(year, month, 1)
+    // Ir al primer lunes del mes (o antes si el mes empieza después del lunes)
+    while (d.getDay() !== 1) d.setDate(d.getDate() - 1)
+    // Recorrer semana a semana hasta salir del mes
+    while (d.getMonth() <= month || (d.getMonth() === 0 && month === 11)) {
+      lunes.push(d.toISOString().split("T")[0])
+      d.setDate(d.getDate() + 7)
+      if (d.getFullYear() > year || (d.getFullYear() === year && d.getMonth() > month)) {
+        // Incluir la última semana si arranca en el mes
+        break
+      }
+    }
+    return lunes
+  }
+
+  const exportarMesPDF = async () => {
+    setExportandoMes(true)
+    try {
+      const semanas = getLunesDelMes()
+      const todas: Horario[] = []
+      const idsVistos = new Set<number>()
+      for (const sem of semanas) {
+        const res = await api.horarios.getAll(sem)
+        const data = (res.data || []) as Horario[]
+        for (const h of data) {
+          if (!idsVistos.has(h.id) && h.activo) {
+            idsVistos.add(h.id)
+            todas.push(h)
+          }
+        }
+      }
+      const mesLabel = new Date().toLocaleDateString("es-CO", { month: "long", year: "numeric" })
+      exportarHorariosPDF(aplicarFiltros(todas), `Horarios del mes — ${mesLabel}`)
+    } catch {
+      showToast("Error al exportar horarios del mes", "error")
+    } finally {
+      setExportandoMes(false)
+    }
+  }
 
   const rol = user?.roles?.[0]?.trim() || ""
   const puedeEditar = !["Instructor", "Subdirector"].includes(rol)
@@ -162,7 +235,9 @@ export default function HorariosPage() {
     const coincideAmbiente = filtroAmbiente.length === 0 || filtroAmbiente.includes(h.ambiente || "")
     const coincideJornada = filtroJornada.length === 0 || filtroJornada.includes(h.jornada)
     const coincideEstado = filtroEstado.length === 0 || filtroEstado.includes(h.estado)
-    return coincideBusqueda && coincideFicha && coincideInstructor && coincideAmbiente && coincideJornada && coincideEstado
+    const esCompl = h.es_complementaria === 1 || h.es_complementaria === true
+    const coincideFormacion = filtroFormacion === "todas" || (filtroFormacion === "complementaria" ? esCompl : !esCompl)
+    return coincideBusqueda && coincideFicha && coincideInstructor && coincideAmbiente && coincideJornada && coincideEstado && coincideFormacion
   })
 
   const horariosGrillaFiltrados = aplicarFiltros(horariosGrilla)
@@ -180,14 +255,16 @@ export default function HorariosPage() {
     const coincideAmbiente = filtroAmbiente.length === 0 || filtroAmbiente.includes(h.ambiente || "")
     const coincideJornada = filtroJornada.length === 0 || filtroJornada.includes(h.jornada)
     const coincideEstado = filtroEstado.length === 0 || filtroEstado.includes(h.estado)
+    const esCompl = h.es_complementaria === 1 || h.es_complementaria === true
+    const coincideFormacion = filtroFormacion === "todas" || (filtroFormacion === "complementaria" ? esCompl : !esCompl)
 
-    return coincideBusqueda && coincideFicha && coincideInstructor && coincideAmbiente && coincideJornada && coincideEstado
+    return coincideBusqueda && coincideFicha && coincideInstructor && coincideAmbiente && coincideJornada && coincideEstado && coincideFormacion
   })
 
   const totalPaginas = Math.ceil(listaFiltrada.length / porPagina)
   const listaPaginada = listaFiltrada.slice((paginaActual - 1) * porPagina, paginaActual * porPagina)
 
-  useEffect(() => { setPaginaActual(1) }, [search, filtroFicha, filtroInstructor, filtroAmbiente, filtroJornada, filtroEstado])
+  useEffect(() => { setPaginaActual(1) }, [search, filtroFicha, filtroInstructor, filtroAmbiente, filtroJornada, filtroEstado, filtroFormacion])
 
   // ─── Accesos directos ───
   const openInstructorDetail = async (h: Horario) => {
@@ -243,7 +320,6 @@ export default function HorariosPage() {
   }
 
   const handleCreate = async (data: any) => {
-    if (!(await confirm({ title: "Crear horario", message: "¿Confirmas la creación de este horario?" }))) return
     try {
       const now = new Date()
       const day = now.getDay()
@@ -253,23 +329,43 @@ export default function HorariosPage() {
       const semana = lunes.toISOString().split('T')[0]
 
       const dias = data.dias || [data.dia_semana] // Fallback for single day
-      
+
       for (const dia of dias) {
-        const payload = {
-          ficha_id: data.ficha_id,
-          instructor_id: data.instructor_id,
-          competencia_id: data.competencia_id,
-          dia_semana: Number(dia),
-          hora_inicio: data.hora_inicio,
-          hora_fin: data.hora_fin,
-          jornada_id: data.jornada_id,
-          ambiente_id: data.ambiente_id,
-          tipo_actividad_id: data.tipo_actividad_id ?? null,
-          semana,
+        if (data.es_complementaria) {
+          // Modo complementaria — usa fecha_inicio/fecha_fin, no semana
+          const payload = {
+            es_complementaria: true,
+            instructor_id: data.instructor_id,
+            programa_id: data.programa_id,
+            modalidad: data.modalidad,
+            observaciones: data.observaciones || undefined,
+            fecha_inicio: data.fecha_inicio,
+            fecha_fin: data.fecha_fin || null,
+            dia_semana: Number(dia),
+            hora_inicio: data.hora_inicio,
+            hora_fin: data.hora_fin,
+            jornada_id: data.jornada_id,
+            ambiente_id: data.ambiente_id || undefined,
+          }
+          await api.horarios.create(payload)
+        } else {
+          // Modo normal
+          const payload = {
+            ficha_id: data.ficha_id,
+            instructor_id: data.instructor_id,
+            competencia_id: data.competencia_id,
+            dia_semana: Number(dia),
+            hora_inicio: data.hora_inicio,
+            hora_fin: data.hora_fin,
+            jornada_id: data.jornada_id,
+            ambiente_id: data.ambiente_id,
+            tipo_actividad_id: data.tipo_actividad_id ?? null,
+            semana,
+          }
+          await api.horarios.create(payload)
         }
-        await api.horarios.create(payload)
       }
-      
+
       showToast("Horario registrado exitosamente", "success")
       setIsCreateModalOpen(false)
       cargarHorarios()
@@ -284,7 +380,6 @@ export default function HorariosPage() {
 
   const handleEdit = async (data: any) => {
     if (!selectedHorario) return
-    if (!(await confirm({ title: "Guardar cambios", message: "¿Confirmas los cambios en este horario?" }))) return
     try {
       const res = await api.horarios.update(selectedHorario.id, data)
       
@@ -360,11 +455,27 @@ export default function HorariosPage() {
               {vistaGrilla ? "Ver tabla" : "Ver horario"}
             </button>
             <button
-              onClick={() => exportarHorariosPDF(listaFiltrada)}
-              className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+              onClick={() => {
+                if (filtroVista === "mes") {
+                  exportarMesPDF()
+                  return
+                }
+                let datos = vistaGrilla ? horariosGrillaFiltrados : listaFiltrada
+                let label = "Malla de Horarios Semanal"
+                if (vistaGrilla && filtroVista === "dia") {
+                  datos = datos.filter((h: any) => {
+                    const dias = Array.isArray(h.dias) ? h.dias : []
+                    return dias.includes(diaHoyAbrev)
+                  })
+                  label = `Horarios del día — ${new Date().toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" })}`
+                }
+                exportarHorariosPDF(datos, label)
+              }}
+              disabled={exportandoMes}
+              className={`border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm ${exportandoMes ? "opacity-50 cursor-wait" : ""}`}
             >
-              <FileDown className="w-4 h-4" />
-              Exportar PDF
+              {exportandoMes ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+              {exportandoMes ? "Exportando..." : "Exportar PDF"}
             </button>
             {puedeEditar && (
               <button
@@ -391,27 +502,38 @@ export default function HorariosPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3 w-full md:flex md:flex-wrap md:w-auto">
-            <MultiSelect
-              label="Grupo"
-              allLabel="Todos"
-              options={[...new Set(horarios.map((h) => h.ficha_numero))].sort().map((f) => ({ value: f, label: f }))}
-              selected={filtroFicha}
-              onChange={setFiltroFicha}
-            />
-            <MultiSelect
-              label="Instructor"
-              allLabel="Todos"
-              options={[...new Set(horarios.map((h) => h.instructor_nombre))].sort().map((i) => ({ value: i, label: i }))}
-              selected={filtroInstructor}
-              onChange={setFiltroInstructor}
-            />
-            <MultiSelect
-              label="Ambiente"
-              allLabel="Todos"
-              options={[...new Set(horarios.map((h) => h.ambiente).filter(Boolean))].sort().map((a) => ({ value: a, label: a }))}
-              selected={filtroAmbiente}
-              onChange={setFiltroAmbiente}
-            />
+            {(() => {
+              const fuente = vistaGrilla ? horariosGrilla : horarios
+              return (
+                <>
+                <MultiSelect
+                  label="Grupo"
+                  allLabel="Todos"
+                  options={[...new Set(fuente.map((h) => h.ficha_numero))].sort().map((f) => ({ value: f, label: f }))}
+                  selected={filtroFicha}
+                  onChange={setFiltroFicha}
+                />
+                {rol !== "Instructor" && (
+                <MultiSelect
+                  label="Instructor"
+                  allLabel="Todos"
+                  options={[...new Set(fuente.map((h) => h.instructor_nombre))].sort().map((i) => ({ value: i, label: i }))}
+                  selected={filtroInstructor}
+                  onChange={setFiltroInstructor}
+                />
+                )}
+                {rol !== "Instructor" && (
+                <MultiSelect
+                  label="Ambiente"
+                  allLabel="Todos"
+                  options={[...new Set(fuente.map((h) => h.ambiente).filter(Boolean))].sort().map((a) => ({ value: a, label: a }))}
+                  selected={filtroAmbiente}
+                  onChange={setFiltroAmbiente}
+                />
+                )}
+                </>
+              )
+            })()}
             <MultiSelect
               label="Jornada"
               allLabel="Todas"
@@ -424,17 +546,15 @@ export default function HorariosPage() {
               selected={filtroJornada}
               onChange={setFiltroJornada}
             />
-            <MultiSelect
-              label="Estado"
-              allLabel="Todos"
-              options={[
-                { value: "Aprobado", label: "Aprobado" },
-                { value: "Pendiente", label: "Pendiente" },
-                { value: "Rechazado", label: "Rechazado" },
-              ]}
-              selected={filtroEstado}
-              onChange={setFiltroEstado}
-            />
+            <select
+              value={filtroFormacion}
+              onChange={(e) => setFiltroFormacion(e.target.value as any)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sena/50 bg-white"
+            >
+              <option value="todas">Formación: Todas</option>
+              <option value="regular">Regular</option>
+              <option value="complementaria">Complementaria</option>
+            </select>
           </div>
         </div>
 
@@ -454,7 +574,42 @@ export default function HorariosPage() {
         )}
 
         {vistaGrilla ? (
-          <GrillaHorarios horarios={horariosGrillaFiltrados} onSemanaChange={handleSemanaChange} loading={loadingGrilla} />
+          <div className="space-y-4">
+            {/* Toggle día / semana / mes */}
+            <div className="flex items-center gap-2">
+              {(["dia", "semana", "mes"] as const).map((vista) => (
+                <button
+                  key={vista}
+                  onClick={() => setFiltroVista(vista)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    filtroVista === vista
+                      ? "bg-sena text-white"
+                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {vista === "dia" ? "Día" : vista === "semana" ? "Semana" : "Mes"}
+                </button>
+              ))}
+            </div>
+            <GrillaHorarios
+              horarios={horariosGrillaFiltrados}
+              onSemanaChange={handleSemanaChange}
+              loading={loadingGrilla}
+              filterDia={filtroVista === "dia" ? diaHoyAbrev : undefined}
+              onClickEntidad={(tipo, valor) => {
+                setVistaRapida({ isOpen: true, tipo, valor, semana: semanaGrilla })
+              }}
+              onClickEmpty={puedeEditar ? (dia, jornadaKey) => {
+                const diaMap: Record<string, number> = { Lun: 1, Mar: 2, Mie: 3, Jue: 4, Vie: 5, Sab: 6 }
+                setCreatePrefill({ jornadaKey, dia: diaMap[dia] })
+                setIsCreateModalOpen(true)
+              } : undefined}
+              onClickHorario={puedeEditar ? (h) => {
+                setSelectedHorario(h as any)
+                setIsEditModalOpen(true)
+              } : undefined}
+            />
+          </div>
         ) : (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           {loading ? (
@@ -482,19 +637,19 @@ export default function HorariosPage() {
                   {listaPaginada.map((h) => (
                     <tr key={h.id} className={`hover:bg-gray-50/50 transition-colors ${!h.activo ? "opacity-50 bg-gray-50" : ""}`}>
                       <td className="px-3 py-3 md:px-6 md:py-4 font-medium text-gray-900">
-                        <button onClick={() => openFichaDetail(h)} className="hover:text-sena hover:underline transition-colors text-left">
+                        <button onClick={() => setVistaRapida({ isOpen: true, tipo: "grupo", valor: h.ficha_numero })} className="hover:text-sena hover:underline transition-colors text-left">
                           {h.ficha_numero}
                         </button>
                       </td>
                       <td className="px-3 py-3 md:px-6 md:py-4 text-gray-700">
-                        <button onClick={() => openInstructorDetail(h)} className="hover:text-sena hover:underline transition-colors text-left">
+                        <button onClick={() => setVistaRapida({ isOpen: true, tipo: "instructor", valor: h.instructor_nombre })} className="hover:text-sena hover:underline transition-colors text-left">
                           {h.instructor_nombre}
                         </button>
                       </td>
                       <td className="px-3 py-3 md:px-6 md:py-4 text-gray-500">{h.competencia}</td>
                       <td className="px-3 py-3 md:px-6 md:py-4 text-gray-500">
                         {h.ambiente ? (
-                          <button onClick={() => openAmbienteDetail(h)} className="hover:text-sena hover:underline transition-colors text-left">
+                          <button onClick={() => setVistaRapida({ isOpen: true, tipo: "ambiente", valor: h.ambiente })} className="hover:text-sena hover:underline transition-colors text-left">
                             {h.ambiente}
                           </button>
                         ) : <span className="text-gray-300">—</span>}
@@ -614,8 +769,9 @@ export default function HorariosPage() {
 
       <CrearHorarioModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => { setIsCreateModalOpen(false); setCreatePrefill(undefined) }}
         onSubmit={handleCreate}
+        prefill={createPrefill}
       />
 
       <EditarHorarioModal
@@ -661,6 +817,16 @@ export default function HorariosPage() {
         isOpen={isAmbienteModalOpen}
         onClose={() => setIsAmbienteModalOpen(false)}
         ambiente={selectedAmbiente}
+      />
+
+      <VistaRapidaHorarioModal
+        isOpen={vistaRapida.isOpen}
+        onClose={() => setVistaRapida({ ...vistaRapida, isOpen: false })}
+        tipo={vistaRapida.tipo}
+        valor={vistaRapida.valor}
+        semanaInicial={vistaRapida.semana}
+        soloHoy={filtroVista === "dia"}
+        ocultarDisponibilidad={rol === "Instructor"}
       />
 
     </DashboardLayout>

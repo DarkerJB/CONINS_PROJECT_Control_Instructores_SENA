@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react"
+import { useRouter } from "next/router"
 import { useDebounce } from "@/lib/useDebounce"
 import DashboardLayout from "@/layouts/DashboardLayout"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/ToastContext"
-import { useConfirm } from "@/lib/ConfirmContext"
 import { useProtectedRoute } from "@/lib/useProtectedRoute"
 import CreateInstructorModal from "@/components/instructores/CreateInstructorModal"
 import NovedadModal from "@/components/instructores/NovedadModal"
@@ -32,6 +32,7 @@ type Instructor = {
   nombre: string
   email: string
   tipo_area: string
+  tipo_vinculacion?: string
   activo: boolean
   roles: string
   horas_semana?: number
@@ -39,9 +40,9 @@ type Instructor = {
 }
 
 export default function InstructoresPage() {
+  const router = useRouter()
   const { user, loading: authLoading } = useProtectedRoute()
   const { showToast } = useToast()
-  const confirm = useConfirm()
   const [instructores, setInstructores] = useState<Instructor[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -72,9 +73,16 @@ export default function InstructoresPage() {
   const esSubdirector = rol === "Subdirector"
   const puedeEditar = !["Instructor", "Subdirector"].includes(rol)
 
+  // Instructores no tienen acceso a esta página — redirigir a su perfil
   useEffect(() => {
-    cargarInstructores()
-  }, [])
+    if (!authLoading && rol === "Instructor") {
+      router.replace("/perfil")
+    }
+  }, [authLoading, rol])
+
+  useEffect(() => {
+    if (rol !== "Instructor") cargarInstructores()
+  }, [rol])
 
   const cargarInstructores = async () => {
     setLoading(true)
@@ -88,8 +96,7 @@ export default function InstructoresPage() {
     }
   }
 
-  const handleCreateInstructor = async (data: { nombre: string; email: string; tipo_area: string }) => {
-    if (!(await confirm({ title: "Registrar instructor", message: `¿Confirmas el registro del instructor ${data.nombre}?` }))) return
+  const handleCreateInstructor = async (data: { nombre: string; email: string; tipo_area: string; tipo_vinculacion: string }) => {
     await api.instructors.create(data)
     showToast("Instructor registrado exitosamente", "success")
     setIsCreateModalOpen(false)
@@ -135,7 +142,6 @@ export default function InstructoresPage() {
 
   const handleEditInstructor = async (data: Partial<Instructor>) => {
     if (!selectedInstructor) return
-    if (!(await confirm({ title: "Guardar cambios", message: `¿Confirmas los cambios en el instructor ${selectedInstructor.nombre}?` }))) return
     try {
       await api.instructors.update(selectedInstructor.id, data)
       showToast("Instructor actualizado exitosamente", "success")
